@@ -1,4 +1,4 @@
-module github.com/hashicorp-support/consul-environment-review
+module github.com/natemollica-nm/consul-debug-reader
 
 go 1.20
 

@@ -3,9 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/hashicorp-support/consul-environment-review/internal"
-	"github.com/hashicorp-support/consul-environment-review/internal/commands"
 	"github.com/mitchellh/cli"
+	"github.com/natemollica-nm/consul-debug-reader/debug-read/internal/commands"
 	"os"
 )
 
