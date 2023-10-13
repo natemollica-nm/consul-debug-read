@@ -206,11 +206,10 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 
 		selectedFile = bundles[selected-1]
 		sourceFilePath = filepath.Join(sourceDir, selectedFile.Name())
-		extractedBundleDir = GetExtractName(filepath.Base(selectedFile.Name()))
 	} else {
 		sourceFilePath = sourceDir
-		extractedBundleDir = GetExtractName(filepath.Base(sourceFilePath))
 	}
+	extractedBundleDir = filepath.Join(sourceDir, GetExtractName(filepath.Base(selectedFile.Name())))
 
 	fmt.Printf("Extracting: %s\n", sourceFilePath)
 	if err := extractTarGz(sourceFilePath, filepath.Dir(sourceFilePath)); err != nil {
@@ -354,4 +353,19 @@ func ExecuteJQ(data string, jqFilter string) (string, error) {
 	}
 
 	return string(result), nil
+}
+
+func ConvertSecondsReadable(seconds int) string {
+	// Calculate days, hours, minutes, and seconds
+	days := seconds / 86400
+	seconds %= 86400
+	hours := seconds / 3600
+	seconds %= 3600
+	minutes := seconds / 60
+	sec := seconds % 60
+
+	// Format the uptime in a human-readable way
+	formatted := fmt.Sprintf("%d days, %d hours, %d minutes, %d seconds", days, hours, minutes, sec)
+
+	return formatted
 }

@@ -5,6 +5,7 @@ import (
 	mFuncs "consul-debug-read/metrics"
 	"fmt"
 	"github.com/spf13/cobra"
+	"time"
 )
 
 // metricsCmd represents the metrics command
@@ -23,6 +24,7 @@ Example usage:
 		p, _ := cmd.Flags().GetBool("points")
 		c, _ := cmd.Flags().GetBool("counters")
 		s, _ := cmd.Flags().GetBool("samples")
+		h, _ := cmd.Flags().GetBool("host")
 
 		// If list called just get and list available metrics and return
 		if l {
@@ -34,8 +36,10 @@ Example usage:
 
 		// Get Metrics object
 		m := debugBundle.Metrics
+		host := debugBundle.Host
+		conv := funcs.ByteConverter{}
 		metricsFile := fmt.Sprintf(debugPath + "/metrics.json")
-
+		hostFile := fmt.Sprintf(debugPath + "/host.json")
 		// Interpret metrics specific flags
 		n, _ := cmd.Flags().GetString("name")
 		if n != "" {
@@ -43,7 +47,7 @@ Example usage:
 				return err
 			}
 			for _, metric := range m.Metrics {
-				conv := funcs.ByteConverter{}
+
 				value := metric.ExtractMetricValueByName(n)
 				if value != nil {
 					fmt.Printf("%s '%s': %v\n", metric.Timestamp, n, conv.ConvertToReadableBytes(value))
@@ -65,6 +69,30 @@ Example usage:
 			fmt.Println("Stop:", stop)
 			fmt.Printf("Duration: %v\n", funcs.TimeStampDuration(start, stop))
 			fmt.Println("Number of Captures:", len(m.Metrics))
+		case h:
+			bootTimeStamp := time.Unix(int64(host.Host.BootTime), 0)
+			bootTime := bootTimeStamp.Format("2006-01-02 15:04:05 MST")
+			upTime := funcs.ConvertSecondsReadable(host.Host.Uptime)
+			fmt.Printf("\nHost Metrics Summary: %s\n", hostFile)
+			fmt.Println("----------------------")
+			fmt.Println("OS:", host.Host.Os)
+			fmt.Println("Host Name", host.Host.Hostname)
+			fmt.Println("Architecture:", host.Host.KernelArch)
+			fmt.Println("Number of Cores:", len(host.CPU))
+			fmt.Println("CPU Vendor ID:", host.CPU[0].VendorID)
+			fmt.Println("CPU Model Name:", host.CPU[0].ModelName)
+			fmt.Printf("Platform: %s | %s\n", host.Host.Platform, host.Host.PlatformVersion)
+			fmt.Println("Running Since:", bootTime)
+			fmt.Println("Uptime at Capture:", upTime)
+			fmt.Printf("\nHost Memory Metrics Summary: %s\n", hostFile)
+			fmt.Println("----------------------")
+			fmt.Println("Total:", conv.ConvertToReadableBytes(host.Memory.Total))
+			fmt.Printf("Used: %s  (%.2f%%)\n", conv.ConvertToReadableBytes(host.Memory.Used), host.Memory.UsedPercent)
+			fmt.Println("Total Available:", conv.ConvertToReadableBytes(host.Memory.Available))
+			fmt.Println("VM Alloc Total:", conv.ConvertToReadableBytes(host.Memory.VmallocTotal))
+			fmt.Println("VM Alloc Used:", conv.ConvertToReadableBytes(host.Memory.VmallocUsed))
+			fmt.Println("Cached:", conv.ConvertToReadableBytes(host.Memory.Cached))
+
 		case g:
 			for _, metric := range m.Metrics {
 				fmt.Println("Timestamp:", metric.Timestamp)
@@ -114,6 +142,7 @@ func init() {
 	metricsCmd.Flags().BoolP("points", "p", false, "Retrieve Points metrics summary info only.")
 	metricsCmd.Flags().BoolP("counters", "c", false, "Retrieve Counters metrics summary info only.")
 	metricsCmd.Flags().BoolP("samples", "s", false, "Retrieve Samples metrics summary info only.")
+	metricsCmd.Flags().Bool("host", false, "Retrieve Host specific metrics.")
 	metricsCmd.Flags().BoolP("list", "l", false, "List available metric names to parse with by name.")
 	metricsCmd.Flags().StringP("name", "n", "", "Retrieve specific metric timestamped values by name.")
 }
