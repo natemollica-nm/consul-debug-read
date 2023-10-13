@@ -48,6 +48,7 @@ func ListMetrics() error {
 	if latestMetrics, err = getTelemetryMetrics(); err != nil {
 		return err
 	}
+	fmt.Printf("\nConsul Telemetry Metric Names (pulled from: %s)\n\nMetric Names\n--------------\n", telemetryURL)
 	for _, metricName := range latestMetrics {
 		fmt.Println(metricName)
 	}

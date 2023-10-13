@@ -26,4 +26,4 @@ go.work
 .idea
 
 # test debug bundle dir
-test/
+bundles/
