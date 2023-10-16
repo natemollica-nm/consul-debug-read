@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"consul-debug-read/lib"
+	"fmt"
+	"time"
+)
 
 type Config struct {
 	BuildDate         time.Time `json:"BuildDate"`
@@ -618,5 +622,25 @@ type Agent struct {
 	Member      Member      `json:"Member"`
 	Meta        Meta        `json:"Meta"`
 	Stats       Stats       `json:"Stats"`
-	xDS         xDS         `json:"xDS"`
+	XDS         xDS         `json:"xDS"`
+}
+
+func (a *Agent) RaftConfiguration() string {
+	var raftConfigFormatted string
+	var err error
+	raftConfig := lib.ConvertToValidJSON(a.Stats.Raft.LatestConfiguration)
+	if raftConfigFormatted, err = lib.ExecuteJQ(raftConfig, "."); err != nil {
+		return "Unable to retrieve"
+	}
+	return raftConfigFormatted
+}
+
+func (a *Agent) AgentSummary() {
+	fmt.Println("Server:", a.Config.Server)
+	fmt.Println("Version:", a.Config.Version)
+	fmt.Println("Datacenter:", a.Config.Datacenter)
+	fmt.Println("Primary DC:", a.Config.PrimaryDatacenter)
+	fmt.Println("NodeName:", a.Config.NodeName)
+	fmt.Println("Support Envoy Versions:", a.XDS.SupportedProxies.Envoy)
+	fmt.Printf("Latest Raft Configuration: \n%s", a.RaftConfiguration())
 }

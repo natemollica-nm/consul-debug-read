@@ -128,15 +128,6 @@ Example usage:
 
 func init() {
 	rootCmd.AddCommand(metricsCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// metricsCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
 	metricsCmd.Flags().Bool("summary", false, "Retrieve metrics summary info from bundle.")
 	metricsCmd.Flags().BoolP("gauges", "g", false, "Retrieve Gauges metrics summary info only.")
 	metricsCmd.Flags().BoolP("points", "p", false, "Retrieve Points metrics summary info only.")

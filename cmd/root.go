@@ -29,13 +29,19 @@ agent, and consul host information from a 'consul debug' cmd bundle capture.
 			} else {
 				debugPath = strings.TrimSuffix(debugPath, "/")
 			}
-
-			err := debugBundle.DecodeJSON(debugPath)
-			if err != nil {
-				fmt.Printf("failed to decode bundle: %v", err)
-				os.Exit(1)
+			if debugPath != "" {
+				err := debugBundle.DecodeJSON(debugPath)
+				if err != nil {
+					fmt.Printf("failed to decode bundle: %v", err)
+					os.Exit(1)
+				}
+				log.Printf("Successfully read-in bundle from:  '%s'\n\n", debugPath)
+			} else {
+				err := cmd.Help()
+				if err != nil {
+					return
+				}
 			}
-			log.Printf("Successfully read-in bundle from:  '%s'\n\n", debugPath)
 		},
 		// Uncomment the following line if your bare application
 		// has an action associated with it:
@@ -58,8 +64,8 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&debugPath, "debug-path", "", "File path to directory containing consul-debug.tar.gz bundle(s).")
-	rootCmd.PersistentFlags().StringVar(&debugFile, "debug-file", "", "File path to single consul-debug.tar.gz bundle.")
+	rootCmd.PersistentFlags().StringVarP(&debugPath, "debug-path", "d", "", "File path to directory containing consul-debug.tar.gz bundle(s).")
+	rootCmd.PersistentFlags().StringVarP(&debugFile, "debug-file", "f", "", "File path to single consul-debug.tar.gz bundle.")
 	rootCmd.MarkFlagsMutuallyExclusive("debug-path", "debug-file")
 	rootCmd.PersistentFlags().BoolP("extract", "x", false, "Flag indicating bundle requires extraction.")
 }
