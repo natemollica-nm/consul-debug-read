@@ -19,7 +19,6 @@ This includes:
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		summary, _ := cmd.Flags().GetBool("summary")
-		r, _ := cmd.Flags().GetBool("raft")
 
 		// Get Metrics object
 		var agent = debugBundle.Agent
@@ -31,10 +30,6 @@ This includes:
 			fmt.Printf("Agent Configuration Summary: %s\n", agentFile)
 			fmt.Println("----------------------")
 			agent.AgentSummary()
-		case r:
-			fmt.Printf("Agent Raft Configuration: %s\n", agentFile)
-			fmt.Println("----------------------")
-			agent.RaftConfiguration()
 		default:
 			fmt.Printf("Agent Configuration Summary: %s\n", agentFile)
 			fmt.Println("----------------------")
@@ -48,5 +43,4 @@ This includes:
 func init() {
 	rootCmd.AddCommand(agentCmd)
 	agentCmd.Flags().BoolP("summary", "s", false, "Retrieve agent configuration summary.")
-	agentCmd.Flags().BoolP("raft", "r", false, "Retrieve agent raft configuration summary.")
 }

@@ -2,7 +2,15 @@ package types
 
 import (
 	"consul-debug-read/lib"
+	"encoding/json"
 	"fmt"
+	"github.com/ryanuber/columnize"
+	"io"
+	"log"
+	"net"
+	"os"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -625,16 +633,308 @@ type Agent struct {
 	XDS         xDS         `json:"xDS"`
 }
 
-func (a *Agent) RaftConfiguration() string {
-	var raftConfigFormatted string
-	var err error
-	raftConfig := lib.ConvertToValidJSON(a.Stats.Raft.LatestConfiguration)
-	if raftConfigFormatted, err = lib.ExecuteJQ(raftConfig, "."); err != nil {
-		return "Unable to retrieve"
-	}
-	return raftConfigFormatted
+type Debug struct {
+	Agent   Agent
+	Members []Member
+	Metrics Metrics
+	Host    Host
 }
 
+// ByMemberName sorts members by name with a stable sort.
+// 1. servers go at the top
+// 2. group by datacenter name
+// 3. sort by node name
+type ByMemberName []Member
+
+func (m ByMemberName) Len() int      { return len(m) }
+func (m ByMemberName) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+func (m ByMemberName) Less(i, j int) bool {
+	tags_i := m[i].Tags
+	tags_j := m[j].Tags
+
+	// put role=consul first
+	switch {
+	case tags_i.Role == "consul" && tags_j.Role != "consul":
+		return true
+	case tags_i.Role != "consul" && tags_j.Role == "consul":
+		return false
+	}
+
+	// then by datacenter
+	switch {
+	case tags_i.Dc < tags_j.Dc:
+		return true
+	case tags_i.Dc > tags_j.Dc:
+		return false
+	}
+
+	// finally by name
+	return m[i].Name < m[j].Name
+}
+
+// MembersStandard is used to dump the most useful information about nodes
+// in a more human-friendly format
+func (b *Debug) MembersStandard() string {
+	result := make([]string, 0, len(b.Members))
+	header := "Node\x1fAddress\x1fStatus\x1fType\x1fBuild\x1fProtocol\x1fDC"
+	result = append(result, header)
+	sort.Sort(ByMemberName(b.Members))
+	for _, member := range b.Members {
+		tags := member.Tags
+
+		addr := net.TCPAddr{IP: net.ParseIP(member.Addr), Port: int(member.Port)}
+		protocol := tags.Vsn
+		build := tags.Build
+		if build == "" {
+			build = "< 0.3"
+		} else if idx := strings.Index(build, ":"); idx != -1 {
+			build = build[:idx]
+		}
+		nameIdx := strings.Index(member.Name, ".")
+		name := member.Name[:nameIdx]
+
+		var statusString string
+		switch {
+		case member.Status == 0:
+			statusString = "None"
+		case member.Status == 1:
+			statusString = "Alive"
+		case member.Status == 2:
+			statusString = "Leaving"
+		case member.Status == 3:
+			statusString = "Left"
+		case member.Status == 4:
+			statusString = "Failed"
+		}
+		switch tags.Role {
+		case "node":
+			line := fmt.Sprintf("%s\x1f%s\x1f%s\x1fclient\x1f%s\x1f%s\x1f%s",
+				name, addr.String(), statusString, build, protocol, tags.Dc)
+			result = append(result, line)
+
+		case "consul":
+			line := fmt.Sprintf("%s\x1f%s\x1f%s\x1fserver\x1f%s\x1f%s\x1f%s",
+				name, addr.String(), statusString, build, protocol, tags.Dc)
+			result = append(result, line)
+
+		default:
+			line := fmt.Sprintf("%s\x1f%s\x1f%s\x1funknown\x1f\x1f\x1f",
+				name, addr.String(), statusString)
+			result = append(result, line)
+		}
+	}
+
+	output, _ := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
+	return output
+}
+
+func (b *Debug) BundleSummary() {
+	b.Agent.AgentSummary()
+}
+
+func (b *Debug) DecodeJSON(debugPath string) error {
+	configs := []string{"agent.json", "members.json", "metrics.json", "host.json"}
+	agent, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[0]))
+	members, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[1]))
+	metrics, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[2]))
+	host, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[3]))
+	agentDecoder := json.NewDecoder(agent)
+	memberDecoder := json.NewDecoder(members)
+	metricsDecoder := json.NewDecoder(metrics)
+	hostDecoder := json.NewDecoder(host)
+
+	cleanup := func(err error) error {
+		_ = agent.Close()
+		_ = members.Close()
+		_ = metrics.Close()
+		_ = host.Close()
+		return err
+	}
+
+	log.Printf("Parsing %s, %s, %s, %s", configs[0], configs[1], configs[2], configs[3])
+	for {
+		var agentConfig Agent
+		err := agentDecoder.Decode(&agentConfig)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("Error decoding %s | file: %v", err, agent.Name())
+			return err
+		}
+		b.Agent = agentConfig
+	}
+
+	for {
+		var membersList []Member
+		err := memberDecoder.Decode(&membersList)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("Error decoding %s | file: %v", err, members.Name())
+			return err
+		}
+		b.Members = membersList
+	}
+
+	for {
+		var metric Metric
+		err := metricsDecoder.Decode(&metric)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("Error decoding %s | file: %v", err, metrics.Name())
+			return err
+		}
+		b.Metrics.Metrics = append(b.Metrics.Metrics, metric)
+	}
+
+	for {
+		var hostObject Host
+		err := hostDecoder.Decode(&hostObject)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("Error decoding %s | file: %v", err, metrics.Name())
+			return err
+		}
+		b.Host = hostObject
+	}
+
+	if err := agent.Close(); err != nil {
+		return cleanup(err)
+	}
+	if err := members.Close(); err != nil {
+		return cleanup(err)
+	}
+	if err := metrics.Close(); err != nil {
+		return cleanup(err)
+	}
+	if err := host.Close(); err != nil {
+		return cleanup(err)
+	}
+
+	return nil
+}
+
+// RaftServer has information about a server in the Raft configuration.
+type RaftServer struct {
+	// ID is the unique ID for the server. These are currently the same
+	// as the address, but they will be changed to a real GUID in a future
+	// release of Consul.
+	ID string
+
+	// Node is the node name of the server, as known by Consul, or this
+	// will be set to "(unknown)" otherwise.
+	Node string
+
+	// Address is the IP:port of the server, used for Raft communications.
+	Address string
+
+	// Voter is true if this server has a vote in the cluster. This might
+	// be false if the server is staging and still coming online, or if
+	// it's a non-voting server, which will be added in a future release of
+	// Consul.
+	Voter bool
+}
+
+// RaftConfiguration is returned when querying for the current Raft configuration.
+type RaftConfiguration struct {
+	// Servers has the list of servers in the Raft configuration.
+	Servers []*RaftServer
+
+	// Index has the Raft index of this configuration.
+	Index uint64
+}
+
+func (b *Debug) converToRaftServer(raftDebugString string) ([]byte, error) {
+	var correctedRaftConfig []byte
+	// Define a struct to match the structure of your JSON data
+	var data []map[string]interface{}
+
+	// Unmarshal the JSON into the data structure
+	err := json.Unmarshal([]byte(raftDebugString), &data)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return []byte(""), err
+	}
+
+	// Iterate through the data and replace "Suffrage": "Voter" with "Voter": true
+	// Suffrage can be Voter, Nonvoter, or Staging (Deprecated)
+	for i := range data {
+		if suffrage, ok := data[i]["Suffrage"]; ok {
+			if suffrage == "Voter" {
+				data[i]["Voter"] = true
+			} else {
+				data[i]["Voter"] = false
+			}
+		}
+		// Remove the old "Suffrage" key
+		delete(data[i], "Suffrage")
+
+		// Set raftServer "Node" field to corresponding member node name
+		for _, member := range b.Members {
+			if nodeID, ok := data[i]["ID"]; ok {
+				if nodeID == member.Tags.ID {
+					// Strip domain info from node name
+					nameIdx := strings.Index(member.Name, ".")
+					name := member.Name[:nameIdx]
+					data[i]["Node"] = name
+				}
+			}
+		}
+
+	}
+
+	// Marshal the data back to a JSON string
+	correctedRaftConfig, err = json.Marshal(data)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return []byte(""), err
+	}
+	return correctedRaftConfig, nil
+}
+
+func (a *Agent) parseDebugRaftConfig() string {
+	raftConfig := lib.ConvertToValidJSON(a.Stats.Raft.LatestConfiguration)
+	return raftConfig
+}
+
+func (b *Debug) RaftListPeers() (string, error) {
+	var debugBundleRaftConfig []byte
+	var err error
+
+	if debugBundleRaftConfig, err = b.converToRaftServer(b.Agent.parseDebugRaftConfig()); err != nil {
+		return "", err
+	}
+	var raftServers []RaftServer
+	err = json.Unmarshal(debugBundleRaftConfig, &raftServers)
+	if err != nil {
+		return "", err
+	}
+
+	// Format it as a nice table.
+	result := []string{"Node\x1fID\x1fAddress\x1fState\x1fVoter"}
+	// Determine leader for processing output table
+	raftLeaderAddr := b.Agent.Stats.Consul.LeaderAddr
+	for _, s := range raftServers {
+		state := "follower"
+		if s.Address == raftLeaderAddr {
+			state = "leader"
+		}
+
+		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v",
+			s.Node, s.ID, s.Address, state, s.Voter))
+	}
+	output, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
+	if err != nil {
+		return "", err
+	}
+	return output, nil
+}
 func (a *Agent) AgentSummary() {
 	fmt.Println("Server:", a.Config.Server)
 	fmt.Println("Version:", a.Config.Version)
@@ -642,5 +942,4 @@ func (a *Agent) AgentSummary() {
 	fmt.Println("Primary DC:", a.Config.PrimaryDatacenter)
 	fmt.Println("NodeName:", a.Config.NodeName)
 	fmt.Println("Support Envoy Versions:", a.XDS.SupportedProxies.Envoy)
-	fmt.Printf("Latest Raft Configuration: \n%s", a.RaftConfiguration())
 }

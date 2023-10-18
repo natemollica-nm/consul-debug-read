@@ -17,12 +17,10 @@ For example:
 	consul-debug-read agent members -d bundles/consul-debug-2023-10-04T18-29-47Z
 .`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var membersFile = fmt.Sprintf(debugPath + "/members.json")
 		wan, _ := cmd.Flags().GetBool("wan")
 		if wan {
 			fmt.Println("wan called")
 		} else {
-			fmt.Printf("File: '%s'\n", membersFile)
 			membersOutput := debugBundle.MembersStandard()
 			fmt.Print(membersOutput)
 		}
