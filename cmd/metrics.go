@@ -4,6 +4,7 @@ import (
 	funcs "consul-debug-read/lib"
 	mFuncs "consul-debug-read/metrics"
 	"fmt"
+	"github.com/ryanuber/columnize"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
@@ -83,15 +84,22 @@ Example usage:
 			if err := mFuncs.ValidateMetricName(n); err != nil {
 				return err
 			}
+			result := []string{"Timestamp\x1fMetric\x1fValue\x1f"}
 			for _, metric := range m.Metrics {
-
 				value := metric.ExtractMetricValueByName(n)
 				if value != nil {
-					fmt.Printf("%s '%s': %v\n", metric.Timestamp, n, conv.ConvertToReadableBytes(value))
+					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f",
+						metric.Timestamp, n, conv.ConvertToReadableBytes(value)))
 				} else {
-					fmt.Printf("%s '%s': nil value returned\n", metric.Timestamp, n)
+					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f",
+						metric.Timestamp, n, "<nil>"))
 				}
 			}
+			output, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
+			if err != nil {
+				return err
+			}
+			fmt.Printf("\n%s\n", output)
 			return nil
 		}
 
@@ -128,6 +136,11 @@ Example usage:
 			fmt.Println("VM Alloc Total:", conv.ConvertToReadableBytes(host.Memory.VmallocTotal))
 			fmt.Println("VM Alloc Used:", conv.ConvertToReadableBytes(host.Memory.VmallocUsed))
 			fmt.Println("Cached:", conv.ConvertToReadableBytes(host.Memory.Cached))
+			fmt.Printf("\nHost Disk Metrics Summary: %s\n", hostFile)
+			fmt.Println("----------------------")
+			fmt.Printf("Used: %s  (%.2f%%)\n", conv.ConvertToReadableBytes(host.Disk.Used), host.Disk.UsedPercent)
+			fmt.Println("Free:", conv.ConvertToReadableBytes(host.Disk.Free))
+			fmt.Println("Total:", conv.ConvertToReadableBytes(host.Disk.Total))
 
 		case g:
 			for _, metric := range m.Metrics {

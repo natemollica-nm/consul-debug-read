@@ -61,7 +61,7 @@ type MetricValueExtractor interface {
 	ExtractMetricValueByName(metricName string) interface{}
 }
 
-// ExtractMetricValueByName: Interface implementation for MetricValueExtractor
+// ExtractMetricValueByName ExtractMetricValueByName: Interface implementation for MetricValueExtractor
 func (m Metric) ExtractMetricValueByName(metricName string) interface{} {
 	regex := regexp.MustCompile(".*" + metricName)
 	for _, gauge := range m.Gauges {

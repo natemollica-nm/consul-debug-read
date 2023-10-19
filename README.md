@@ -164,26 +164,32 @@ Run: `consul-debug-read metrics --host`
 
 ```shell
 #Example Host Specific Metrics
-Host Metrics Summary: bundles/consul-debug-2023-10-04T18-29-47Z/host.json
+Host Metrics Summary: bundles/consul-debug-2023-10-11T17-33-55Z/host.json
 ----------------------
 OS: linux
-Host Name ip-10-135-37-187.ec2.internal
-Architecture: aarch64
+Host Name hashi-i-073d7d2439f2e180f.node.seatgeek.stag
+Architecture: x86_64
 Number of Cores: 8
-CPU Vendor ID: ARM
-CPU Model Name: 
-Platform: alpine | 3.17.5
-Running Since: 2023-09-22 19:10:23 PDT
-Uptime at Capture: 11 days, 16 hours, 19 minutes, 25 seconds
+CPU Vendor ID: GenuineIntel
+CPU Model Name: Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+Platform: ubuntu | 20.04
+Running Since: 2023-07-31 13:27:58 PDT
+Uptime at Capture: 71 days, 21 hours, 5 minutes, 58 seconds
 
-Host Memory Metrics Summary: bundles/consul-debug-2023-10-04T18-29-47Z/host.json
+Host Memory Metrics Summary: bundles/consul-debug-2023-10-11T17-33-55Z/host.json
 ----------------------
-Total: 30.63 GB
-Used: 7.56 GB  (24.69%)
-Total Available: 22.70 GB
-VM Alloc Total: 126.00 TB
-VM Alloc Used: 19.14 MB
-Cached: 6.93 GB
+Total: 30.89 GB
+Used: 6.70 GB  (21.68%)
+Total Available: 23.58 GB
+VM Alloc Total: 32.00 TB
+VM Alloc Used: 120.04 MB
+Cached: 16.38 GB
+
+Host Disk Metrics Summary: bundles/consul-debug-2023-10-11T17-33-55Z/host.json
+----------------------
+Used: 6.11 GB  (3.15%)
+Free: 187.53 GB
+Total: 193.65 GB
 ```
 
 ### Consul Agent Configuration
