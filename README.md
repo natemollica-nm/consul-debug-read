@@ -143,14 +143,19 @@ Run: `consul-debug-read metrics --name consul.runtime.sys_bytes`
 
 ```shell
 # Example return
-2023-10-04 18:29:40 +0000 UTC 'consul.runtime.sys': 7.73 GB
-2023-10-04 18:29:50 +0000 UTC 'consul.runtime.sys': 7.73 GB
-2023-10-04 18:30:00 +0000 UTC 'consul.runtime.sys': 7.73 GB
-2023-10-04 18:30:10 +0000 UTC 'consul.runtime.sys': 7.73 GB
-2023-10-04 18:30:20 +0000 UTC 'consul.runtime.sys': 7.73 GB
-2023-10-04 18:30:30 +0000 UTC 'consul.runtime.sys': 7.73 GB
-2023-10-04 18:30:40 +0000 UTC 'consul.runtime.sys': 7.73 GB
-2023-10-04 18:30:50 +0000 UTC 'consul.runtime.sys': 7.73 GB
+Timestamp                     Metric                   Value   
+2023-10-11 17:33:50 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
+2023-10-11 17:34:00 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
+2023-10-11 17:34:10 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
+2023-10-11 17:34:20 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
+2023-10-11 17:34:30 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
+2023-10-11 17:34:40 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
+2023-10-11 17:34:50 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
+2023-10-11 17:35:00 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
+2023-10-11 17:35:10 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
+2023-10-11 17:35:20 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
+2023-10-11 17:35:30 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
+2023-10-11 17:35:40 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
 ```
 
 ### Consul Host Metrics
