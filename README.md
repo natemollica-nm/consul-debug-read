@@ -8,6 +8,7 @@ a simple cli tool for parsing consul-debug bundles to readable format
 * [Working with Debug Bundles](#Working-with-Debug-Bundles)
   * [Extract and Set Using CLI](#Extract-and-set-debug-path-using-CLI)
   * [Setting Debug Path](#settingchanging-debug-path)
+  * [Using environment variable `CONSUL_DEBUG_PATH`](#Using-environment-variable)
 * [Usage](#Usage)
   * [Consul Serf Membership](#Consul-Serf-Membership)
   * [Consul Raft Configuration](#Consul-Raft-Configuration)
@@ -17,20 +18,29 @@ a simple cli tool for parsing consul-debug bundles to readable format
 
 ## Getting Started
 
-1. Clone this repository: `$ git clone https://github.com/natemollica-nm/consul-debug-read.git`
-2. Change to repo directory: `$ cd consul-debug-read`
-3. Build and install binary: `$ go install`
-4. Test binary installed in path: `$ consul-debug-read --help`
+1. Clone this repository: 
+  `$ git clone https://github.com/natemollica-nm/consul-debug-read.git`
+2. Change to repo directory:
+  `$ cd consul-debug-read`
+3. Build and install binary: 
+  `$ go install`
+4. Test binary installed in path: 
+  `$ consul-debug-read --help`
 
 ## Working with Debug Bundles
 
 This tool uses the contents from the extracted bundle path to deliver a more useful and readable interpretation of the bundle.
-The following sections explain how to point the tool to the right place.
+The following sections explain how to point the tool to the right place using one of the three options:
+
+* [Extract and set debug path using CLI](#Extract-and-set-debug-path-using-CLI) 
+* [Set path to previously extracted bundle](#settingchanging-debug-path)
+* [Using environment variable `CONSUL_DEBUG_PATH`](#Using-environment-variable)
 
 ### Extract and set debug path using CLI
 1. Create and place the consul-debug.tar.gz file in a known location. For example
 
     ```shell
+    # Create bundles directory and copy desired bundle tar.gz to dir
     $ mkdir -p ./bundles
     $ cp ~/Downloads/124722consul-debug-2023-10-04T18-29-47Z.tar.gz ./bundles/
     ```   
@@ -54,6 +64,17 @@ The following sections explain how to point the tool to the right place.
    
    2023/10/19 10:09:15 set-debug-path: consul-debug-read debug-path has been set => bundles/consul-debug-2023-10-04T18-29-47Z
    ```
+
+### Using environment variable
+
+1. Export your terminal/shell session `CONSUL_DEBUG_PATH` variable:
+
+    ```shell
+    $ export CONSUL_DEBUG_PATH=bundles/consul-debug-2023-10-04T18-29-47Z
+    $ consul-debug-read show-debug-path
+      2023/10/19 14:46:31 using environment variable CONSUL_DEBUG_PATH - bundles/consul-debug-2023-10-04T18-29-47Z
+      2023/10/19 14:46:31 debug-path => 'bundles/consul-debug-2023-10-04T18-29-47Z'
+    ```
 
 ## Usage
 
