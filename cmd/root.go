@@ -1,19 +1,21 @@
 package cmd
 
 import (
-	funcs "consul-debug-read/lib"
 	bundle "consul-debug-read/lib/types"
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"log"
 	"os"
-	"strings"
+)
+
+const (
+	envDebugPath = "CONSUL_DEBUG_PATH"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var (
 	debugPath   string
-	debugFile   string
 	debugBundle bundle.Debug
 	rootCmd     = &cobra.Command{
 		Use:   "consul-debug-read",
@@ -22,30 +24,22 @@ var (
 
 The tool is designed to aid in quickly parsing key metrics,
 agent, and consul host information from a 'consul debug' cmd bundle capture.
-`, PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			extract, _ := cmd.Flags().GetBool("extract")
-			if extract {
-				debugPath, _ = funcs.SelectAndExtractTarGzFilesInDir(debugPath)
-			} else {
-				debugPath = strings.TrimSuffix(debugPath, "/")
-			}
-			if debugPath != "" {
-				err := debugBundle.DecodeJSON(debugPath)
-				if err != nil {
-					fmt.Printf("failed to decode bundle: %v", err)
-					os.Exit(1)
-				}
-				log.Printf("Successfully read-in bundle from:  '%s'\n\n", debugPath)
-			} else {
-				err := cmd.Help()
-				if err != nil {
-					return
-				}
-			}
-		},
+`,
 		// Uncomment the following line if your bare application
 		// has an action associated with it:
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if _, ok := os.LookupEnv(envDebugPath); ok {
+				debugPath = os.Getenv(envDebugPath)
+				log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+			} else {
+				debugPath = viper.GetString("debugPath")
+				log.Printf("using config.yaml debug path setting - %s\n", debugPath)
+			}
+			if err := cmd.Help(); err != nil {
+				return err
+			}
+			fmt.Printf("\n  ==> current debug-path: '%s'\n", debugPath)
+			return nil
 		},
 	}
 )
@@ -63,9 +57,16 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
+	initConfig()
+}
 
-	rootCmd.PersistentFlags().StringVarP(&debugPath, "debug-path", "d", "", "File path to directory containing consul-debug.tar.gz bundle(s).")
-	rootCmd.PersistentFlags().StringVarP(&debugFile, "debug-file", "f", "", "File path to single consul-debug.tar.gz bundle.")
-	rootCmd.MarkFlagsMutuallyExclusive("debug-path", "debug-file")
-	rootCmd.PersistentFlags().BoolP("extract", "x", false, "Flag indicating bundle requires extraction.")
+func initConfig() {
+	// Load configuration from a file (config.yaml)
+	viper.SetConfigName("config") // Set the name of the configuration file (config.yaml, config.json, etc.)
+	viper.AddConfigPath(".")      // Search for the configuration file in the current directory
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Printf("Config file (./config.yaml) not found or error reading config: %s\n", err)
+	}
+	viper.SetEnvPrefix("CONSUL_DEBUG")
+	viper.AutomaticEnv()
 }

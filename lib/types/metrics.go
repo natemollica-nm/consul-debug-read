@@ -48,6 +48,14 @@ type Metric struct {
 
 type Metrics struct{ Metrics []Metric }
 
+type MetricsIndex struct {
+	Version      int      `json:"Version"`
+	AgentVersion string   `json:"AgentVersion"`
+	Interval     string   `json:"Interval"`
+	Duration     string   `json:"Duration"`
+	Targets      []string `json:"Targets"`
+}
+
 // MetricValueExtractor is an interface for extracting metric values by name
 type MetricValueExtractor interface {
 	ExtractMetricValueByName(metricName string) interface{}

@@ -5,6 +5,10 @@ import (
 	mFuncs "consul-debug-read/metrics"
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"log"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -15,8 +19,40 @@ var metricsCmd = &cobra.Command{
 	Long: `Read metrics information from specified bundle and return timestamped values.
 
 Example usage:
-	
-	consul-debug-read metrics -x -d consul-debug-2023-10-04T18-29-47Z.tar.gz `,
+	$ consul-debug-read metrics
+
+	$ consul-debug-read metrics --name <name_of_metric>
+
+	$ consul-debug-read metrics --list 
+
+	$ consul-debug-read metrics --gauges
+`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if _, ok := os.LookupEnv(envDebugPath); ok {
+			envPath := os.Getenv(envDebugPath)
+			envPath = strings.TrimSuffix(envPath, "/")
+			if _, err := os.Stat(envPath); os.IsNotExist(err) {
+				return fmt.Errorf("directory does not exists: %s - %v\n", envPath, err)
+			} else {
+				debugPath = envPath
+				log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+			}
+		} else {
+			debugPath = viper.GetString("debugPath")
+			log.Printf("using config.yaml debug path setting - %s\n", debugPath)
+		}
+		if debugPath != "" {
+			log.Printf("debug-path:  '%s'\n", debugPath)
+			err := debugBundle.DecodeJSON(debugPath)
+			if err != nil {
+				return fmt.Errorf("failed to decode bundle: %v", err)
+			}
+			log.Printf("Successfully read-in bundle from:  '%s'\n", debugPath)
+		} else {
+			return fmt.Errorf("debug-path is null")
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		summary, _ := cmd.Flags().GetBool("summary")
 		l, _ := cmd.Flags().GetBool("list")
@@ -36,6 +72,7 @@ Example usage:
 
 		// Get Metrics object
 		m := debugBundle.Metrics
+		index := debugBundle.Index
 		host := debugBundle.Host
 		conv := funcs.ByteConverter{}
 		metricsFile := fmt.Sprintf(debugPath + "/metrics.json")
@@ -60,15 +97,14 @@ Example usage:
 
 		switch {
 		case summary:
-			start := m.Metrics[0].Timestamp
-			stop := m.Metrics[len(m.Metrics)-1].Timestamp
-
 			fmt.Printf("\nMetrics Bundle Summary: %s\n", metricsFile)
 			fmt.Println("----------------------")
-			fmt.Println("Start:", start)
-			fmt.Println("Stop:", stop)
-			fmt.Printf("Duration: %v\n", funcs.TimeStampDuration(start, stop))
-			fmt.Println("Number of Captures:", len(m.Metrics))
+			fmt.Println("Host Name:", host.Host.Hostname)
+			fmt.Println("Agent Version:", index.AgentVersion)
+			fmt.Println("Interval:", index.Interval)
+			fmt.Println("Duration:", index.Duration)
+			fmt.Println("Capture Targets:", index.Targets)
+			fmt.Println("Raft State:", debugBundle.Agent.Stats.Raft.State)
 		case h:
 			bootTimeStamp := time.Unix(int64(host.Host.BootTime), 0)
 			bootTime := bootTimeStamp.Format("2006-01-02 15:04:05 MST")
@@ -114,13 +150,14 @@ Example usage:
 				fmt.Println("Number of Samples:", len(metric.Samples))
 			}
 		default:
-			for _, metric := range m.Metrics {
-				fmt.Println("Timestamp:", metric.Timestamp)
-				fmt.Println("Number of Gauges:", len(metric.Gauges))
-				fmt.Println("Number of Points:", len(metric.Points))
-				fmt.Println("Number of Counters:", len(metric.Counters))
-				fmt.Println("Number of Samples:", len(metric.Samples))
-			}
+			fmt.Printf("\nMetrics Bundle Summary: %s\n", metricsFile)
+			fmt.Println("----------------------")
+			fmt.Println("Host Name:", host.Host.Hostname)
+			fmt.Println("Agent Version:", index.AgentVersion)
+			fmt.Println("Interval:", index.Interval)
+			fmt.Println("Duration:", index.Duration)
+			fmt.Println("Capture Targets:", index.Targets)
+			fmt.Println("Raft State:", debugBundle.Agent.Stats.Raft.State)
 		}
 		return nil
 	},

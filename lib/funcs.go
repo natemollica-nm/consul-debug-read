@@ -5,9 +5,11 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -106,7 +108,7 @@ func extractTarGz(srcFile, destDir string) error {
 	// Open the source .tar.gz file
 	srcFileReader, err := os.Open(srcFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("extract-tar-gz: failed to open %s\n", srcFile)
 	}
 	defer srcFileReader.Close()
 
@@ -122,11 +124,10 @@ func extractTarGz(srcFile, destDir string) error {
 
 	destFileName := GetExtractName(filepath.Base(srcFile))
 	destFilePath := fmt.Sprintf("%s/%s", destDir, destFileName)
-	fmt.Printf("Destination File Name: %s\n", destFileName)
-	fmt.Printf("Destination File Path: %s\n", destFilePath)
+	log.Printf("destination File Extract Path - %s\n", destFilePath)
 	// Check if destination dir exists
 	if _, err := os.Stat(destFilePath); err == nil {
-		fmt.Printf("Removing previous extract dir: %s\n", destFilePath)
+		log.Printf("removing previous extract dir - %s\n", destFilePath)
 		err := os.RemoveAll(destFilePath)
 		if err != nil {
 			return fmt.Errorf("unable to delete existing file: %v", err)
@@ -181,7 +182,7 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 		var bundles []os.DirEntry
 		files, err := os.ReadDir(sourceDir)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("failed to read debug-path directory %s\n%v\n", sourceDir, err)
 		}
 		// Filter files for .tar.gz bundles
 		for _, file := range files {
@@ -206,18 +207,19 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 
 		selectedFile = bundles[selected-1]
 		sourceFilePath = filepath.Join(sourceDir, selectedFile.Name())
+		extractedBundleDir = filepath.Join(sourceDir, GetExtractName(filepath.Base(sourceFilePath)))
 	} else {
 		sourceFilePath = sourceDir
+		extractedBundleDir = filepath.Join(filepath.Dir(sourceFilePath), GetExtractName(filepath.Base(sourceFilePath)))
 	}
-	extractedBundleDir = filepath.Join(sourceDir, GetExtractName(filepath.Base(selectedFile.Name())))
+	//extractedBundleDir = filepath.Join(sourceDir, GetExtractName(filepath.Base(sourceFilePath)))
 
-	fmt.Printf("Extracting: %s\n", sourceFilePath)
+	log.Printf("extracting %s\n", sourceFilePath)
 	if err := extractTarGz(sourceFilePath, filepath.Dir(sourceFilePath)); err != nil {
-		fmt.Printf("Error extracting %s: %v\n", sourceFilePath, err)
-		return "", err
+		return "", fmt.Errorf("error extracting %s: %v\n", sourceFilePath, err)
 	}
 
-	fmt.Printf("Extraction of %s completed successfully.\n", sourceFilePath)
+	log.Printf("extraction of %s completed successfully!\n", sourceFilePath)
 	return extractedBundleDir, nil
 }
 
@@ -368,4 +370,29 @@ func ConvertSecondsReadable(seconds int) string {
 	formatted := fmt.Sprintf("%d days, %d hours, %d minutes, %d seconds", days, hours, minutes, sec)
 
 	return formatted
+}
+
+func StructToHCL(data interface{}, indent string) string {
+	hcl := ""
+	t := reflect.TypeOf(data)
+	v := reflect.ValueOf(data)
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		value := v.Field(i)
+
+		if value.Kind() == reflect.Struct {
+			hcl += fmt.Sprintf("%s%s {\n", indent, field.Name)
+			hcl += StructToHCL(value.Interface(), indent+"  ")
+			hcl += fmt.Sprintf("%s}\n", indent)
+		} else {
+			jsonTagName := field.Tag.Get("json")
+			if jsonTagName == "" {
+				jsonTagName = field.Name
+			}
+			hcl += fmt.Sprintf("%s%s = %v\n", indent, jsonTagName, value.Interface())
+		}
+	}
+
+	return hcl
 }

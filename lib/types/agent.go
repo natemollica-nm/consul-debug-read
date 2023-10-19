@@ -638,6 +638,7 @@ type Debug struct {
 	Members []Member
 	Metrics Metrics
 	Host    Host
+	Index   MetricsIndex
 }
 
 // ByMemberName sorts members by name with a stable sort.
@@ -733,25 +734,28 @@ func (b *Debug) BundleSummary() {
 }
 
 func (b *Debug) DecodeJSON(debugPath string) error {
-	configs := []string{"agent.json", "members.json", "metrics.json", "host.json"}
+	configs := []string{"agent.json", "members.json", "metrics.json", "host.json", "index.json"}
 	agent, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[0]))
 	members, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[1]))
 	metrics, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[2]))
 	host, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[3]))
+	index, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[4]))
 	agentDecoder := json.NewDecoder(agent)
 	memberDecoder := json.NewDecoder(members)
 	metricsDecoder := json.NewDecoder(metrics)
 	hostDecoder := json.NewDecoder(host)
+	indexDecoder := json.NewDecoder(index)
 
 	cleanup := func(err error) error {
 		_ = agent.Close()
 		_ = members.Close()
 		_ = metrics.Close()
 		_ = host.Close()
+		_ = index.Close()
 		return err
 	}
 
-	log.Printf("Parsing %s, %s, %s, %s", configs[0], configs[1], configs[2], configs[3])
+	log.Printf("Parsing %s, %s, %s, %s, %s", configs[0], configs[1], configs[2], configs[3], configs[4])
 	for {
 		var agentConfig Agent
 		err := agentDecoder.Decode(&agentConfig)
@@ -789,6 +793,19 @@ func (b *Debug) DecodeJSON(debugPath string) error {
 			return err
 		}
 		b.Metrics.Metrics = append(b.Metrics.Metrics, metric)
+	}
+
+	for {
+		var metricIndex MetricsIndex
+		err := indexDecoder.Decode(&metricIndex)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("Error decoding %s | file: %v", err, index.Name())
+			return err
+		}
+		b.Index = metricIndex
 	}
 
 	for {
@@ -839,15 +856,6 @@ type RaftServer struct {
 	// it's a non-voting server, which will be added in a future release of
 	// Consul.
 	Voter bool
-}
-
-// RaftConfiguration is returned when querying for the current Raft configuration.
-type RaftConfiguration struct {
-	// Servers has the list of servers in the Raft configuration.
-	Servers []*RaftServer
-
-	// Index has the Raft index of this configuration.
-	Index uint64
 }
 
 func (b *Debug) converToRaftServer(raftDebugString string) ([]byte, error) {
@@ -935,6 +943,11 @@ func (b *Debug) RaftListPeers() (string, error) {
 	}
 	return output, nil
 }
+
+func (a *Agent) AgentConfigFull() (string, error) {
+	return lib.StructToHCL(a.DebugConfig, ""), nil
+}
+
 func (a *Agent) AgentSummary() {
 	fmt.Println("Server:", a.Config.Server)
 	fmt.Println("Version:", a.Config.Version)

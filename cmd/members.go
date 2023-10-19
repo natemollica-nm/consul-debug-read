@@ -2,6 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
+	"log"
+	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -16,15 +20,36 @@ ingests and parses <debug_path>/members.json for useful output"'.
 For example:
 	consul-debug-read agent members -d bundles/consul-debug-2023-10-04T18-29-47Z
 .`,
-	Run: func(cmd *cobra.Command, args []string) {
-		wan, _ := cmd.Flags().GetBool("wan")
-		if wan {
-			fmt.Println("wan called")
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if _, ok := os.LookupEnv(envDebugPath); ok {
+			envPath := os.Getenv(envDebugPath)
+			envPath = strings.TrimSuffix(envPath, "/")
+			if _, err := os.Stat(envPath); os.IsNotExist(err) {
+				return fmt.Errorf("directory does not exists: %s - %v\n", envPath, err)
+			} else {
+				debugPath = envPath
+				log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+			}
 		} else {
-			membersOutput := debugBundle.MembersStandard()
-			fmt.Print(membersOutput)
+			debugPath = viper.GetString("debugPath")
+			log.Printf("using config.yaml debug path setting - %s\n", debugPath)
 		}
-
+		if debugPath != "" {
+			log.Printf("debug-path:  '%s'\n", debugPath)
+			err := debugBundle.DecodeJSON(debugPath)
+			if err != nil {
+				return fmt.Errorf("failed to decode bundle: %v", err)
+			}
+			log.Printf("Successfully read-in bundle from:  '%s'\n", debugPath)
+		} else {
+			return fmt.Errorf("debug-path is null")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		log.Printf("compiled wan membership list (source node/dc: %s/%s)\n", debugBundle.Agent.Config.NodeName, debugBundle.Agent.Config.Datacenter)
+		membersOutput := debugBundle.MembersStandard()
+		fmt.Print(membersOutput)
 	},
 }
 
