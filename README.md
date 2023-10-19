@@ -342,7 +342,7 @@ DNSAllowStale = true
 DNSAltDomain = 
 DNSCacheMaxAge = 0s
 DNSDisableCompression = false
-DNSDomain = seatgeek.stag
+DNSDomain = datacenter.stag
 DNSEnableTruncate = false
 DNSMaxStale = 87600h0m0s
 DNSNodeMetaTXT = true
@@ -525,7 +525,7 @@ SyncCoordinateIntervalMin = 15s
 SyncCoordinateRateTarget = 64
 TLS {
   AutoTLS = false
-  Domain = seatgeek.stag
+  Domain = datacenter.stag
   EnableAgentTLSForChecks = false
   Grpc {
     CAFile = /data/consul/consul-agent-ca.pem
