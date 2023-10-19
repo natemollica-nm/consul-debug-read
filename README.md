@@ -24,12 +24,8 @@ a simple cli tool for parsing consul-debug bundles to readable format
 
 ## Working with Debug Bundles
 
-The default output from a `consul debug` command run is to compress and archive the debug bundle contents to a `.tar.gz` file 
-(e.g., `124722consul-debug-2023-10-11T17-33-55Z.tar.gz`). To run this tool the `agent.json`, `metrics.json`, and `host.json`
-files must be extracted and within the same directory.
-
-You can use this tool to extract and select the extracted bundle or simply extract the bundle to a known directory and run from there.
-
+This tool uses the contents from the extracted bundle path to deliver a more useful and readable interpretation of the bundle.
+The following sections explain how to point the tool to the right place.
 
 ### Extract and set debug path using CLI
 1. Create and place the consul-debug.tar.gz file in a known location. For example
