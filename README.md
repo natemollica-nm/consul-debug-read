@@ -7,7 +7,7 @@ a simple cli tool for parsing consul-debug bundles to readable format
 * [Getting Started](#Getting-Started)
 * [Working with Debug Bundles](#Working-with-Debug-Bundles)
   * [Extract and Set Using CLI](#Extract-and-set-debug-path-using-CLI)
-  * [Setting Debug Path](#Setting-changing-debug-path)
+  * [Setting Debug Path](#settingchanging-debug-path)
 * [Usage](#Usage)
   * [Consul Serf Membership](#Consul-Serf-Membership)
   * [Consul Raft Configuration](#Consul-Raft-Configuration)
