@@ -47,13 +47,12 @@ The following sections explain how to point the tool to the right place using on
 2. Run `consul-debug-read set-debug-path` using `--file`flag to both extract and set the debug directory to the extracted contents:
 
     ```shell
-    $ consul-debug-read set-debug-path --file bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz
-   
-    2023/10/19 09:56:07 file passed in for extraction: bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz
-    2023/10/19 09:56:07 Extracting: bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz
-    2023/10/19 09:56:07 Destination File Extract Path: bundles/consul-debug-2023-10-04T18-29-47Z
-    2023/10/19 09:56:08 Extraction of bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz completed successfully.
-    2023/10/19 09:56:08 set-debug-path: consul-debug-read debug-path has been set => bundles/consul-debug-2023-10-04T18-29-47Z
+    $ consul-debug-read set-debug-path --file bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz  
+      2023/10/19 09:56:07 file passed in for extraction: bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz
+      2023/10/19 09:56:07 Extracting: bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz
+      2023/10/19 09:56:07 Destination File Extract Path: bundles/consul-debug-2023-10-04T18-29-47Z
+      2023/10/19 09:56:08 Extraction of bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz completed successfully.
+      2023/10/19 09:56:08 set-debug-path: consul-debug-read debug-path has been set => bundles/consul-debug-2023-10-04T18-29-47Z
     ```
    
 ### Setting/changing debug path
@@ -61,8 +60,7 @@ The following sections explain how to point the tool to the right place using on
 1. Run `consul-debug-read set-debug-path` using `--path` flag to set the running config debug directory:
    ```shell
    $ consul-debug-read set-debug-path --path bundles/consul-debug-2023-10-04T18-29-47Z
-   
-   2023/10/19 10:09:15 set-debug-path: consul-debug-read debug-path has been set => bundles/consul-debug-2023-10-04T18-29-47Z
+     2023/10/19 10:09:15 set-debug-path: consul-debug-read debug-path has been set => bundles/consul-debug-2023-10-04T18-29-47Z
    ```
 
 ### Using environment variable
