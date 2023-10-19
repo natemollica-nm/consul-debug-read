@@ -167,7 +167,7 @@ Run: `consul-debug-read metrics --host`
 Host Metrics Summary: bundles/consul-debug-2023-10-11T17-33-55Z/host.json
 ----------------------
 OS: linux
-Host Name hashi-i-073d7d2439f2e180f.node.seatgeek.stag
+Host Name hashi-i-073d7d2439f2e180f
 Architecture: x86_64
 Number of Cores: 8
 CPU Vendor ID: GenuineIntel
