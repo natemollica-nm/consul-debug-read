@@ -1,6 +1,8 @@
 package types
 
-import "regexp"
+import (
+	"regexp"
+)
 
 type Gauge struct {
 	Name   string   `json:"Name"`

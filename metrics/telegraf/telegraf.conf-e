@@ -1,0 +1,38 @@
+# file: telegraf.conf
+[agent]
+
+#hostname = "consul-server-0"
+
+[[inputs.file]]
+
+  files = ["metrics.json"]
+  data_format = "json_v2"
+
+  [[inputs.file.json_v2]]
+    timestamp_path = "Timestamp"
+    timestamp_format = "rfc3339"
+    measurement_name="consul-telemetry"
+
+    [[inputs.file.json_v2.object]]
+      path = "Gauges"
+      included_keys = ["Name", "Value"]
+      tags = ["Name"]
+      disable_prepend_keys = true
+
+    [[inputs.file.json_v2.object]]
+      path = "Counters"
+      included_keys = ["Name", "Count", "Rate", "Sum", "Min", "Max", "Mean", "Stddev"]
+      tags = ["Name"]
+      disable_prepend_keys = true
+
+    [[inputs.file.json_v2.object]]
+      path = "Samples"
+      included_keys = ["Name", "Count", "Rate", "Sum", "Min", "Max", "Mean", "Stddev"]
+      disable_prepend_keys = true
+      tags = ["Name"]
+
+ [[outputs.influxdb_v2]]
+  urls = ["http://localhost:8086"]
+  token = ""XV_CK0vb21gV4ouT3q5BOGLnxL2eDM0GB2Tyb8Uh0kvzaHTrMCEdFpKq00KRvYHdqPvdZjJMJde9RTmpREp2-Q==""
+  organization = "HashiCorp"
+  bucket = "consul"

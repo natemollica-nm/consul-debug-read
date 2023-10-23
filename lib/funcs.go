@@ -15,23 +15,26 @@ import (
 	"time"
 )
 
-func ClearScreen() error {
-	cmd := exec.Command("clear")
-	cmd.Stdout = os.Stdout
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func TimeStampDuration(timeStart, timeStop string) time.Duration {
 	start, _ := time.Parse("2006-01-02 15:04:05 -0700 MST", timeStart)
 	stop, _ := time.Parse("2006-01-02 15:04:05 -0700 MST", timeStop)
 	return stop.Sub(start)
 }
 
-// GetExtractName: returns tar rendered root file name
+func ToRFC3339(ts string) (string, error) {
+	// Parse the timestamp string into a time.Time value
+	timestamp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", ts)
+	if err != nil {
+		return "", fmt.Errorf("error parsing timestamp: %v\n", err)
+	}
+
+	// Convert the time.Time value to RFC3339 format
+	rfc3339Str := timestamp.Format(time.RFC3339)
+	return rfc3339Str, nil
+}
+
+// GetExtractName
+// Returns tar rendered root directory name
 func GetExtractName(bundleName string) string {
 	var capturedPart string
 
@@ -104,18 +107,21 @@ func GetMostRecentFile(directory string) (string, error) {
 	return returnFile, nil
 }
 
-func extractTarGz(srcFile, destDir string) error {
+func extractTarGz(srcFile, destDir string) (string, error) {
+	var extractRootDir string
+	directoryPrefixCount := make(map[string]int)
+
 	// Open the source .tar.gz file
 	srcFileReader, err := os.Open(srcFile)
 	if err != nil {
-		return fmt.Errorf("extract-tar-gz: failed to open %s\n", srcFile)
+		return "", fmt.Errorf("extract-tar-gz: failed to open %s: %v\n", srcFile, err)
 	}
 	defer srcFileReader.Close()
 
 	// Create a gzip reader
 	gzipReader, err := gzip.NewReader(srcFileReader)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer gzipReader.Close()
 
@@ -130,7 +136,7 @@ func extractTarGz(srcFile, destDir string) error {
 		log.Printf("removing previous extract dir - %s\n", destFilePath)
 		err := os.RemoveAll(destFilePath)
 		if err != nil {
-			return fmt.Errorf("unable to delete existing file: %v", err)
+			return "", fmt.Errorf("unable to delete existing file: %v", err)
 		}
 	}
 
@@ -141,7 +147,7 @@ func extractTarGz(srcFile, destDir string) error {
 			break // End of archive
 		}
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		// Calculate the file path for extraction
@@ -150,39 +156,59 @@ func extractTarGz(srcFile, destDir string) error {
 		// Create directories as needed
 		if header.FileInfo().IsDir() {
 			if err := os.MkdirAll(destFilePath, 0755); err != nil {
-				return err
+				return "", fmt.Errorf("failed to create dir %s: %v\n", destFilePath, err)
 			}
 			continue
+		}
+
+		// Root Directory Prefix Determination
+		// * Extract directory from filepath of header
+		dir := ""
+		if idx := strings.LastIndex(header.Name, "/"); idx >= 0 {
+			dir = header.Name[:idx]
+		} else {
+			dir = "."
+		}
+		directoryPrefixCount[dir]++
+		// Root Directory Prefix Determination:
+		// 1. Iterate through dir prefix count map[string]int
+		// 2. Dir with most counts will most likely be the root extract dir
+		dirMaxCount := 0
+		for dir, count := range directoryPrefixCount {
+			if count > dirMaxCount {
+				dirMaxCount = count
+				extractRootDir = dir
+			}
 		}
 
 		// Create and open the destination file
 		destFile, err := os.Create(destFilePath)
 		if err != nil {
-			return err
+			return "", fmt.Errorf("failed to create %s: %v\n", destFilePath, err)
 		}
 		defer destFile.Close()
 
 		// Copy file contents from the tar archive to the destination file
 		if _, err := io.Copy(destFile, tarReader); err != nil {
-			return err
+			return "", err
 		}
 	}
-
-	return nil
+	log.Printf("debug-extract: root extraction directory is %s\n", extractRootDir)
+	return extractRootDir, nil
 }
 
 // SelectAndExtractTarGzFilesInDir allows the user to interactively select and extract a .tar.gz file from a directory.
 func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 	var selectedFile os.DirEntry
 	var sourceFilePath string
-	var extractedBundleDir string
+	var extractRoot string
 
 	// If debug path is not a bundle directly, parse for bundles and extract
 	if !strings.HasSuffix(sourceDir, ".tar.gz") {
 		var bundles []os.DirEntry
 		files, err := os.ReadDir(sourceDir)
 		if err != nil {
-			return "", fmt.Errorf("failed to read debug-path directory %s\n%v\n", sourceDir, err)
+			return "", fmt.Errorf("[select-and-extract] failed to read debug-path directory %s\n%v\n", sourceDir, err)
 		}
 		// Filter files for .tar.gz bundles
 		for _, file := range files {
@@ -191,11 +217,11 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 			}
 		}
 
-		fmt.Println("Select a .tar.gz file to extract:")
+		fmt.Println("select a .tar.gz file to extract:")
 		for i, bundle := range bundles {
 			fmt.Printf("%d: %s\n", i+1, bundle.Name())
 		}
-		fmt.Print("Enter the number of the file to extract: ")
+		fmt.Print("enter the number of the file to extract: ")
 		var selected int
 		if _, err := fmt.Scanf("%d", &selected); err != nil {
 			return "", err
@@ -207,22 +233,26 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 
 		selectedFile = bundles[selected-1]
 		sourceFilePath = filepath.Join(sourceDir, selectedFile.Name())
-		extractedBundleDir = filepath.Join(sourceDir, GetExtractName(filepath.Base(sourceFilePath)))
 	} else {
 		sourceFilePath = sourceDir
-		extractedBundleDir = filepath.Join(filepath.Dir(sourceFilePath), GetExtractName(filepath.Base(sourceFilePath)))
-	}
-	//extractedBundleDir = filepath.Join(sourceDir, GetExtractName(filepath.Base(sourceFilePath)))
-
-	log.Printf("extracting %s\n", sourceFilePath)
-	if err := extractTarGz(sourceFilePath, filepath.Dir(sourceFilePath)); err != nil {
-		return "", fmt.Errorf("error extracting %s: %v\n", sourceFilePath, err)
 	}
 
-	log.Printf("extraction of %s completed successfully!\n", sourceFilePath)
-	return extractedBundleDir, nil
+	log.Printf("[select-and-extract] extracting %s\n", sourceFilePath)
+	extractRoot, err := extractTarGz(sourceFilePath, filepath.Dir(sourceFilePath))
+
+	if err != nil {
+		return "", fmt.Errorf("[select-and-extract] error extracting %s: %v\n", sourceFilePath, err)
+	}
+	extractedDebugPath := filepath.Join(sourceDir, extractRoot)
+
+	log.Printf("[select-and-extract] extraction of %s completed successfully!\n", sourceFilePath)
+	log.Printf("[select-and-extract] setting debug path to %s\n", extractedDebugPath)
+	return extractedDebugPath, nil
 }
 
+// ByteConverter
+// Struct used to implement the ConvertToReadableBytes interface function for int and float64
+// byte conversion.
 type ByteConverter struct{}
 
 func (bc ByteConverter) ConvertToReadableBytes(value interface{}) string {
@@ -395,4 +425,19 @@ func StructToHCL(data interface{}, indent string) string {
 	}
 
 	return hcl
+}
+
+// WriteFileWithPerms will write payload as the contents of the outputFile and set permissions after writing the contents. This function is necessary since using os.WriteFile() alone will create the new file with the requested permissions prior to actually writing the file, so you can't set read-only permissions.
+func WriteFileWithPerms(outputFile, payload string, mode os.FileMode) error {
+	// os.WriteFile truncates existing files and overwrites them, but only if they are writable.
+	// If the file exists it will already likely be read-only. Remove it first.
+	if _, err := os.Stat(outputFile); err == nil {
+		if err = os.RemoveAll(outputFile); err != nil {
+			return fmt.Errorf("unable to delete existing file: %s", err)
+		}
+	}
+	if err := os.WriteFile(outputFile, []byte(payload), os.ModePerm); err != nil {
+		return fmt.Errorf("unable to write file: %s", err)
+	}
+	return os.Chmod(outputFile, mode)
 }

@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+const (
+	telegrafMetricsFile = "metrics/telegraf/metrics.json"
+)
+
 type Config struct {
 	BuildDate         time.Time `json:"BuildDate"`
 	Datacenter        string    `json:"Datacenter"`
@@ -955,4 +959,30 @@ func (a *Agent) AgentSummary() {
 	fmt.Println("Primary DC:", a.Config.PrimaryDatacenter)
 	fmt.Println("NodeName:", a.Config.NodeName)
 	fmt.Println("Support Envoy Versions:", a.XDS.SupportedProxies.Envoy)
+}
+
+func (b *Debug) GenerateTelegrafMetrics() error {
+	metrics := b.Metrics.Metrics
+	telegrafMetrics := metrics
+
+	for i := range metrics {
+		ts := metrics[i].Timestamp
+		timestampRFC, err := lib.ToRFC3339(ts)
+		if err != nil {
+			return err
+		}
+		telegrafMetrics[i].Timestamp = timestampRFC
+	}
+
+	data, err := json.MarshalIndent(telegrafMetrics, "", "  ")
+	if err != nil {
+		return err
+	}
+	// Write out the resultant metrics.json file.
+	// Must be 0644 because this is written by the consul-k8s user but needs
+	// to be readable by the consul user
+	if err = lib.WriteFileWithPerms(telegrafMetricsFile, string(data), 0755); err != nil {
+		return fmt.Errorf("error writing RFC3339 formatted metrics to %s: %v", telegrafMetricsFile, err)
+	}
+	return nil
 }

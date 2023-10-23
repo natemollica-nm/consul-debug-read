@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// TODO: Make the URL Agent Version adaptable (i.e., alter URL string to corresponding version)
 const (
 	telemetryURL = "https://developer.hashicorp.com/consul/docs/agent/telemetry"
 )
@@ -17,8 +18,6 @@ const (
 func getTelemetryMetrics() (string, error) {
 	// Define a data structure to store metric endpoints.
 	telemetryMetrics := []string{"Metric\x1fUnit\x1fType"}
-	telemetryMetrics = append(telemetryMetrics, fmt.Sprintf("%s\x1f%s\x1f%s\x1f",
-		"----------------", "----------------", "----------------"))
 
 	// Send an HTTP GET request to the Consul telemetry metrics reference page.
 	response, err := http.Get(telemetryURL)
