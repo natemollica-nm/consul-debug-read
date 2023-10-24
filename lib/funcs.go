@@ -250,66 +250,6 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 	return extractedDebugPath, nil
 }
 
-// ByteConverter
-// Struct used to implement the ConvertToReadableBytes interface function for int and float64
-// byte conversion.
-type ByteConverter struct{}
-
-func (bc ByteConverter) ConvertToReadableBytes(value interface{}) string {
-	switch v := value.(type) {
-	case int:
-		return ConvertIntBytes(v)
-	case float64:
-		return ConvertFloatBytes(v)
-	default:
-		return "Unsupported type"
-	}
-}
-
-func ConvertIntBytes(bytes int) string {
-	const (
-		kb = 1024
-		mb = 1024 * kb
-		gb = 1024 * mb
-		tb = 1024 * gb
-	)
-
-	switch {
-	case bytes >= tb:
-		return fmt.Sprintf("%.2f TB", float64(bytes)/float64(tb))
-	case bytes >= gb:
-		return fmt.Sprintf("%.2f GB", float64(bytes)/float64(gb))
-	case bytes >= mb:
-		return fmt.Sprintf("%.2f MB", float64(bytes)/float64(mb))
-	case bytes >= kb:
-		return fmt.Sprintf("%.2f KB", float64(bytes)/float64(kb))
-	default:
-		return fmt.Sprintf("%d bytes", bytes)
-	}
-}
-
-func ConvertFloatBytes(bytes float64) string {
-	const (
-		kb = 1024
-		mb = 1024 * kb
-		gb = 1024 * mb
-		tb = 1024 * gb
-	)
-
-	switch {
-	case bytes >= tb:
-		return fmt.Sprintf("%.2f TB", float64(bytes)/float64(tb))
-	case bytes >= gb:
-		return fmt.Sprintf("%.2f GB", float64(bytes)/float64(gb))
-	case bytes >= mb:
-		return fmt.Sprintf("%.2f MB", float64(bytes)/float64(mb))
-	case bytes >= kb:
-		return fmt.Sprintf("%.2f KB", float64(bytes)/float64(kb))
-	default:
-		return fmt.Sprintf("%d bytes", bytes)
-	}
-}
-
 func ConvertToValidJSON(input string) string {
 	// Replace { with {" and } with "},"
 	input = strings.Replace(input, "{", `{`, -1)

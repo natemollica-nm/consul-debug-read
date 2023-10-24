@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+if test -f "${HOME}/.influxdbv2/configs"; then
+  export TOKEN=$(grep -E '^\s*token\s*=' "${HOME}/.influxdbv2/configs" | awk '{printf $3}')
+fi
+
+
+exec bash "$@"

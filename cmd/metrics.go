@@ -2,13 +2,15 @@ package cmd
 
 import (
 	funcs "consul-debug-read/lib"
-	mFuncs "consul-debug-read/metrics"
+	"consul-debug-read/lib/types"
+	"consul-debug-read/metrics"
 	"fmt"
 	"github.com/ryanuber/columnize"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -48,7 +50,7 @@ Example usage:
 			if err != nil {
 				return fmt.Errorf("failed to decode bundle: %v", err)
 			}
-			log.Printf("Successfully read-in bundle from:  '%s'\n", debugPath)
+			log.Printf("successfully read-in bundle from:  '%s'\n", debugPath)
 		} else {
 			return fmt.Errorf("debug-path is null")
 		}
@@ -65,7 +67,7 @@ Example usage:
 
 		// If list called just get and list available metrics and return
 		if l {
-			if err := mFuncs.ListMetrics(); err != nil {
+			if err := metrics.ListMetrics(); err != nil {
 				return err
 			}
 			return nil
@@ -75,24 +77,54 @@ Example usage:
 		m := debugBundle.Metrics
 		index := debugBundle.Index
 		host := debugBundle.Host
-		conv := funcs.ByteConverter{}
+		conv := types.ByteConverter{}
+
 		metricsFile := fmt.Sprintf(debugPath + "/metrics.json")
 		hostFile := fmt.Sprintf(debugPath + "/host.json")
 		// Interpret metrics specific flags
+
 		n, _ := cmd.Flags().GetString("name")
+		// Todo: This is ugly at the moment -- calling GetTelemetryMetrics more than once can be improved.
+		// 1. Called in validate name
+		// 2. Called directly for info
 		if n != "" {
-			if err := mFuncs.ValidateMetricName(n); err != nil {
+			if skip, _ := cmd.Flags().GetBool("skip-name-validation"); skip {
+				log.Printf("=> skipping metric name validation with hashicorp docs")
+			} else {
+				if err := metrics.ValidateMetricName(n); err != nil {
+					return err
+				}
+			}
+
+			var telemetryInfo []metrics.AgentTelemetryMetric
+			_, telemetryInfo, err = metrics.GetTelemetryMetrics()
+			if err != nil {
 				return err
 			}
-			result := []string{"Timestamp\x1fMetric\x1fValue\x1f"}
+			unit, metricType := types.GetUnitAndType(n, telemetryInfo)
+			timeReg := regexp.MustCompile("ns|ms|seconds|hours")
+			bytesReg := regexp.MustCompile("bytes")
+
+			result := []string{"Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1f"}
 			for _, metric := range m.Metrics {
 				value := metric.ExtractMetricValueByName(n)
 				if value != nil {
-					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f",
-						metric.Timestamp, n, conv.ConvertToReadableBytes(value)))
+					var v string
+					if timeReg.MatchString(unit) {
+						v, err = types.ConvertToReadableTime(value, unit)
+						if err != nil {
+							return err
+						}
+					} else if bytesReg.MatchString(unit) {
+						v = conv.ConvertToReadableBytes(value)
+					} else {
+						v = value.(string)
+					}
+					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
+						metric.Timestamp, n, metricType, unit, v))
 				} else {
-					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f",
-						metric.Timestamp, n, "<nil>"))
+					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
+						metric.Timestamp, n, metricType, unit, "<nil>\u001F"))
 				}
 			}
 			output, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
@@ -183,4 +215,5 @@ func init() {
 	metricsCmd.Flags().Bool("host", false, "Retrieve Host specific metrics.")
 	metricsCmd.Flags().BoolP("list", "l", false, "List available metric names to parse with by name.")
 	metricsCmd.Flags().StringP("name", "n", "", "Retrieve specific metric timestamped values by name.")
+	metricsCmd.Flags().Bool("skip-name-validation", false, "Skip metric name validation with hashicorp docs.")
 }
