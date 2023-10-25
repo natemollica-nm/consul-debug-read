@@ -3,6 +3,28 @@
 Credit: @ranjandas
 Reference: https://hashicorp.atlassian.net/wiki/spaces/CSE/pages/2317811727/Consul+Offline+Telemetry+Analysis
 
+
+### Prerequisites
+
+Install and configure InfluxDB and Telegraf as outlined in the above [reference](https://hashicorp.atlassian.net/wiki/spaces/CSE/pages/2317811727/Consul+Offline+Telemetry+Analysis)
+or as shown below in [Setup InfluxDB](#Setup-InfluxDB) and [Setup Telegraf](#Setup-Telegraf).
+
+#### Generate telegraf compatiable metrics.json files
+this will generate the debug bundles metrics files in RFC3339 timeformatted files for Telegraf ingestion
+at `metrics/telegraf/`
+
+run: `make telegraf-metrics`
+
+#### Initialize and create influxDB 
+
+run: `make init-influxdb configure-influxdb`
+
+#### Ingest metrics with Telegraf
+
+run: `make telegraf`
+
+This could take some time depending on the amount of metrics captured during the debug run.
+
 ## Setup InfluxDB
 
 ### Homebrew
@@ -45,7 +67,7 @@ The following values are used for this example:
 * **Initial Organization Name:** hashicorp
 * **Initial Bucket Name:** consul-12345 (it is better to suffix the bucket name with the ticket number if you are planning to re-use the InfluxDB instance)
 
-## Configure Telegraf
+## Setup Telegraf
 
 ### Homebrew
 
