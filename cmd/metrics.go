@@ -62,29 +62,26 @@ Example usage:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		summary, _ := cmd.Flags().GetBool("summary")
 		l, _ := cmd.Flags().GetBool("list")
+		n, _ := cmd.Flags().GetString("name")
 		g, _ := cmd.Flags().GetBool("gauges")
 		p, _ := cmd.Flags().GetBool("points")
 		c, _ := cmd.Flags().GetBool("counters")
 		s, _ := cmd.Flags().GetBool("samples")
 		h, _ := cmd.Flags().GetBool("host")
 
-		// If list called just get and list available metrics and return
-		if l {
-			if err := metrics.ListMetrics(); err != nil {
-				return err
-			}
-			return nil
+		buildMetricsData := func() (types.Metrics, types.MetricsIndex, types.Host, types.ByteConverter, string, string) {
+			// Get Metrics object
+			m := debugBundle.Metrics
+			index := debugBundle.Index
+			host := debugBundle.Host
+			conv := types.ByteConverter{}
+			metricsFile := fmt.Sprintf(debugPath + "/metrics.json")
+			hostFile := fmt.Sprintf(debugPath + "/host.json")
+			return m, index, host, conv, metricsFile, hostFile
 		}
 
-		// Get Metrics object
-		m := debugBundle.Metrics
-		index := debugBundle.Index
-		host := debugBundle.Host
-		conv := types.ByteConverter{}
-		metricsFile := fmt.Sprintf(debugPath + "/metrics.json")
-		hostFile := fmt.Sprintf(debugPath + "/host.json")
-
 		showSummary := func() {
+			_, index, host, _, metricsFile, _ := buildMetricsData()
 			fmt.Printf("\nMetrics Bundle Summary: %s\n", metricsFile)
 			fmt.Println("----------------------")
 			fmt.Println("Host Name:", host.Host.Hostname)
@@ -95,12 +92,18 @@ Example usage:
 			fmt.Println("Raft State:", debugBundle.Agent.Stats.Raft.State)
 		}
 
-		n, _ := cmd.Flags().GetString("name")
-		if n != "" {
+		// metrics --name <metric_name>
+		// 1. if no --skip-name-validation flag passed, validate metric name with telemetry hashidoc
+		// 2. retrieve metric unit and type from telemetry page
+		// 3. retrieve the metric value by name, and aggregate the results
+		// 4. perform conversion to readable format (time/bytes)
+		// 5. columnize the results mapping timestamp to values
+		metricValueByName := func(name string) error {
+			m, _, _, conv, _, _ := buildMetricsData()
 			if skip, _ := cmd.Flags().GetBool("skip-name-validation"); skip {
 				log.Printf("=> skipping metric name validation with hashicorp docs")
 			} else {
-				if err := metrics.ValidateMetricName(n); err != nil {
+				if err := metrics.ValidateMetricName(name); err != nil {
 					return err
 				}
 			}
@@ -110,13 +113,13 @@ Example usage:
 			if err != nil {
 				return err
 			}
-			unit, metricType := types.GetUnitAndType(n, telemetryInfo)
+			unit, metricType := types.GetUnitAndType(name, telemetryInfo)
 			timeReg := regexp.MustCompile("ns|ms|seconds|hours")
 			bytesReg := regexp.MustCompile("bytes")
 
 			result := []string{"Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1f"}
 			for _, metric := range m.Metrics {
-				values := metric.ExtractMetricValueByName(n)
+				values := metric.ExtractMetricValueByName(name)
 				for _, value := range values {
 					if value != nil {
 						var v string
@@ -142,15 +145,12 @@ Example usage:
 			if err != nil {
 				return err
 			}
-
 			fmt.Printf("\n%s\n", output)
 			return nil
 		}
 
-		switch {
-		case summary:
-			showSummary()
-		case h:
+		hostMetrics := func() {
+			_, _, host, conv, _, hostFile := buildMetricsData()
 			bootTimeStamp := time.Unix(int64(host.Host.BootTime), 0)
 			bootTime := bootTimeStamp.Format("2006-01-02 15:04:05 MST")
 			upTime := funcs.ConvertSecondsReadable(host.Host.Uptime)
@@ -175,23 +175,42 @@ Example usage:
 			fmt.Printf("Used: %s  (%.2f%%)\n", conv.ConvertToReadableBytes(host.Disk.Used), host.Disk.UsedPercent)
 			fmt.Println("Free:", conv.ConvertToReadableBytes(host.Disk.Free))
 			fmt.Println("Total:", conv.ConvertToReadableBytes(host.Disk.Total))
+		}
 
+		switch {
+		case summary:
+			showSummary()
+		case l:
+			if err := metrics.ListMetrics(); err != nil {
+				return err
+			}
+		case n != "":
+			err := metricValueByName(n)
+			if err != nil {
+				return err
+			}
+		case h:
+			hostMetrics()
 		case g:
+			m, _, _, _, _, _ := buildMetricsData()
 			for _, metric := range m.Metrics {
 				fmt.Println("Timestamp:", metric.Timestamp)
 				fmt.Println("Number of Gauges:", len(metric.Gauges))
 			}
 		case p:
+			m, _, _, _, _, _ := buildMetricsData()
 			for _, metric := range m.Metrics {
 				fmt.Println("Timestamp:", metric.Timestamp)
 				fmt.Println("Number of Points:", len(metric.Points))
 			}
 		case c:
+			m, _, _, _, _, _ := buildMetricsData()
 			for _, metric := range m.Metrics {
 				fmt.Println("Timestamp:", metric.Timestamp)
 				fmt.Println("Number of Counters:", len(metric.Counters))
 			}
 		case s:
+			m, _, _, _, _, _ := buildMetricsData()
 			for _, metric := range m.Metrics {
 				fmt.Println("Timestamp:", metric.Timestamp)
 				fmt.Println("Number of Samples:", len(metric.Samples))
