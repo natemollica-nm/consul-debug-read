@@ -27,3 +27,6 @@ go.work
 
 # test debug bundle dir
 bundles/
+
+# metrics.json bundles are too large to push up to GH
+metrics.json
