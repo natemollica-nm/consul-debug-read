@@ -31,6 +31,7 @@ Example usage:
 	$ consul-debug-read metrics --gauges
 `,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		l, _ := cmd.Flags().GetBool("list")
 		if _, ok := os.LookupEnv(envDebugPath); ok {
 			envPath := os.Getenv(envDebugPath)
 			envPath = strings.TrimSuffix(envPath, "/")
@@ -45,12 +46,14 @@ Example usage:
 			log.Printf("using config.yaml debug path setting - %s\n", debugPath)
 		}
 		if debugPath != "" {
-			log.Printf("debug-path:  '%s'\n", debugPath)
-			err := debugBundle.DecodeJSON(debugPath)
-			if err != nil {
-				return fmt.Errorf("failed to decode bundle: %v", err)
+			if !l {
+				log.Printf("debug-path:  '%s'\n", debugPath)
+				err := debugBundle.DecodeJSON(debugPath)
+				if err != nil {
+					return fmt.Errorf("failed to decode bundle: %v", err)
+				}
+				log.Printf("successfully read-in bundle from:  '%s'\n", debugPath)
 			}
-			log.Printf("successfully read-in bundle from:  '%s'\n", debugPath)
 		} else {
 			return fmt.Errorf("debug-path is null")
 		}
@@ -78,15 +81,21 @@ Example usage:
 		index := debugBundle.Index
 		host := debugBundle.Host
 		conv := types.ByteConverter{}
-
 		metricsFile := fmt.Sprintf(debugPath + "/metrics.json")
 		hostFile := fmt.Sprintf(debugPath + "/host.json")
-		// Interpret metrics specific flags
+
+		showSummary := func() {
+			fmt.Printf("\nMetrics Bundle Summary: %s\n", metricsFile)
+			fmt.Println("----------------------")
+			fmt.Println("Host Name:", host.Host.Hostname)
+			fmt.Println("Agent Version:", index.AgentVersion)
+			fmt.Println("Interval:", index.Interval)
+			fmt.Println("Duration:", index.Duration)
+			fmt.Println("Capture Targets:", index.Targets)
+			fmt.Println("Raft State:", debugBundle.Agent.Stats.Raft.State)
+		}
 
 		n, _ := cmd.Flags().GetString("name")
-		// Todo: This is ugly at the moment -- calling GetTelemetryMetrics more than once can be improved.
-		// 1. Called in validate name
-		// 2. Called directly for info
 		if n != "" {
 			if skip, _ := cmd.Flags().GetBool("skip-name-validation"); skip {
 				log.Printf("=> skipping metric name validation with hashicorp docs")
@@ -140,14 +149,7 @@ Example usage:
 
 		switch {
 		case summary:
-			fmt.Printf("\nMetrics Bundle Summary: %s\n", metricsFile)
-			fmt.Println("----------------------")
-			fmt.Println("Host Name:", host.Host.Hostname)
-			fmt.Println("Agent Version:", index.AgentVersion)
-			fmt.Println("Interval:", index.Interval)
-			fmt.Println("Duration:", index.Duration)
-			fmt.Println("Capture Targets:", index.Targets)
-			fmt.Println("Raft State:", debugBundle.Agent.Stats.Raft.State)
+			showSummary()
 		case h:
 			bootTimeStamp := time.Unix(int64(host.Host.BootTime), 0)
 			bootTime := bootTimeStamp.Format("2006-01-02 15:04:05 MST")
@@ -195,14 +197,7 @@ Example usage:
 				fmt.Println("Number of Samples:", len(metric.Samples))
 			}
 		default:
-			fmt.Printf("\nMetrics Bundle Summary: %s\n", metricsFile)
-			fmt.Println("----------------------")
-			fmt.Println("Host Name:", host.Host.Hostname)
-			fmt.Println("Agent Version:", index.AgentVersion)
-			fmt.Println("Interval:", index.Interval)
-			fmt.Println("Duration:", index.Duration)
-			fmt.Println("Capture Targets:", index.Targets)
-			fmt.Println("Raft State:", debugBundle.Agent.Stats.Raft.State)
+			showSummary()
 		}
 		return nil
 	},
