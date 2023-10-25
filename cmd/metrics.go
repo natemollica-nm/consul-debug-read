@@ -107,30 +107,33 @@ Example usage:
 
 			result := []string{"Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1f"}
 			for _, metric := range m.Metrics {
-				value := metric.ExtractMetricValueByName(n)
-				if value != nil {
-					var v string
-					if timeReg.MatchString(unit) {
-						v, err = types.ConvertToReadableTime(value, unit)
-						if err != nil {
-							return err
+				values := metric.ExtractMetricValueByName(n)
+				for _, value := range values {
+					if value != nil {
+						var v string
+						if timeReg.MatchString(unit) {
+							v, err = types.ConvertToReadableTime(value, unit)
+							if err != nil {
+								return err
+							}
+						} else if bytesReg.MatchString(unit) {
+							v = conv.ConvertToReadableBytes(value)
+						} else {
+							v = fmt.Sprintf("%v", value)
 						}
-					} else if bytesReg.MatchString(unit) {
-						v = conv.ConvertToReadableBytes(value)
+						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
+							metric.Timestamp, n, metricType, unit, v))
 					} else {
-						v = value.(string)
+						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
+							metric.Timestamp, n, metricType, unit, "<nil>"))
 					}
-					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
-						metric.Timestamp, n, metricType, unit, v))
-				} else {
-					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
-						metric.Timestamp, n, metricType, unit, "<nil>\u001F"))
 				}
 			}
 			output, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 			if err != nil {
 				return err
 			}
+
 			fmt.Printf("\n%s\n", output)
 			return nil
 		}

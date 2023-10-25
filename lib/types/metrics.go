@@ -67,30 +67,49 @@ type MetricValueExtractor interface {
 }
 
 // ExtractMetricValueByName ExtractMetricValueByName: Interface implementation for MetricValueExtractor
-func (m Metric) ExtractMetricValueByName(metricName string) interface{} {
+func (m Metric) ExtractMetricValueByName(metricName string) []interface{} {
+	var uniqueValues = make(map[interface{}]struct{})
 	regex := regexp.MustCompile(".*" + metricName)
+
+	// Helper function to add unique values to the result slice
+	addUniqueValue := func(value interface{}) {
+		if _, exists := uniqueValues[value]; !exists {
+			uniqueValues[value] = struct{}{}
+		}
+	}
+
 	for _, gauge := range m.Gauges {
 		if regex.MatchString(gauge.Name) {
-			return gauge.Value
+			addUniqueValue(gauge.Value)
 		}
 	}
 	for _, point := range m.Points {
 		if regex.MatchString(point.Name) {
-			return point.Points
+			addUniqueValue(point.Points)
 		}
 	}
 	for _, counter := range m.Counters {
 		if regex.MatchString(counter.Name) {
-			return counter.Count
+			addUniqueValue(counter.Count)
 		}
 	}
 	for _, sample := range m.Samples {
 		if regex.MatchString(sample.Name) {
-			return sample.Mean
+			addUniqueValue(sample.Mean)
 		}
 	}
-	// Return nil or an appropriate value if the metric is not found
-	return nil
+
+	if len(uniqueValues) > 0 {
+		// Convert unique values to a slice
+		values := make([]interface{}, 0, len(uniqueValues))
+		for value := range uniqueValues {
+			values = append(values, value)
+		}
+		return values
+	} else {
+		// Return nil or an appropriate value if the metric is not found
+		return nil
+	}
 }
 
 // GetUnitAndType returns the Unit and Type for a given Name.
