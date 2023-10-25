@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	telegrafMetricsFile = "metrics/telegraf/metrics.json"
+	telegrafMetricsFilePath = "metrics/telegraf"
 )
 
 type Config struct {
@@ -963,26 +963,30 @@ func (a *Agent) AgentSummary() {
 
 func (b *Debug) GenerateTelegrafMetrics() error {
 	metrics := b.Metrics.Metrics
-	telegrafMetrics := metrics
 
 	for i := range metrics {
+		telegrafMetrics := metrics[i]
 		ts := metrics[i].Timestamp
 		timestampRFC, err := lib.ToRFC3339(ts)
 		if err != nil {
 			return err
 		}
-		telegrafMetrics[i].Timestamp = timestampRFC
+		telegrafMetrics.Timestamp = timestampRFC
+
+		data, err := json.MarshalIndent(telegrafMetrics, "", "  ")
+		if err != nil {
+			return err
+		}
+		// Write out the resultant metrics.json file.
+		// Must be 0644 because this is written by the consul-k8s user but needs
+		// to be readable by the consul user
+		metricsFile := fmt.Sprintf("%s/metrics-%d.json", telegrafMetricsFilePath, i)
+		log.Printf("generating %s\n", metricsFile)
+		if err = lib.WriteFileWithPerms(metricsFile, string(data), 0755); err != nil {
+			return fmt.Errorf("error writing RFC3339 formatted metrics to %s: %v", telegrafMetricsFilePath, err)
+		}
 	}
 
-	data, err := json.MarshalIndent(telegrafMetrics, "", "  ")
-	if err != nil {
-		return err
-	}
-	// Write out the resultant metrics.json file.
-	// Must be 0644 because this is written by the consul-k8s user but needs
-	// to be readable by the consul user
-	if err = lib.WriteFileWithPerms(telegrafMetricsFile, string(data), 0755); err != nil {
-		return fmt.Errorf("error writing RFC3339 formatted metrics to %s: %v", telegrafMetricsFile, err)
-	}
+	log.Printf("[generate-telegraf-metrics] successfully wrote %s\n", telegrafMetricsFilePath)
 	return nil
 }

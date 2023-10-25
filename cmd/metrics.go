@@ -63,11 +63,8 @@ Example usage:
 		summary, _ := cmd.Flags().GetBool("summary")
 		l, _ := cmd.Flags().GetBool("list")
 		n, _ := cmd.Flags().GetString("name")
-		g, _ := cmd.Flags().GetBool("gauges")
-		p, _ := cmd.Flags().GetBool("points")
-		c, _ := cmd.Flags().GetBool("counters")
-		s, _ := cmd.Flags().GetBool("samples")
 		h, _ := cmd.Flags().GetBool("host")
+		telegraf, _ := cmd.Flags().GetBool("telegraf")
 
 		buildMetricsData := func() (types.Metrics, types.MetricsIndex, types.Host, types.ByteConverter, string, string) {
 			// Get Metrics object
@@ -80,16 +77,20 @@ Example usage:
 			return m, index, host, conv, metricsFile, hostFile
 		}
 
-		showSummary := func() {
-			_, index, host, _, metricsFile, _ := buildMetricsData()
+		showSummary := func() error {
+			m, index, host, _, metricsFile, _ := buildMetricsData()
 			fmt.Printf("\nMetrics Bundle Summary: %s\n", metricsFile)
-			fmt.Println("----------------------")
-			fmt.Println("Host Name:", host.Host.Hostname)
+			fmt.Println("----------------------------------------------")
+			fmt.Println("Hostname:", host.Host.Hostname)
 			fmt.Println("Agent Version:", index.AgentVersion)
+			fmt.Println("Raft State:", debugBundle.Agent.Stats.Raft.State)
 			fmt.Println("Interval:", index.Interval)
 			fmt.Println("Duration:", index.Duration)
 			fmt.Println("Capture Targets:", index.Targets)
-			fmt.Println("Raft State:", debugBundle.Agent.Stats.Raft.State)
+			fmt.Println("Total Captures:", len(m.Metrics))
+			fmt.Printf("Capture Time Start: %s\n", m.Metrics[0].Timestamp)
+			fmt.Printf("Capture Time Stop: %s\n", m.Metrics[len(m.Metrics)-1].Timestamp)
+			return nil
 		}
 
 		// metrics --name <metric_name>
@@ -117,27 +118,34 @@ Example usage:
 			timeReg := regexp.MustCompile("ns|ms|seconds|hours")
 			bytesReg := regexp.MustCompile("bytes")
 
-			result := []string{"Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1f"}
+			result := []string{"Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1fLabels\x1f"}
 			for _, metric := range m.Metrics {
-				values := metric.ExtractMetricValueByName(name)
-				for _, value := range values {
-					if value != nil {
+				data := metric.ExtractMetricValueByName(name)
+				for _, info := range data {
+					m_name := info["name"].(string)
+					m_value := info["value"]
+					m_labels := info["labels"].(map[string]interface{})
+					var label []string
+					for k, v := range m_labels {
+						label = append(label, fmt.Sprintf("{%s: %v}", k, v))
+					}
+					if m_value != nil {
 						var v string
 						if timeReg.MatchString(unit) {
-							v, err = types.ConvertToReadableTime(value, unit)
+							v, err = types.ConvertToReadableTime(m_value, unit)
 							if err != nil {
 								return err
 							}
 						} else if bytesReg.MatchString(unit) {
-							v = conv.ConvertToReadableBytes(value)
+							v = conv.ConvertToReadableBytes(m_value)
 						} else {
-							v = fmt.Sprintf("%v", value)
+							v = fmt.Sprintf("%v", m_value)
 						}
-						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
-							metric.Timestamp, n, metricType, unit, v))
+						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
+							metric.Timestamp, m_name, metricType, unit, v, label))
 					} else {
-						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
-							metric.Timestamp, n, metricType, unit, "<nil>"))
+						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
+							metric.Timestamp, m_name, metricType, unit, "<nil>", "-"))
 					}
 				}
 			}
@@ -165,12 +173,12 @@ Example usage:
 			fmt.Printf("Platform: %s | %s\n", host.Host.Platform, host.Host.PlatformVersion)
 			fmt.Println("Running Since:", bootTime)
 			fmt.Println("Uptime at Capture:", upTime)
-			fmt.Printf("\nHost Memory Metrics Summary: %s\n", hostFile)
+			fmt.Printf("\nHost Memory Metrics Summary:\n")
 			fmt.Println("----------------------")
 			fmt.Printf("Used: %s  (%.2f%%)\n", conv.ConvertToReadableBytes(host.Memory.Used), host.Memory.UsedPercent)
 			fmt.Println("Total Available:", conv.ConvertToReadableBytes(host.Memory.Available))
 			fmt.Println("Total:", conv.ConvertToReadableBytes(host.Memory.Total))
-			fmt.Printf("\nHost Disk Metrics Summary: %s\n", hostFile)
+			fmt.Printf("\nHost Disk Metrics Summary:\n")
 			fmt.Println("----------------------")
 			fmt.Printf("Used: %s  (%.2f%%)\n", conv.ConvertToReadableBytes(host.Disk.Used), host.Disk.UsedPercent)
 			fmt.Println("Free:", conv.ConvertToReadableBytes(host.Disk.Free))
@@ -179,7 +187,10 @@ Example usage:
 
 		switch {
 		case summary:
-			showSummary()
+			err := showSummary()
+			if err != nil {
+				return err
+			}
 		case l:
 			if err := metrics.ListMetrics(); err != nil {
 				return err
@@ -191,32 +202,16 @@ Example usage:
 			}
 		case h:
 			hostMetrics()
-		case g:
-			m, _, _, _, _, _ := buildMetricsData()
-			for _, metric := range m.Metrics {
-				fmt.Println("Timestamp:", metric.Timestamp)
-				fmt.Println("Number of Gauges:", len(metric.Gauges))
-			}
-		case p:
-			m, _, _, _, _, _ := buildMetricsData()
-			for _, metric := range m.Metrics {
-				fmt.Println("Timestamp:", metric.Timestamp)
-				fmt.Println("Number of Points:", len(metric.Points))
-			}
-		case c:
-			m, _, _, _, _, _ := buildMetricsData()
-			for _, metric := range m.Metrics {
-				fmt.Println("Timestamp:", metric.Timestamp)
-				fmt.Println("Number of Counters:", len(metric.Counters))
-			}
-		case s:
-			m, _, _, _, _, _ := buildMetricsData()
-			for _, metric := range m.Metrics {
-				fmt.Println("Timestamp:", metric.Timestamp)
-				fmt.Println("Number of Samples:", len(metric.Samples))
+		case telegraf:
+			err := debugBundle.GenerateTelegrafMetrics()
+			if err != nil {
+				return err
 			}
 		default:
-			showSummary()
+			err := showSummary()
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	},
@@ -225,12 +220,9 @@ Example usage:
 func init() {
 	rootCmd.AddCommand(metricsCmd)
 	metricsCmd.Flags().Bool("summary", false, "Retrieve metrics summary info from bundle.")
-	metricsCmd.Flags().BoolP("gauges", "g", false, "Retrieve Gauges metrics summary info only.")
-	metricsCmd.Flags().BoolP("points", "p", false, "Retrieve Points metrics summary info only.")
-	metricsCmd.Flags().BoolP("counters", "c", false, "Retrieve Counters metrics summary info only.")
-	metricsCmd.Flags().BoolP("samples", "s", false, "Retrieve Samples metrics summary info only.")
 	metricsCmd.Flags().Bool("host", false, "Retrieve Host specific metrics.")
 	metricsCmd.Flags().BoolP("list", "l", false, "List available metric names to parse with by name.")
 	metricsCmd.Flags().StringP("name", "n", "", "Retrieve specific metric timestamped values by name.")
 	metricsCmd.Flags().Bool("skip-name-validation", false, "Skip metric name validation with hashicorp docs.")
+	metricsCmd.Flags().Bool("telegraf", false, "Generate telegraf compatible metrics file for ingesting offline metrics.")
 }

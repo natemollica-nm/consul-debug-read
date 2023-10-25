@@ -23,5 +23,5 @@ cleanup() {
     fi
 }
 trap cleanup SIGINT SIGTERM
-
+sleep 5
 echo "influxdb init complete"

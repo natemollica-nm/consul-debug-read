@@ -8,39 +8,39 @@ import (
 )
 
 type Gauge struct {
-	Name   string   `json:"Name"`
-	Value  float64  `json:"Value"`
-	Labels struct{} `json:"Labels"`
+	Name   string                 `json:"Name"`
+	Value  float64                `json:"Value"`
+	Labels map[string]interface{} `json:"Labels"`
 }
 
 type Points struct {
-	Name   string   `json:"Name"`
-	Points float64  `json:"Points"`
-	Labels struct{} `json:"Labels"`
+	Name   string                 `json:"Name"`
+	Points float64                `json:"Points"`
+	Labels map[string]interface{} `json:"Labels"`
 }
 
 type Counters struct {
-	Name   string   `json:"Name"`
-	Count  int      `json:"Count"`
-	Rate   float64  `json:"Rate"`
-	Sum    float64  `json:"Sum"`
-	Min    float64  `json:"Min"`
-	Max    float64  `json:"Max"`
-	Mean   float64  `json:"Mean"`
-	Stddev float64  `json:"Stddev"`
-	Labels struct{} `json:"Labels"`
+	Name   string                 `json:"Name"`
+	Count  int                    `json:"Count"`
+	Rate   float64                `json:"Rate"`
+	Sum    float64                `json:"Sum"`
+	Min    float64                `json:"Min"`
+	Max    float64                `json:"Max"`
+	Mean   float64                `json:"Mean"`
+	Stddev float64                `json:"Stddev"`
+	Labels map[string]interface{} `json:"Labels"`
 }
 
 type Samples struct {
-	Name   string   `json:"Name"`
-	Count  int      `json:"Count"`
-	Rate   float64  `json:"Rate"`
-	Sum    float64  `json:"Sum"`
-	Min    float64  `json:"Min"`
-	Max    float64  `json:"Max"`
-	Mean   float64  `json:"Mean"`
-	Stddev float64  `json:"Stddev"`
-	Labels struct{} `json:"Labels"`
+	Name   string                 `json:"Name"`
+	Count  int                    `json:"Count"`
+	Rate   float64                `json:"Rate"`
+	Sum    float64                `json:"Sum"`
+	Min    float64                `json:"Min"`
+	Max    float64                `json:"Max"`
+	Mean   float64                `json:"Mean"`
+	Stddev float64                `json:"Stddev"`
+	Labels map[string]interface{} `json:"Labels"`
 }
 
 type Metric struct {
@@ -67,47 +67,54 @@ type MetricValueExtractor interface {
 }
 
 // ExtractMetricValueByName ExtractMetricValueByName: Interface implementation for MetricValueExtractor
-func (m Metric) ExtractMetricValueByName(metricName string) []interface{} {
-	var uniqueValues = make(map[interface{}]struct{})
-	regex := regexp.MustCompile(".*" + metricName)
+func (m Metric) ExtractMetricValueByName(metricName string) []map[string]interface{} {
+	var matches []map[string]interface{}
 
-	// Helper function to add unique values to the result slice
-	addUniqueValue := func(value interface{}) {
-		if _, exists := uniqueValues[value]; !exists {
-			uniqueValues[value] = struct{}{}
-		}
-	}
+	regex := regexp.MustCompile(".*" + metricName)
 
 	for _, gauge := range m.Gauges {
 		if regex.MatchString(gauge.Name) {
-			addUniqueValue(gauge.Value)
+			match := map[string]interface{}{
+				"name":   gauge.Name,
+				"value":  gauge.Value,
+				"labels": gauge.Labels,
+			}
+			matches = append(matches, match)
 		}
 	}
 	for _, point := range m.Points {
 		if regex.MatchString(point.Name) {
-			addUniqueValue(point.Points)
+			match := map[string]interface{}{
+				"name":   point.Name,
+				"value":  point.Points,
+				"labels": point.Labels,
+			}
+			matches = append(matches, match)
 		}
 	}
 	for _, counter := range m.Counters {
 		if regex.MatchString(counter.Name) {
-			addUniqueValue(counter.Count)
+			match := map[string]interface{}{
+				"name":   counter.Name,
+				"value":  counter.Count,
+				"labels": counter.Labels,
+			}
+			matches = append(matches, match)
 		}
 	}
 	for _, sample := range m.Samples {
 		if regex.MatchString(sample.Name) {
-			addUniqueValue(sample.Mean)
+			match := map[string]interface{}{
+				"name":   sample.Name,
+				"value":  sample.Mean,
+				"labels": sample.Labels,
+			}
+			matches = append(matches, match)
 		}
 	}
-
-	if len(uniqueValues) > 0 {
-		// Convert unique values to a slice
-		values := make([]interface{}, 0, len(uniqueValues))
-		for value := range uniqueValues {
-			values = append(values, value)
-		}
-		return values
+	if len(matches) > 0 {
+		return matches
 	} else {
-		// Return nil or an appropriate value if the metric is not found
 		return nil
 	}
 }
