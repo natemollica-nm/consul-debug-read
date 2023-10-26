@@ -11,7 +11,7 @@ import (
 
 // TODO: Make the URL Agent Version adaptable (i.e., alter URL string to corresponding version)
 const (
-	telemetryURL = "https://developer.hashicorp.com/consul/docs/agent/telemetry"
+	TelemetryURL = "https://developer.hashicorp.com/consul/docs/agent/telemetry"
 )
 
 type AgentTelemetryMetric struct {
@@ -25,7 +25,7 @@ func GetTelemetryMetrics() (string, []AgentTelemetryMetric, error) {
 	telemetryMetrics := []string{"Metric\x1fUnit\x1fType"}
 
 	// Send an HTTP GET request to the Consul telemetry metrics reference page.
-	response, err := http.Get(telemetryURL)
+	response, err := http.Get(TelemetryURL)
 	if err != nil {
 		return "", []AgentTelemetryMetric{}, err
 	}
@@ -75,7 +75,7 @@ func ListMetrics() error {
 	if latestMetrics, _, err = GetTelemetryMetrics(); err != nil {
 		return err
 	}
-	fmt.Printf("\nConsul Telemetry Metric Names (pulled from: %s)\n\n", telemetryURL)
+	fmt.Printf("\nConsul Telemetry Metric Names (pulled from: %s)\n\n", TelemetryURL)
 	fmt.Println(latestMetrics)
 	return nil
 }
@@ -96,5 +96,5 @@ func ValidateMetricName(name string) error {
 	if strings.Contains(latestMetrics, name) {
 		return nil
 	}
-	return fmt.Errorf(fmt.Sprintf("[metrics-name-validation] '%s' not a valid telemetry metric name\n  visit: %s for full list of consul telemetry metrics", name, telemetryURL))
+	return fmt.Errorf(fmt.Sprintf("[metrics-name-validation] '%s' not a valid telemetry metric name\n  visit: %s for full list of consul telemetry metrics", name, TelemetryURL))
 }

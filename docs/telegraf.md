@@ -1,8 +1,7 @@
 # Consul Offline Telemetry Analysis
 
+[Reference](https://hashicorp.atlassian.net/wiki/spaces/CSE/pages/2317811727/Consul+Offline+Telemetry+Analysis)
 Credit: @ranjandas
-Reference: https://hashicorp.atlassian.net/wiki/spaces/CSE/pages/2317811727/Consul+Offline+Telemetry+Analysis
-
 
 ### Prerequisites
 

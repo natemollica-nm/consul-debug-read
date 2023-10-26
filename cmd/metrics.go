@@ -5,12 +5,10 @@ import (
 	"consul-debug-read/lib/types"
 	"consul-debug-read/metrics"
 	"fmt"
-	"github.com/ryanuber/columnize"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -64,6 +62,8 @@ Example usage:
 		l, _ := cmd.Flags().GetBool("list")
 		n, _ := cmd.Flags().GetString("name")
 		h, _ := cmd.Flags().GetBool("host")
+		validateName, _ := cmd.Flags().GetBool("skip-name-validation")
+		byValue, _ := cmd.Flags().GetBool("sort-by-value")
 		telegraf, _ := cmd.Flags().GetBool("telegraf")
 
 		buildMetricsData := func() (types.Metrics, types.MetricsIndex, types.Host, types.ByteConverter, string, string) {
@@ -81,6 +81,7 @@ Example usage:
 			m, index, host, _, metricsFile, _ := buildMetricsData()
 			fmt.Printf("\nMetrics Bundle Summary: %s\n", metricsFile)
 			fmt.Println("----------------------------------------------")
+			fmt.Println("Datacenter:", debugBundle.Agent.Config.Datacenter)
 			fmt.Println("Hostname:", host.Host.Hostname)
 			fmt.Println("Agent Version:", index.AgentVersion)
 			fmt.Println("Raft State:", debugBundle.Agent.Stats.Raft.State)
@@ -90,70 +91,6 @@ Example usage:
 			fmt.Println("Total Captures:", len(m.Metrics))
 			fmt.Printf("Capture Time Start: %s\n", m.Metrics[0].Timestamp)
 			fmt.Printf("Capture Time Stop: %s\n", m.Metrics[len(m.Metrics)-1].Timestamp)
-			return nil
-		}
-
-		// metrics --name <metric_name>
-		// 1. if no --skip-name-validation flag passed, validate metric name with telemetry hashidoc
-		// 2. retrieve metric unit and type from telemetry page
-		// 3. retrieve the metric value by name, and aggregate the results
-		// 4. perform conversion to readable format (time/bytes)
-		// 5. columnize the results mapping timestamp to values
-		metricValueByName := func(name string) error {
-			m, _, _, conv, _, _ := buildMetricsData()
-			if skip, _ := cmd.Flags().GetBool("skip-name-validation"); skip {
-				log.Printf("=> skipping metric name validation with hashicorp docs")
-			} else {
-				if err := metrics.ValidateMetricName(name); err != nil {
-					return err
-				}
-			}
-
-			var telemetryInfo []metrics.AgentTelemetryMetric
-			_, telemetryInfo, err = metrics.GetTelemetryMetrics()
-			if err != nil {
-				return err
-			}
-			unit, metricType := types.GetUnitAndType(name, telemetryInfo)
-			timeReg := regexp.MustCompile("ns|ms|seconds|hours")
-			bytesReg := regexp.MustCompile("bytes")
-
-			result := []string{"Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1fLabels\x1f"}
-			for _, metric := range m.Metrics {
-				data := metric.ExtractMetricValueByName(name)
-				for _, info := range data {
-					m_name := info["name"].(string)
-					m_value := info["value"]
-					m_labels := info["labels"].(map[string]interface{})
-					var label []string
-					for k, v := range m_labels {
-						label = append(label, fmt.Sprintf("{%s: %v}", k, v))
-					}
-					if m_value != nil {
-						var v string
-						if timeReg.MatchString(unit) {
-							v, err = types.ConvertToReadableTime(m_value, unit)
-							if err != nil {
-								return err
-							}
-						} else if bytesReg.MatchString(unit) {
-							v = conv.ConvertToReadableBytes(m_value)
-						} else {
-							v = fmt.Sprintf("%v", m_value)
-						}
-						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
-							metric.Timestamp, m_name, metricType, unit, v, label))
-					} else {
-						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
-							metric.Timestamp, m_name, metricType, unit, "<nil>", "-"))
-					}
-				}
-			}
-			output, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
-			if err != nil {
-				return err
-			}
-			fmt.Printf("\n%s\n", output)
 			return nil
 		}
 
@@ -196,10 +133,11 @@ Example usage:
 				return err
 			}
 		case n != "":
-			err := metricValueByName(n)
+			values, err := debugBundle.GetMetricValues(n, validateName, byValue)
 			if err != nil {
 				return err
 			}
+			fmt.Println(values)
 		case h:
 			hostMetrics()
 		case telegraf:
@@ -223,6 +161,7 @@ func init() {
 	metricsCmd.Flags().Bool("host", false, "Retrieve Host specific metrics.")
 	metricsCmd.Flags().BoolP("list", "l", false, "List available metric names to parse with by name.")
 	metricsCmd.Flags().StringP("name", "n", "", "Retrieve specific metric timestamped values by name.")
+	metricsCmd.Flags().BoolP("sort-by-value", "v", false, "Parse metric value by name and sort results by value vice timestamp order.")
 	metricsCmd.Flags().Bool("skip-name-validation", false, "Skip metric name validation with hashicorp docs.")
 	metricsCmd.Flags().Bool("telegraf", false, "Generate telegraf compatible metrics file for ingesting offline metrics.")
 }

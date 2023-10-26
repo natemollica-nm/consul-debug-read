@@ -16,19 +16,19 @@ telegraf_pid=$!
 
 # Check if InfluxDB started successfully
 if [ -n "$telegraf_pid" ]; then
-    echo "Telegraf agent has been started with PID: $telegraf_pid"
+    echo "telegraf agent has been started with PID: $telegraf_pid"
     echo "$telegraf_pid" > "${HOME}"/.influxdbv2/telegraf_pid
 else
-    echo "Failed to start Telegraf agent."
+    echo "failed to start Telegraf agent."
 fi
 
 # Add a signal handler to gracefully stop InfluxDB when the script is terminated
 cleanup() {
     if [ -n "$telegraf_pid" ]; then
-        echo "Stopping Telegraf agent..."
+        echo "stopping Telegraf agent..."
         kill -TERM "$telegraf_pid"
         wait "$telegraf_pid"
-        echo "Telegraf agent has been stopped."
+        echo "telegraf agent has been stopped."
     fi
 }
 trap cleanup SIGINT SIGTERM

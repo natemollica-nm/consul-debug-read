@@ -130,7 +130,6 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 
 	destFileName := GetExtractName(filepath.Base(srcFile))
 	destFilePath := fmt.Sprintf("%s/%s", destDir, destFileName)
-	log.Printf("destination File Extract Path - %s\n", destFilePath)
 	// Check if destination dir exists
 	if _, err := os.Stat(destFilePath); err == nil {
 		log.Printf("removing previous extract dir - %s\n", destFilePath)

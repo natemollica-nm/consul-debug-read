@@ -2,9 +2,15 @@ package types
 
 import (
 	"consul-debug-read/metrics"
+	telemetry "consul-debug-read/metrics"
 	"fmt"
+	"github.com/ryanuber/columnize"
+	"log"
 	"reflect"
 	"regexp"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 type Gauge struct {
@@ -61,6 +67,111 @@ type MetricsIndex struct {
 	Targets      []string `json:"Targets"`
 }
 
+type ByValue []string
+
+func (m ByValue) Len() int      { return len(m) }
+func (m ByValue) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+func (m ByValue) Less(i, j int) bool {
+	columns_i := strings.Split(m[i], "\x1f")
+	columns_j := strings.Split(m[j], "\x1f")
+
+	value_i, _ := strconv.ParseFloat(strings.TrimRight(columns_i[4], "%"), 64)
+	value_j, _ := strconv.ParseFloat(strings.TrimRight(columns_j[4], "%"), 64)
+
+	return value_i > value_j
+}
+
+// GetMetricValues
+// 1. Retrieves value of metric by passed in name string
+// 2. (if applicable) Sorts metric dataset by value (highest-to-lowest) vice the default timestamp order
+
+// GetMetricValues
+// 1. if no --skip-name-validation flag passed, validate metric name with telemetry hashidoc
+// 2. retrieve metric unit and type from telemetry page
+// 3. retrieve the metric value by name, and aggregate the results
+// 4. perform conversion to readable format (time/bytes)
+// 5. columnize the results mapping timestamp to values
+func (b *Debug) GetMetricValues(name string, validate, byValue bool) (string, error) {
+	result := []string{"Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1fLabels\x1f"}
+	timeReg := regexp.MustCompile("^ns$|^ms$|^seconds$|^hours$")
+	bytesReg := regexp.MustCompile("bytes")
+	percentageReg := regexp.MustCompile("percentage")
+
+	stringInfo, telemetryInfo, err := telemetry.GetTelemetryMetrics()
+	if err != nil {
+		return "", err
+	}
+	validateName := func(n string, info string) error {
+		// This metric name is dynamic and can be anything that the customer uses for service names
+		reg := regexp.MustCompile(`^consul\.proxy\..+$`)
+		if reg.MatchString(n) {
+			fmt.Printf("built-in mesh proxy prefix used: %s\n", name)
+			return nil
+		}
+		// list of metrics contains the name somewhere, return with no error
+		if strings.Contains(info, n) {
+			return nil
+		}
+		return fmt.Errorf(fmt.Sprintf("[metrics-name-validation] '%s' not a valid telemetry metric name\n"+
+			"  visit: %s for full list of consul telemetry metrics", name, telemetry.TelemetryURL))
+	}
+	if validate {
+		log.Printf("validating metric name with hashicorp docs")
+		if err = validateName(name, stringInfo); err != nil {
+			return "", err
+		}
+	} else {
+		log.Printf("=> skipping metric name validation with hashicorp docs")
+	}
+
+	unit, metricType := GetUnitAndType(name, telemetryInfo)
+	conv := ByteConverter{}
+	for _, metric := range b.Metrics.Metrics {
+		data := metric.ExtractMetricValueByName(name)
+		for _, info := range data {
+			mName := info["name"].(string)
+			mValue := info["value"]
+			mLabels := info["labels"].(map[string]interface{})
+			mTimestamp := info["timestamp"]
+			var label []string
+			for k, v := range mLabels {
+				label = append(label, fmt.Sprintf("{%s: %v}", k, v))
+			}
+			if mValue != nil {
+				var v string
+				if timeReg.MatchString(unit) {
+					v, err = ConvertToReadableTime(mValue, unit)
+					if err != nil {
+						return "", err
+					}
+				} else if bytesReg.MatchString(unit) {
+					v = conv.ConvertToReadableBytes(mValue)
+				} else if percentageReg.MatchString(unit) {
+					vFloat, _ := strconv.ParseFloat(fmt.Sprintf("%v", mValue), 64)
+					percent := vFloat * 100.00
+					v = fmt.Sprintf("%.2f%%", percent)
+
+				} else {
+					v = fmt.Sprintf("%v", mValue)
+				}
+				result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
+					mTimestamp, mName, metricType, unit, v, label))
+			} else {
+				result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
+					mTimestamp, mName, metricType, unit, "<nil>", "-"))
+			}
+		}
+	}
+	if byValue {
+		sort.Sort(ByValue(result[1:]))
+	}
+	output, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
+	if err != nil {
+		return "", err
+	}
+	return output, nil
+}
+
 // MetricValueExtractor is an interface for extracting metric values by name
 type MetricValueExtractor interface {
 	ExtractMetricValueByName(metricName string) interface{}
@@ -75,9 +186,10 @@ func (m Metric) ExtractMetricValueByName(metricName string) []map[string]interfa
 	for _, gauge := range m.Gauges {
 		if regex.MatchString(gauge.Name) {
 			match := map[string]interface{}{
-				"name":   gauge.Name,
-				"value":  gauge.Value,
-				"labels": gauge.Labels,
+				"name":      gauge.Name,
+				"value":     gauge.Value,
+				"labels":    gauge.Labels,
+				"timestamp": m.Timestamp,
 			}
 			matches = append(matches, match)
 		}
@@ -85,9 +197,10 @@ func (m Metric) ExtractMetricValueByName(metricName string) []map[string]interfa
 	for _, point := range m.Points {
 		if regex.MatchString(point.Name) {
 			match := map[string]interface{}{
-				"name":   point.Name,
-				"value":  point.Points,
-				"labels": point.Labels,
+				"name":      point.Name,
+				"value":     point.Points,
+				"labels":    point.Labels,
+				"timestamp": m.Timestamp,
 			}
 			matches = append(matches, match)
 		}
@@ -95,9 +208,10 @@ func (m Metric) ExtractMetricValueByName(metricName string) []map[string]interfa
 	for _, counter := range m.Counters {
 		if regex.MatchString(counter.Name) {
 			match := map[string]interface{}{
-				"name":   counter.Name,
-				"value":  counter.Count,
-				"labels": counter.Labels,
+				"name":      counter.Name,
+				"value":     counter.Count,
+				"labels":    counter.Labels,
+				"timestamp": m.Timestamp,
 			}
 			matches = append(matches, match)
 		}
@@ -105,18 +219,15 @@ func (m Metric) ExtractMetricValueByName(metricName string) []map[string]interfa
 	for _, sample := range m.Samples {
 		if regex.MatchString(sample.Name) {
 			match := map[string]interface{}{
-				"name":   sample.Name,
-				"value":  sample.Mean,
-				"labels": sample.Labels,
+				"name":      sample.Name,
+				"value":     sample.Mean,
+				"labels":    sample.Labels,
+				"timestamp": m.Timestamp,
 			}
 			matches = append(matches, match)
 		}
 	}
-	if len(matches) > 0 {
-		return matches
-	} else {
-		return nil
-	}
+	return matches
 }
 
 // GetUnitAndType returns the Unit and Type for a given Name.
