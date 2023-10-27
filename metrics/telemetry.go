@@ -5,7 +5,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/ryanuber/columnize"
 	"net/http"
-	"regexp"
 	"strings"
 )
 
@@ -78,23 +77,4 @@ func ListMetrics() error {
 	fmt.Printf("\nConsul Telemetry Metric Names (pulled from: %s)\n\n", TelemetryURL)
 	fmt.Println(latestMetrics)
 	return nil
-}
-
-func ValidateMetricName(name string) error {
-	var latestMetrics string
-	var err error
-	if latestMetrics, _, err = GetTelemetryMetrics(); err != nil {
-		return err
-	}
-	// This metric name is dynamic and can be anything that the customer uses for service names
-	reg := regexp.MustCompile(`^consul\.proxy\..+$`)
-	if reg.MatchString(name) {
-		fmt.Printf("built-in mesh proxy prefix used: %s\n", name)
-		return nil
-	}
-	// list of metrics contains the name somewhere, return with no error
-	if strings.Contains(latestMetrics, name) {
-		return nil
-	}
-	return fmt.Errorf(fmt.Sprintf("[metrics-name-validation] '%s' not a valid telemetry metric name\n  visit: %s for full list of consul telemetry metrics", name, TelemetryURL))
 }

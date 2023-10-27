@@ -31,6 +31,6 @@
 
  [[outputs.influxdb_v2]]
   urls = ["http://localhost:8086"]
-  token = "Fly60V6r4oZSB-QScRq7sxctxTVdWTl_KCAiJuiDmDZb4m-RIfnJfYYb20VJritG6vY07_go2PpBE-c2kjwzpQ=="
+  token = "KfXrPSyqADgbEF3bOo5suI0QAALyVwrS-Vhth4HXov13bI3Sd3u-ujpUuBfXt4-ywMsPcJywOaorJHQAjmOMRw=="
   organization = "hashicorp"
   bucket = "consul-12345"

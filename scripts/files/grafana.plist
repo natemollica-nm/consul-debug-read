@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>KeepAlive</key>
+	<true/>
+	<key>Label</key>
+	<string>homebrew.mxcl.grafana</string>
+	<key>LimitLoadToSessionType</key>
+	<array>
+		<string>Aqua</string>
+		<string>Background</string>
+		<string>LoginWindow</string>
+		<string>StandardIO</string>
+		<string>System</string>
+	</array>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/opt/grafana/bin/grafana</string>
+		<string>server</string>
+		<string>--config</string>
+		<string>/opt/homebrew/etc/grafana/grafana.ini</string>
+		<string>--homepath</string>
+		<string>/opt/homebrew/opt/grafana/share/grafana</string>
+		<string>--packaging=brew</string>
+		<string>cfg:default.paths.logs=/opt/homebrew/var/log/grafana</string>
+		<string>cfg:default.paths.data=/opt/homebrew/var/lib/grafana</string>
+		<string>cfg:default.paths.plugins=/opt/homebrew/var/lib/grafana/plugins</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>/opt/homebrew/var/log/grafana-stderr.log</string>
+	<key>StandardOutPath</key>
+	<string>/opt/homebrew/var/log/grafana-stdout.log</string>
+	<key>WorkingDirectory</key>
+	<string>/opt/homebrew/var/lib/grafana</string>
+</dict>
+</plist>

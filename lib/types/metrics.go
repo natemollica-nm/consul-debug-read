@@ -78,6 +78,7 @@ func (m ByValue) Less(i, j int) bool {
 	value_i, _ := strconv.ParseFloat(strings.TrimRight(columns_i[4], "%"), 64)
 	value_j, _ := strconv.ParseFloat(strings.TrimRight(columns_j[4], "%"), 64)
 
+	// using '>' vice '<' to sort from highest -> lowest
 	return value_i > value_j
 }
 
@@ -88,7 +89,7 @@ func (m ByValue) Less(i, j int) bool {
 // GetMetricValues
 // 1. if no --skip-name-validation flag passed, validate metric name with telemetry hashidoc
 // 2. retrieve metric unit and type from telemetry page
-// 3. retrieve the metric value by name, and aggregate the results
+// 3. retrieve the metric all values by name
 // 4. perform conversion to readable format (time/bytes)
 // 5. columnize the results mapping timestamp to values
 func (b *Debug) GetMetricValues(name string, validate, byValue bool) (string, error) {
@@ -112,8 +113,7 @@ func (b *Debug) GetMetricValues(name string, validate, byValue bool) (string, er
 		if strings.Contains(info, n) {
 			return nil
 		}
-		return fmt.Errorf(fmt.Sprintf("[metrics-name-validation] '%s' not a valid telemetry metric name\n"+
-			"  visit: %s for full list of consul telemetry metrics", name, telemetry.TelemetryURL))
+		return fmt.Errorf(fmt.Sprintf("[metrics-name-validation] '%s' not a valid telemetry metric name\n  visit: %s for full list of consul telemetry metrics", name, telemetry.TelemetryURL))
 	}
 	if validate {
 		log.Printf("validating metric name with hashicorp docs")

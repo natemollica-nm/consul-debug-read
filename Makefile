@@ -6,7 +6,7 @@ consul-debug-read:
 split-debug-metrics:
 	@consul-debug-read metrics --telegraf
 
-influxdb: clean init-influxdb configure-influxdb
+all: clean init-influxdb configure-influxdb telegraf grafana
 
 init-influxdb:
 	@scripts/init-influxdb.sh
@@ -26,6 +26,20 @@ stop-telegraf:
 telegraf-token:
 	@echo $${TOKEN}
 
+grafana:
+	@scripts/init-grafana.sh
+
+stop-grafana:
+	@brew services stop grafana
+
+clean-grafana:
+	@echo "removing grafana data and conf data"
+	@rm -rf /opt/homebrew/opt/grafana/share/grafana/data/grafana.db
+	@rm -rf /opt/homebrew/opt/grafana/share/grafana/conf/dashboards/
+	@rm -rf /opt/homebrew/opt/grafana/share/grafana/conf/datasources/
+	@rm -rf /opt/homebrew/opt/grafana/share/grafana/conf/plugins/
+	@sleep 3
+
 clean-influxdb:
 	@echo "removing $${HOME}/.influxdbv2/pid, configs, influxd.bolt, and influxd.sqlite"
 	@rm -rf $${HOME}/.influxdbv2/pid
@@ -34,7 +48,7 @@ clean-influxdb:
 	@rm -rf $${HOME}/.influxdbv2/influxd.sqlite
 	@sleep 8
 
-clean: stop-telegraf stop-influxdb clean-influxdb
+clean: stop-grafana stop-telegraf stop-influxdb clean-influxdb clean-grafana
 
 .PHONY:
 .SILENT:
