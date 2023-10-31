@@ -7,7 +7,7 @@ CONFIG_PATH=/opt/homebrew/etc/grafana/grafana.ini
 
 # Add a signal handler to gracefully stop grafana when the script is terminated
 cleanup() {
-    echo "stopping grafana server"
+    echo "grafana: stopping grafana server"
     brew services stop grafana
 }
 trap cleanup SIGINT SIGTERM
@@ -38,10 +38,19 @@ function reset_admin_password() {
 }
 
 brew services stop grafana
-
+echo "grafana: creating grafana share, homepath, data, and conf directories"
+for dir in \
+  /opt/homebrew/opt/grafana/share \
+  "${HOMEPATH}" \
+  "${HOMEPATH}"/data \
+  "${HOMEPATH}"/conf; do
+  if [[ ! -d $dir ]]; then
+    mkdir -p -m 0755 $dir
+  fi
+done
+echo "updating defaults.ini and grafana.ini with consul/hashicorp un/pw"
 cp -f scripts/files/grafana.ini "${HOMEPATH}"/conf/defaults.ini
 cp -f scripts/files/grafana.ini "${CONFIG_PATH}"
-cp -f scripts/files/dashboards-config.yaml /opt/homebrew/opt/grafana/share/grafana/conf/provisioning/dashboards/dashboards-config.yaml
 
 # Start Grafana service
 echo "starting grafana service (logs at - /opt/homebrew/var/log/grafana/grafana.log)"
@@ -50,7 +59,6 @@ brew services start grafana
 echo "waiting for grafana to initialize"
 sleep 10
 
-echo "configuring grafana username/password and obtaining API Key"
 # Obtain an API key from Grafana
 GRAFANA_USERNAME="consul"
 GRAFANA_PASSWORD="hashicorp"
@@ -60,6 +68,7 @@ BASIC_AUTH="${GRAFANA_USERNAME}:${GRAFANA_PASSWORD}"
 # reset_admin_password "$GRAFANA_USERNAME" "$GRAFANA_PASSWORD}"
 
 # Log in and create an organization and HTTP API key
+echo "grafana: creating 'hashicorp' org"
 curl -X POST \
   -s \
   -H "Content-Type: application/json" \
@@ -71,14 +80,37 @@ ORG_ID="$( curl \
   -s \
   -u "${BASIC_AUTH}" "${GRAFANA_URL}"/api/orgs | \
   jq -r '.[] | select(.name=="hashicorp").id' )" 1>/dev/null
+echo "grafana: hashicorp org_id - $ORG_ID"
+
 
 # Switch consul user to hashicorp organization
+echo "grafana: setting consul admin user to hashicorp org"
 curl \
   -X POST \
   -s \
   -u "${BASIC_AUTH}" \
   "${GRAFANA_URL}"/api/user/using/"${ORG_ID}" 1>/dev/null
 
+OLD_API_KEY_ID="$( curl \
+  -X GET \
+  -s \
+  -H "Content-Type: application/json" \
+  -u "${BASIC_AUTH}" "${GRAFANA_URL}"/api/auth/keys | jq -r '.[] | select(.name=="consul_metrics").id' )"
+
+if [[ -n "${OLD_API_KEY_ID}" ]]; then
+  echo "grafana: previous API key found => $OLD_API_KEY_ID, deleting..."
+  DELETED_CODE="$( curl \
+    -X DELETE \
+    -s \
+    -H "Content-Type: application/json" \
+    -u "${BASIC_AUTH}" \
+    -o /dev/null \
+    -w "%{http_code}" \
+    "${GRAFANA_URL}"/api/auth/keys/"${OLD_API_KEY_ID}" )"
+    [[ "${DELETED_CODE}" == "200" ]] || { echo "grafana: failed to remove previous API key, exit code: $DELETED_CODE"; }
+fi
+
+echo "grafana: generating hashicorp org API auth key"
 API_KEY=$(curl \
   -X POST \
   -s \
@@ -92,7 +124,7 @@ EXPIRATION=$(curl \
   -H "Content-Type: application/json" \
   -u "${BASIC_AUTH}" "${GRAFANA_URL}"/api/auth/keys | jq -r '.[] | .expiration' ) 1>/dev/null
 
-if [[ -n $API_KEY ]]; then
+if [[ -n $API_KEY ]] && [[ $API_KEY != 'null' ]]; then
   echo "hashicorp org_id: $ORG_ID | grafana API key: $API_KEY"
   echo "  => API key expiration date: $EXPIRATION"
   echo "$API_KEY" > scripts/files/grafana-api-key
@@ -103,6 +135,7 @@ else
 fi
 
 # Configure consul debug metrics datasource from influxDB
+echo "grafana: updating grafana-config.json with influxdb token and hashicorp org"
 DATASOURCE_CONFIG="scripts/files/grafana-config.json"
 INFLUX_TOKEN=$(grep -E '^\s*token\s*=' "${HOME}/.influxdbv2/configs" | awk '{printf $3}' | tr -d '"')
 jq \
@@ -111,7 +144,7 @@ jq \
   '.secureJsonData.token = $INFLUX_TOKEN | .orgId = $ORG_ID' \
   "$DATASOURCE_CONFIG" > tmpfile && mv tmpfile "$DATASOURCE_CONFIG"
 
-echo "adding $DATASOURCE_CONFIG debug metrics datasource via $GRAFANA_DATASOURCE_API"
+echo "grafana: creating consul-debug-metrics-influx datasource"
 status_code=$(curl -X POST -s \
    -H "Authorization: Bearer $API_KEY" \
    -H "Content-Type: application/json" \
@@ -125,13 +158,15 @@ if [ "$status_code" = '200' ]; then
       -H "Content-Type: application/json" \
       "${GRAFANA_URL}"/api/datasources/name/consul-debug-metrics | jq .
   echo ""
-  echo "grafana configuration successful"
+  echo "grafana: datasource configuration successful!"
 else
-  echo "failed to configure consul-debug-metrics datasource, exit code: $status_code"
+  echo "grafana: failed to configure consul-debug-metrics datasource, exit code: $status_code"
   exit 1
 fi
 exit 0
 
+
+### Updating grafana datasource configuration
 ds_uid="$(curl --request GET -s \
  -H "Authorization: Bearer $API_KEY" \
  -H "Content-Type: application/json" \
@@ -144,3 +179,11 @@ status_code=$(curl -X PUT -s \
    -o /dev/null \
    -w "%{http_code}" \
    "${GRAFANA_URL}"/api/datasources/uid/"$ds_uid")
+
+
+# Get auth keys
+curl \
+  -X GET \
+  -s \
+  -H "Content-Type: application/json" \
+  -u "${BASIC_AUTH}" "${GRAFANA_URL}"/api/auth/keys

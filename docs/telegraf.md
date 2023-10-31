@@ -43,7 +43,7 @@ The following values are used for this scripted run of telegraf:
 * **Username:** consul
 * **Password:** hashicorp
 * **Initial Organization Name:** hashicorp
-* **Initial Bucket Name:** consul-12345 (it is better to suffix the bucket name with the ticket number if you are planning to re-use the InfluxDB instance)
+* **Initial Bucket Name:** consul-debug-metrics (it is better to suffix the bucket name with the ticket number if you are planning to re-use the InfluxDB instance)
 
 This could take some time depending on the amount of metrics captured during the debug run.
 

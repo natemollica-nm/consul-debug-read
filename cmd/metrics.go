@@ -20,16 +20,22 @@ var metricsCmd = &cobra.Command{
 	Long: `Read metrics information from specified bundle and return timestamped values.
 
 Example usage:
-	$ consul-debug-read metrics
+	Display summary of bundle capture	
+		$ consul-debug-read metrics
 
-	$ consul-debug-read metrics --name <name_of_metric>
-
-	$ consul-debug-read metrics --list 
-
-	$ consul-debug-read metrics --gauges
+	Display full list of queryable metric names
+		$ consul-debug-read metrics --list 
+	
+	Retrieve all timestamped captures of metric
+		$ consul-debug-read metrics --name <name_of_metric>
+	
+	Sort metric capture by value (highest to lowest)
+		$ consul-debug-read metrics --name <name_of_metric> --sort-by-value
+	
+	Skip hashidoc metric name validation:
+		$ consul-debug-read metrics --name <valid_name_but_not_in_docs> --validate-metric-name=false
 `,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		l, _ := cmd.Flags().GetBool("list")
 		if _, ok := os.LookupEnv(envDebugPath); ok {
 			envPath := os.Getenv(envDebugPath)
 			envPath = strings.TrimSuffix(envPath, "/")
@@ -44,13 +50,33 @@ Example usage:
 			log.Printf("using config.yaml debug path setting - %s\n", debugPath)
 		}
 		if debugPath != "" {
+			l, _ := cmd.Flags().GetBool("list")
+			h, _ := cmd.Flags().GetBool("host")
 			if !l {
 				log.Printf("debug-path:  '%s'\n", debugPath)
-				err := debugBundle.DecodeJSON(debugPath)
-				if err != nil {
-					return fmt.Errorf("failed to decode bundle: %v", err)
+				// don't read in metrics.json if we don't have to
+				if h {
+					if err := debugBundle.DecodeJSON(debugPath, "host"); err != nil {
+						return fmt.Errorf("failed to decode bundle: %v", err)
+
+					}
+					log.Printf("successfully read-in host.json from:  '%s'\n", debugPath)
+				} else {
+					if err := debugBundle.DecodeJSON(debugPath, "agent"); err != nil {
+						return fmt.Errorf("failed to decode bundle: %v", err)
+					}
+					if err := debugBundle.DecodeJSON(debugPath, "host"); err != nil {
+						return fmt.Errorf("failed to decode bundle: %v", err)
+
+					}
+					if err := debugBundle.DecodeJSON(debugPath, "index"); err != nil {
+						return fmt.Errorf("failed to decode bundle: %v", err)
+					}
+					if err := debugBundle.DecodeJSON(debugPath, "metrics"); err != nil {
+						return fmt.Errorf("failed to decode bundle: %v", err)
+					}
+					log.Printf("successfully read-in agent, host, metrics, and index from:  '%s'\n", debugPath)
 				}
-				log.Printf("successfully read-in bundle from:  '%s'\n", debugPath)
 			}
 		} else {
 			return fmt.Errorf("debug-path is null")
@@ -58,27 +84,22 @@ Example usage:
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		summary, _ := cmd.Flags().GetBool("summary")
+		// no metrics.json ingestion required
 		l, _ := cmd.Flags().GetBool("list")
-		n, _ := cmd.Flags().GetString("name")
 		h, _ := cmd.Flags().GetBool("host")
-		validateName, _ := cmd.Flags().GetBool("skip-name-validation")
+
+		// requires metrics.json
+		n, _ := cmd.Flags().GetString("name")
+		summary, _ := cmd.Flags().GetBool("summary")
+		validateName, _ := cmd.Flags().GetBool("validate-metric-name")
 		byValue, _ := cmd.Flags().GetBool("sort-by-value")
 		telegraf, _ := cmd.Flags().GetBool("telegraf")
 
-		buildMetricsData := func() (types.Metrics, types.MetricsIndex, types.Host, types.ByteConverter, string, string) {
-			// Get Metrics object
+		showSummary := func() error {
 			m := debugBundle.Metrics
 			index := debugBundle.Index
 			host := debugBundle.Host
-			conv := types.ByteConverter{}
 			metricsFile := fmt.Sprintf(debugPath + "/metrics.json")
-			hostFile := fmt.Sprintf(debugPath + "/host.json")
-			return m, index, host, conv, metricsFile, hostFile
-		}
-
-		showSummary := func() error {
-			m, index, host, _, metricsFile, _ := buildMetricsData()
 			fmt.Printf("\nMetrics Bundle Summary: %s\n", metricsFile)
 			fmt.Println("----------------------------------------------")
 			fmt.Println("Datacenter:", debugBundle.Agent.Config.Datacenter)
@@ -93,9 +114,10 @@ Example usage:
 			fmt.Printf("Capture Time Stop: %s\n", m.Metrics[len(m.Metrics)-1].Timestamp)
 			return nil
 		}
-
 		hostMetrics := func() {
-			_, _, host, conv, _, hostFile := buildMetricsData()
+			host := debugBundle.Host
+			conv := types.ByteConverter{}
+			hostFile := fmt.Sprintf(debugPath + "/host.json")
 			bootTimeStamp := time.Unix(int64(host.Host.BootTime), 0)
 			bootTime := bootTimeStamp.Format("2006-01-02 15:04:05 MST")
 			upTime := funcs.ConvertSecondsReadable(host.Host.Uptime)
@@ -124,8 +146,7 @@ Example usage:
 
 		switch {
 		case summary:
-			err := showSummary()
-			if err != nil {
+			if err := showSummary(); err != nil {
 				return err
 			}
 		case l:
@@ -141,13 +162,11 @@ Example usage:
 		case h:
 			hostMetrics()
 		case telegraf:
-			err := debugBundle.GenerateTelegrafMetrics()
-			if err != nil {
+			if err := debugBundle.GenerateTelegrafMetrics(); err != nil {
 				return err
 			}
 		default:
-			err := showSummary()
-			if err != nil {
+			if err := showSummary(); err != nil {
 				return err
 			}
 		}
@@ -162,6 +181,6 @@ func init() {
 	metricsCmd.Flags().BoolP("list", "l", false, "List available metric names to parse with by name.")
 	metricsCmd.Flags().StringP("name", "n", "", "Retrieve specific metric timestamped values by name.")
 	metricsCmd.Flags().BoolP("sort-by-value", "v", false, "Parse metric value by name and sort results by value vice timestamp order.")
-	metricsCmd.Flags().Bool("skip-name-validation", false, "Skip metric name validation with hashicorp docs.")
+	metricsCmd.Flags().Bool("validate-metric-name", true, "Performs metric name validation with hashicorp docs.")
 	metricsCmd.Flags().Bool("telegraf", false, "Generate telegraf compatible metrics file for ingesting offline metrics.")
 }

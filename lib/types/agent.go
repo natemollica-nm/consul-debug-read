@@ -737,55 +737,29 @@ func (b *Debug) BundleSummary() {
 	b.Agent.AgentSummary()
 }
 
-func (b *Debug) DecodeJSON(debugPath string) error {
-	configs := []string{"agent.json", "members.json", "metrics.json", "host.json", "index.json"}
-	agent, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[0]))
-	members, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[1]))
-	metrics, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[2]))
-	host, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[3]))
-	index, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, configs[4]))
-	agentDecoder := json.NewDecoder(agent)
-	memberDecoder := json.NewDecoder(members)
-	metricsDecoder := json.NewDecoder(metrics)
-	hostDecoder := json.NewDecoder(host)
-	indexDecoder := json.NewDecoder(index)
-
-	cleanup := func(err error) error {
-		_ = agent.Close()
-		_ = members.Close()
-		_ = metrics.Close()
-		_ = host.Close()
-		_ = index.Close()
+func (b *Debug) DecodeAgent(agentDecoder *json.Decoder) error {
+	var agentConfig Agent
+	err := agentDecoder.Decode(&agentConfig)
+	if err != nil {
+		log.Fatalf("error decoding agent: %v", err)
 		return err
 	}
+	b.Agent = agentConfig
+	return nil
+}
 
-	log.Printf("Parsing %s, %s, %s, %s, %s", configs[0], configs[1], configs[2], configs[3], configs[4])
-	for {
-		var agentConfig Agent
-		err := agentDecoder.Decode(&agentConfig)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("Error decoding %s | file: %v", err, agent.Name())
-			return err
-		}
-		b.Agent = agentConfig
+func (b *Debug) DecodeMembers(memberDecoder *json.Decoder) error {
+	var membersList []Member
+	err := memberDecoder.Decode(&membersList)
+	if err != nil {
+		log.Fatalf("error decoding members: %v", err)
+		return err
 	}
+	b.Members = membersList
+	return nil
+}
 
-	for {
-		var membersList []Member
-		err := memberDecoder.Decode(&membersList)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("Error decoding %s | file: %v", err, members.Name())
-			return err
-		}
-		b.Members = membersList
-	}
-
+func (b *Debug) DecodeMetrics(metricsDecoder *json.Decoder) error {
 	for {
 		var metric Metric
 		err := metricsDecoder.Decode(&metric)
@@ -793,51 +767,94 @@ func (b *Debug) DecodeJSON(debugPath string) error {
 			break
 		}
 		if err != nil {
-			log.Fatalf("Error decoding %s | file: %v", err, metrics.Name())
+			log.Fatalf("Error decoding | file: metrics.json %v", err)
 			return err
 		}
 		b.Metrics.Metrics = append(b.Metrics.Metrics, metric)
 	}
+	return nil
+}
 
-	for {
-		var metricIndex MetricsIndex
-		err := indexDecoder.Decode(&metricIndex)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("Error decoding %s | file: %v", err, index.Name())
-			return err
-		}
-		b.Index = metricIndex
+func (b *Debug) DecodeMetricsIndex(indexDecoder *json.Decoder) error {
+	var index MetricsIndex
+	err := indexDecoder.Decode(&index)
+	if err != nil {
+		log.Fatalf("error decoding metrics: %v", err)
+		return err
 	}
+	b.Index = index
+	return nil
+}
 
-	for {
-		var hostObject Host
-		err := hostDecoder.Decode(&hostObject)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("Error decoding %s | file: %v", err, metrics.Name())
-			return err
-		}
-		b.Host = hostObject
+func (b *Debug) DecodeHost(hostDecoder *json.Decoder) error {
+	var hostObject Host
+	err := hostDecoder.Decode(&hostObject)
+	if err != nil {
+		log.Fatalf("error decoding host: %v", err)
+		return err
 	}
+	b.Host = hostObject
+	return nil
+}
 
-	if err := agent.Close(); err != nil {
-		return cleanup(err)
-	}
-	if err := members.Close(); err != nil {
-		return cleanup(err)
-	}
-	if err := metrics.Close(); err != nil {
-		return cleanup(err)
-	}
-	if err := host.Close(); err != nil {
-		return cleanup(err)
+func (b *Debug) DecodeJSON(debugPath, dataType string) error {
+	configs := map[string]string{
+		"agent":   "agent.json",
+		"members": "members.json",
+		"metrics": "metrics.json",
+		"host":    "host.json",
+		"index":   "index.json",
 	}
 
+	fileName, found := configs[dataType]
+	if !found && dataType != "all" {
+		return fmt.Errorf("unknown data type: %s", dataType)
+	}
+
+	if dataType == "all" {
+		log.Printf("Parsing %s, %s, %s, %s, %s", configs["agent"], configs["members"], configs["metrics"], configs["host"], configs["index"])
+		for dataType, fileName := range configs {
+			if dataType == "all" {
+				continue
+			}
+			if err := b.decodeFile(debugPath, fileName, dataType); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	log.Printf("Parsing %s", configs[dataType])
+	return b.decodeFile(debugPath, fileName, dataType)
+}
+
+func (b *Debug) decodeFile(debugPath, fileName, dataType string) error {
+	file, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, fileName))
+	cleanup := func(err error) error {
+		_ = file.Close()
+		return err
+	}
+	var dataTypeErr error
+	decoder := json.NewDecoder(file)
+	switch dataType {
+	case "agent":
+		return b.DecodeAgent(decoder)
+	case "members":
+		return b.DecodeMembers(decoder)
+	case "metrics":
+		return b.DecodeMetrics(decoder)
+	case "host":
+		return b.DecodeHost(decoder)
+	case "index":
+		return b.DecodeMetricsIndex(decoder)
+	default:
+		dataTypeErr = fmt.Errorf("unknown data type: %s", dataType)
+	}
+	if err := file.Close(); err != nil {
+		return cleanup(err)
+	}
+	if dataTypeErr != nil {
+		return dataTypeErr
+	}
 	return nil
 }
 
@@ -916,6 +933,7 @@ func (a *Agent) parseDebugRaftConfig() string {
 }
 
 func (b *Debug) RaftListPeers() (string, error) {
+	thisNode := b.Agent.Config.NodeName
 	var debugBundleRaftConfig []byte
 	var err error
 
@@ -929,7 +947,7 @@ func (b *Debug) RaftListPeers() (string, error) {
 	}
 
 	// Format it as a nice table.
-	result := []string{"Node\x1fID\x1fAddress\x1fState\x1fVoter"}
+	result := []string{"Node\x1fID\x1fAddress\x1fState\x1fVoter\x1fAppliedIndex\x1fCommitIndex"}
 	// Determine leader for processing output table
 	raftLeaderAddr := b.Agent.Stats.Consul.LeaderAddr
 	for _, s := range raftServers {
@@ -937,9 +955,15 @@ func (b *Debug) RaftListPeers() (string, error) {
 		if s.Address == raftLeaderAddr {
 			state = "leader"
 		}
-
-		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v",
-			s.Node, s.ID, s.Address, state, s.Voter))
+		if s.Node == thisNode {
+			appliedIndex := b.Agent.Stats.Raft.AppliedIndex
+			commitIndex := b.Agent.Stats.Raft.CommitIndex
+			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%s",
+				s.Node, s.ID, s.Address, state, s.Voter, appliedIndex, commitIndex))
+		} else {
+			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%s",
+				s.Node, s.ID, s.Address, state, s.Voter, "-", "-"))
+		}
 	}
 	output, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 	if err != nil {
@@ -963,7 +987,7 @@ func (a *Agent) AgentSummary() {
 
 func (b *Debug) GenerateTelegrafMetrics() error {
 	metrics := b.Metrics.Metrics
-
+	log.Printf("converting metrics timestamps to RFC3339")
 	for i := range metrics {
 		telegrafMetrics := metrics[i]
 		ts := metrics[i].Timestamp
@@ -981,12 +1005,12 @@ func (b *Debug) GenerateTelegrafMetrics() error {
 		// Must be 0644 because this is written by the consul-k8s user but needs
 		// to be readable by the consul user
 		metricsFile := fmt.Sprintf("%s/metrics-%d.json", telegrafMetricsFilePath, i)
-		log.Printf("generating %s\n", metricsFile)
+		log.Printf("[telegraf-metrics] generating %s\n", metricsFile)
 		if err = lib.WriteFileWithPerms(metricsFile, string(data), 0755); err != nil {
 			return fmt.Errorf("error writing RFC3339 formatted metrics to %s: %v", telegrafMetricsFilePath, err)
 		}
 	}
 
-	log.Printf("[generate-telegraf-metrics] successfully wrote %s\n", telegrafMetricsFilePath)
+	log.Printf("telegraf metrics generated successfully")
 	return nil
 }

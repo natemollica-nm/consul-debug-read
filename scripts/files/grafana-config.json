@@ -1,19 +1,21 @@
 {
   "name": "consul-debug-metrics",
-  "type": "influxdb",
   "orgId": "2",
+  "type": "influxdb",
   "access": "proxy",
+  "url": "http://localhost:8086",
   "user": "consul",
   "password": "hashicorp",
-  "url": "http://localhost:8086",
   "jsonData": {
-    "dbName": "consul-12345",
-    "httpMode": "GET"
+    "dbName": "consul-debug-metrics",
+    "httpMode": "POST",
+    "organization": "hashicorp",
+    "version": "Flux"
   },
   "secureJsonData": {
     "user": "consul",
     "organization": "hashicorp",
-    "token": "KfXrPSyqADgbEF3bOo5suI0QAALyVwrS-Vhth4HXov13bI3Sd3u-ujpUuBfXt4-ywMsPcJywOaorJHQAjmOMRw==",
-    "defaultBucket": "consul-12345"
+    "defaultBucket": "consul-debug-metrics",
+    "token": "aszphnMnnQBrRR-rBK7uBIBHcsG8UQ7WEmEjuezhzhqVbV6MWpmovbegGy94d75G2f_veB9Gr5QIRJAhfftEsQ=="
   }
 }

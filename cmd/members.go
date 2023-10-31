@@ -36,7 +36,11 @@ For example:
 		}
 		if debugPath != "" {
 			log.Printf("debug-path:  '%s'\n", debugPath)
-			err := debugBundle.DecodeJSON(debugPath)
+			err := debugBundle.DecodeJSON(debugPath, "members")
+			if err != nil {
+				return fmt.Errorf("failed to decode bundle: %v", err)
+			}
+			err = debugBundle.DecodeJSON(debugPath, "agent")
 			if err != nil {
 				return fmt.Errorf("failed to decode bundle: %v", err)
 			}
@@ -55,15 +59,5 @@ For example:
 
 func init() {
 	agentCmd.AddCommand(membersCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// membersCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// membersCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	membersCmd.Flags().Bool("wan", false, "Retrieve agent members summary for agent's wan fed members.")
 }

@@ -6,7 +6,7 @@ set -e
 echo "influxdb_configure: running influx setup"
 influx setup \
    --org hashicorp \
-   --bucket consul-12345 \
+   --bucket consul-debug-metrics \
    --username consul \
    --password hashicorp \
    --force

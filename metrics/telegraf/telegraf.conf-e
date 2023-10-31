@@ -1,36 +1,39 @@
 # file: telegraf.conf
 [agent]
+  hostname = "hashi-i-0aa97949095868769.node.seatgeek.stag"
+  metric_batch_size = 500000
+  metric_buffer_limit = 1000000
 
 [[inputs.file]]
-
-  files = ["*.json"]
+  files = ["metrics/telegraf/*.json"]
   data_format = "json_v2"
 
   [[inputs.file.json_v2]]
     timestamp_path = "Timestamp"
     timestamp_format = "rfc3339"
-    measurement_name="consul-telemetry"
+    measurement_name = "consul-telemetry"
 
     [[inputs.file.json_v2.object]]
       path = "Gauges"
-      included_keys = ["Name", "Value"]
-      tags = ["Name"]
+      included_keys = ["Name", "Value", "#(Labels.*)#"]
+      tags = ["Name", "#(_Labels.*)#"]
       disable_prepend_keys = true
 
     [[inputs.file.json_v2.object]]
       path = "Counters"
-      included_keys = ["Name", "Count", "Rate", "Sum", "Min", "Max", "Mean", "Stddev"]
-      tags = ["Name"]
+      included_keys = ["Name", "Count", "Rate", "Sum", "Min", "Max", "Mean", "Stddev", "#(Labels.*)#"]
+      tags = ["Name", "#(_Labels.*)#"]
       disable_prepend_keys = true
 
     [[inputs.file.json_v2.object]]
       path = "Samples"
-      included_keys = ["Name", "Count", "Rate", "Sum", "Min", "Max", "Mean", "Stddev"]
+      included_keys = ["Name", "Count", "Rate", "Sum", "Min", "Max", "Mean", "Stddev", "#(Labels.*)#"]
+      tags = ["Name", "#(_Labels.*)#"]
       disable_prepend_keys = true
-      tags = ["Name"]
 
  [[outputs.influxdb_v2]]
+  precision = "30s"
   urls = ["http://localhost:8086"]
-  token = "KfXrPSyqADgbEF3bOo5suI0QAALyVwrS-Vhth4HXov13bI3Sd3u-ujpUuBfXt4-ywMsPcJywOaorJHQAjmOMRw=="
+  token = "8POM9rFvwOqQ239uQUqp9DHYMjniejEyTJOSgXnRcIOFv51FvPB5Muqtx-NcDuJdQvgMU5qZcLcsJYnTNyWB3Q=="
   organization = "hashicorp"
-  bucket = "consul-12345"
+  bucket = "consul-debug-metrics"

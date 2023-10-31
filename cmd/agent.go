@@ -37,8 +37,10 @@ This includes:
 		}
 		if debugPath != "" {
 			log.Printf("debug-path:  '%s'\n", debugPath)
-			err := debugBundle.DecodeJSON(debugPath)
-			if err != nil {
+			if err := debugBundle.DecodeJSON(debugPath, "agent"); err != nil {
+				return fmt.Errorf("failed to decode bundle: %v", err)
+			}
+			if err := debugBundle.DecodeJSON(debugPath, "members"); err != nil {
 				return fmt.Errorf("failed to decode bundle: %v", err)
 			}
 			log.Printf("Successfully read-in bundle from:  '%s'\n", debugPath)

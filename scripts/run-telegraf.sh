@@ -2,16 +2,17 @@
 
 set -e
 
-cd metrics/telegraf/
+WORKING_DIR=metrics/telegraf
 
-# Retrieve newly minted token for influxdb operations
+# Retrieve newly minted auth token for influxdb operations
 influx_token=$(grep -E '^\s*token\s*=' "${HOME}/.influxdbv2/configs" | awk '{printf $3}' | tr -d '"')
 
+# update telegraf.conf with token and hostname from bundle capture
 echo "telegraf: starting telegraf with metrics/telegraf/telegraf.conf"
-sed -i -e 's/token = \".*\"/token = "'"$influx_token"'"/' telegraf.conf
+sed -i -e 's/token = \".*\"/token = "'"$influx_token"'"/' "${WORKING_DIR}"/telegraf.conf
 
 # Start telegraph with config file and update the token value for the new influxdb instance
-telegraf --config telegraf.conf --once --debug 1>/tmp/telegraf.log &
+telegraf --config "${WORKING_DIR}"/telegraf.conf --once --debug >/tmp/telegraf.log 2>&1 &
 telegraf_pid=$!
 
 # Check if InfluxDB started successfully
@@ -33,4 +34,4 @@ cleanup() {
 }
 trap cleanup SIGINT SIGTERM
 
-echo "telegraf run script complete"
+echo "telegraf run script complete -- observe /tmp/telegraf.log for more info..."
