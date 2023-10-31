@@ -215,7 +215,6 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 				bundles = append(bundles, file)
 			}
 		}
-
 		fmt.Println("select a .tar.gz file to extract:")
 		for i, bundle := range bundles {
 			fmt.Printf("%d: %s\n", i+1, bundle.Name())

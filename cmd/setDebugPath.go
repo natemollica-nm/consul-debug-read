@@ -107,23 +107,26 @@ Example (--file) for extraction:
 						membersJson = true
 					}
 				}
-				if !metricsJson {
-					// "metrics.json" not found in the current directory
-					// Run the "merge-metrics.sh" script with debugPath as an argument
-					scriptPath := "scripts/merge-metrics.sh"
-					cmd := exec.Command(scriptPath, debugPath)
-					log.Printf("attempting to merge sub-directory metrics.json files (older debug capture bundle)...")
-					if _, err := cmd.CombinedOutput(); err != nil {
-						return fmt.Errorf("error running %s: %v\n", scriptPath, err)
-					} else {
-						log.Printf("ran %s to merge %s sub-directory metrics.json files\n", scriptPath, debugPath)
-						metricsJson = true
+				if agentJson && membersJson && hostJson && indexJson {
+					// older debug bundles separated v1/agent/metrics captures into each interval
+					// if so, try and merge the metrics.json files into one large metrics.json
+					// for ingestion.
+					if !metricsJson {
+						// "metrics.json" not found in the current directory
+						// Run the "merge-metrics.sh" script with debugPath as an argument
+						scriptPath := "scripts/merge-metrics.sh"
+						cmd := exec.Command(scriptPath, debugPath)
+						log.Printf("attempting to merge sub-directory metrics.json files (older debug capture bundle)...")
+						if _, err := cmd.CombinedOutput(); err != nil {
+							return fmt.Errorf("error running %s: %v\n", scriptPath, err)
+						} else {
+							log.Printf("ran %s to merge %s sub-directory metrics.json files\n", scriptPath, debugPath)
+						}
 					}
-				}
-				if metricsJson && agentJson && membersJson && hostJson && indexJson {
 					log.Printf("[set-debug-path] path contents validated!\n")
 				} else if fileInfo, err := os.Stat(debugPath); err == nil {
-					if fileInfo.IsDir() {
+					// if path is directory and no index.json, then it's probably a path to a dir containing multiple .tar.gz files
+					if fileInfo.IsDir() && !indexJson {
 						if debugPath, err = funcs.SelectAndExtractTarGzFilesInDir(debugPath); err != nil {
 							return fmt.Errorf("[set-debug-path] failed to extract and select debug bundle - %v\n", err)
 						}
