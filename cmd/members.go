@@ -38,11 +38,11 @@ For example:
 			log.Printf("debug-path:  '%s'\n", debugPath)
 			err := debugBundle.DecodeJSON(debugPath, "members")
 			if err != nil {
-				return fmt.Errorf("failed to decode bundle: %v", err)
+				return fmt.Errorf("failed to decode members.json: %v", err)
 			}
 			err = debugBundle.DecodeJSON(debugPath, "agent")
 			if err != nil {
-				return fmt.Errorf("failed to decode bundle: %v", err)
+				return fmt.Errorf("failed to decode agent.json: %v", err)
 			}
 			log.Printf("Successfully read-in bundle from:  '%s'\n", debugPath)
 		} else {

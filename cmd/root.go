@@ -17,6 +17,7 @@ const (
 var (
 	debugPath   string
 	debugBundle bundle.Debug
+	verbose     bool
 	rootCmd     = &cobra.Command{
 		Use:   "consul-debug-read",
 		Short: "A simple CLI tool for parsing a Consul agent debug bundle",
@@ -30,10 +31,15 @@ agent, and consul host information from a 'consul debug' cmd bundle capture.
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if _, ok := os.LookupEnv(envDebugPath); ok {
 				debugPath = os.Getenv(envDebugPath)
-				log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+				if verbose {
+					log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+				}
+
 			} else {
 				debugPath = viper.GetString("debugPath")
-				log.Printf("using config.yaml debug path setting - %s\n", debugPath)
+				if verbose {
+					log.Printf("using config.yaml debug path setting - %s\n", debugPath)
+				}
 			}
 			if err := cmd.Help(); err != nil {
 				return err
@@ -58,6 +64,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 	initConfig()
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
 }
 
 func initConfig() {

@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -72,7 +73,8 @@ Example (--file) for extraction:
 				} else {
 					return fmt.Errorf("[set-debug-path] invalid debug file format passed in with --file flag - must be .tar.gz")
 				}
-			} else if debugPath != "" {
+			}
+			if debugPath != "" {
 				if isFile := strings.HasSuffix(debugPath, ".tar.gz"); isFile {
 					return fmt.Errorf("[set-debug-path] --path used with .tar.gz file, provide path to extracted bundle or use --file to extract bundle and set path")
 				}
@@ -81,23 +83,44 @@ Example (--file) for extraction:
 				if err != nil {
 					return fmt.Errorf("[set-debug-path] failed to list files in directory path %s - %v\n", debugPath, err)
 				}
-				var agentJson, metricJson, hostJson, indexJson, validPath bool
+				var metricsJson, agentJson, membersJson, hostJson, indexJson bool
 				for _, file := range consulDebugFiles {
 					switch file.Name() {
 					case "metrics.json":
-						metricJson = true
+						metricsJson = true
 					case "agent.json":
 						agentJson = true
 					case "host.json":
 						hostJson = true
 					case "index.json":
 						indexJson = true
-					}
-					if metricJson && agentJson && hostJson && indexJson {
-						validPath = true
+					case "members.json":
+						membersJson = true
+					case "cluster.json":
+						clusterJsonPath := debugPath + "/" + file.Name()
+						membersJsonPath := debugPath + "/members.json"
+						if err := os.Rename(clusterJsonPath, membersJsonPath); err != nil {
+							return fmt.Errorf("[set-debug-path] error renaming file %s to members.json: %v\n", clusterJsonPath, err)
+						} else {
+							log.Printf("[set-debug-path] renamed %s to members.json\n", clusterJsonPath)
+						}
+						membersJson = true
 					}
 				}
-				if validPath {
+				if !metricsJson {
+					// "metrics.json" not found in the current directory
+					// Run the "merge-metrics.sh" script with debugPath as an argument
+					scriptPath := "scripts/merge-metrics.sh"
+					cmd := exec.Command(scriptPath, debugPath)
+					log.Printf("attempting to merge sub-directory metrics.json files (older debug capture bundle)...")
+					if _, err := cmd.CombinedOutput(); err != nil {
+						return fmt.Errorf("error running %s: %v\n", scriptPath, err)
+					} else {
+						log.Printf("ran %s to merge %s sub-directory metrics.json files\n", scriptPath, debugPath)
+						metricsJson = true
+					}
+				}
+				if metricsJson && agentJson && membersJson && hostJson && indexJson {
 					log.Printf("[set-debug-path] path contents validated!\n")
 				} else if fileInfo, err := os.Stat(debugPath); err == nil {
 					if fileInfo.IsDir() {

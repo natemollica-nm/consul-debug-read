@@ -29,21 +29,29 @@ This includes:
 				return fmt.Errorf("directory does not exists: %s - %v\n", envPath, err)
 			} else {
 				debugPath = envPath
-				log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+				if verbose {
+					log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+				}
 			}
 		} else {
 			debugPath = viper.GetString("debugPath")
-			log.Printf("using config.yaml debug path setting - %s\n", debugPath)
+			if verbose {
+				log.Printf("using config.yaml debug path setting - %s\n", debugPath)
+			}
 		}
 		if debugPath != "" {
-			log.Printf("debug-path:  '%s'\n", debugPath)
+			if verbose {
+				log.Printf("debug-path:  '%s'\n", debugPath)
+			}
 			if err := debugBundle.DecodeJSON(debugPath, "agent"); err != nil {
 				return fmt.Errorf("failed to decode bundle: %v", err)
 			}
 			if err := debugBundle.DecodeJSON(debugPath, "members"); err != nil {
 				return fmt.Errorf("failed to decode bundle: %v", err)
 			}
-			log.Printf("Successfully read-in bundle from:  '%s'\n", debugPath)
+			if verbose {
+				log.Printf("successfully read-in bundle from:  '%s'\n", debugPath)
+			}
 		} else {
 			return fmt.Errorf("debug-path is null")
 		}
@@ -59,10 +67,14 @@ This includes:
 
 		switch {
 		case summary:
-			log.Printf("agent summary: configuration rendered from: %s\n", agentFile)
+			if verbose {
+				log.Printf("agent summary: configuration rendered from: %s\n", agentFile)
+			}
 			agent.AgentSummary()
 		case c:
-			log.Printf("agent hcl config: configuration rendered from: %s\n", agentFile)
+			if verbose {
+				log.Printf("agent hcl config: configuration rendered from: %s\n", agentFile)
+			}
 			cfg, err := agent.AgentConfigFull()
 			if err != nil {
 				return err

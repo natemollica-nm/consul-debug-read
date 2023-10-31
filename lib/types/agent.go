@@ -787,13 +787,18 @@ func (b *Debug) DecodeMetricsIndex(indexDecoder *json.Decoder) error {
 }
 
 func (b *Debug) DecodeHost(hostDecoder *json.Decoder) error {
-	var hostObject Host
-	err := hostDecoder.Decode(&hostObject)
-	if err != nil {
-		log.Fatalf("error decoding host: %v", err)
-		return err
+	for {
+		var hostObject Host
+		err := hostDecoder.Decode(&hostObject)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("error decoding host: %v", err)
+			return err
+		}
+		b.Host = hostObject
 	}
-	b.Host = hostObject
 	return nil
 }
 

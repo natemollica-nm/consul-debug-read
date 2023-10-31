@@ -180,7 +180,7 @@ func init() {
 	metricsCmd.Flags().Bool("host", false, "Retrieve Host specific metrics.")
 	metricsCmd.Flags().BoolP("list", "l", false, "List available metric names to parse with by name.")
 	metricsCmd.Flags().StringP("name", "n", "", "Retrieve specific metric timestamped values by name.")
-	metricsCmd.Flags().BoolP("sort-by-value", "v", false, "Parse metric value by name and sort results by value vice timestamp order.")
+	metricsCmd.Flags().Bool("sort-by-value", false, "Parse metric value by name and sort results by value vice timestamp order.")
 	metricsCmd.Flags().Bool("validate-metric-name", true, "Performs metric name validation with hashicorp docs.")
 	metricsCmd.Flags().Bool("telegraf", false, "Generate telegraf compatible metrics file for ingesting offline metrics.")
 }
