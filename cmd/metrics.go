@@ -79,6 +79,13 @@ var (
 		"consul.rpc.rate_limit.exceeded",
 		"consul.rpc.rate_limit.log_dropped",
 	}
+	dataplaneMetrics = []string{
+		"consul.xds.server.streams",
+		"consul.xds.server.streamsUnauthenticated",
+		"consul.xds.server.idealStreamsMax",
+		"consul.xds.server.streamDrained",
+		"consul.xds.server.streamStart",
+	}
 	metricsCmd = &cobra.Command{
 		Use:   "metrics",
 		Short: "Ingest metrics.json from consul debug bundle",
@@ -155,6 +162,7 @@ Example usage:
 			listTransactionTiming, _ := cmd.Flags().GetBool("list-transaction-timing")
 			keyMetrics, _ := cmd.Flags().GetBool("get-key-metrics")
 			rateLimiting, _ := cmd.Flags().GetBool("rate-limiting")
+			dataPlane, _ := cmd.Flags().GetBool("dataplane")
 			transactionTiming, _ := cmd.Flags().GetBool("transaction-timing")
 			leadershipChanges, _ := cmd.Flags().GetBool("leadership-changes")
 			h, _ := cmd.Flags().GetBool("host")
@@ -268,6 +276,21 @@ Example usage:
 					close(doneCh)
 					fmt.Printf("%s\n", values)
 				}
+			case dataPlane:
+				funcs.ClearScreen()
+				for _, name := range dataplaneMetrics {
+					fmt.Printf("\n[Dataplane Metrics] => %s: press [ENTER] to retrieve values", name)
+					fmt.Scanln()
+					doneCh := make(chan bool)
+					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
+					values, err := debugBundle.GetMetricValues(name, false, byValue, short)
+					if err != nil {
+						return err
+					}
+					doneCh <- true // Stop the dot printing goroutine
+					close(doneCh)
+					fmt.Printf("%s\n", values)
+				}
 			case transactionTiming:
 				funcs.ClearScreen()
 				for _, name := range transactionTimingMetrics {
@@ -322,6 +345,7 @@ func init() {
 	metricsCmd.Flags().Bool("list-transaction-timing", false, "List key metrics for Consul txn and kv transaction timing.")
 	metricsCmd.Flags().Bool("get-key-metrics", false, "Retrieve key metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("rate-limiting", false, "Retrieve key rate limit metric values for Consul from debug bundle.")
+	metricsCmd.Flags().Bool("dataplane", false, "Retrieve key dataplane-related metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("transaction-timing", false, "Retrieve key transaction timing metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("leadership-changes", false, "Retrieve key raft leadership stability metric values for Consul from debug bundle.")
 	metricsCmd.Flags().StringP("name", "n", "", "Retrieve specific metric timestamped values by name.")

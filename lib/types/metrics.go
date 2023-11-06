@@ -184,7 +184,7 @@ func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (str
 		result = []string{fmt.Sprintf("*\x1f%s\x1f=>\x1fnil\x1fvalue(s)\x1freturned\x1f", name)}
 	}
 	if byValue {
-		sort.Sort(ByValue(result[1:]))
+		sort.Sort(ByValue(result[2:]))
 	}
 	output, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 	if err != nil {
@@ -201,6 +201,10 @@ type MetricValueExtractor interface {
 // ExtractMetricValueByName ExtractMetricValueByName: Interface implementation for MetricValueExtractor
 func (m Metric) ExtractMetricValueByName(metricName string) []map[string]interface{} {
 	var matches []map[string]interface{}
+
+	if strings.Contains(metricName, "consul.rpc") {
+
+	}
 
 	regex := regexp.MustCompile(".*" + metricName)
 
