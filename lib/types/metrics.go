@@ -5,7 +5,6 @@ import (
 	telemetry "consul-debug-read/metrics"
 	"fmt"
 	"github.com/ryanuber/columnize"
-	"log"
 	"reflect"
 	"regexp"
 	"sort"
@@ -74,9 +73,14 @@ func (m ByValue) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 func (m ByValue) Less(i, j int) bool {
 	columns_i := strings.Split(m[i], "\x1f")
 	columns_j := strings.Split(m[j], "\x1f")
-
-	value_i, _ := strconv.ParseFloat(strings.TrimRight(columns_i[4], "%"), 64)
-	value_j, _ := strconv.ParseFloat(strings.TrimRight(columns_j[4], "%"), 64)
+	var value_i, value_j float64
+	if len(columns_i) == 4 {
+		value_i, _ = strconv.ParseFloat(strings.TrimRight(columns_i[1], "%"), 64)
+		value_j, _ = strconv.ParseFloat(strings.TrimRight(columns_j[1], "%"), 64)
+	} else {
+		value_i, _ = strconv.ParseFloat(strings.TrimRight(columns_i[4], "%"), 64)
+		value_j, _ = strconv.ParseFloat(strings.TrimRight(columns_j[4], "%"), 64)
+	}
 
 	// using '>' vice '<' to sort from highest -> lowest
 	return value_i > value_j
@@ -92,8 +96,16 @@ func (m ByValue) Less(i, j int) bool {
 // 3. retrieve the metric all values by name
 // 4. perform conversion to readable format (time/bytes)
 // 5. columnize the results mapping timestamp to values
-func (b *Debug) GetMetricValues(name string, validate, byValue bool) (string, error) {
-	result := []string{"Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1fLabels\x1f"}
+func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (string, error) {
+	result := []string{fmt.Sprintf("\x1f%s\x1f", name)}
+	underline := fmt.Sprintf(strings.Repeat("-", len(name)))
+
+	result = append(result, fmt.Sprintf("\x1f%s\x1f", underline))
+	if short {
+		result = append(result, "Timestamp\x1fValue\x1fLabels\x1f")
+	} else {
+		result = append(result, "Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1fLabels\x1f")
+	}
 	timeReg := regexp.MustCompile("^ns$|^ms$|^seconds$|^hours$")
 	bytesReg := regexp.MustCompile("bytes")
 	percentageReg := regexp.MustCompile("percentage")
@@ -116,14 +128,10 @@ func (b *Debug) GetMetricValues(name string, validate, byValue bool) (string, er
 		return fmt.Errorf(fmt.Sprintf("[metrics-name-validation] '%s' not a valid telemetry metric name\n  visit: %s for full list of consul telemetry metrics", name, telemetry.TelemetryURL))
 	}
 	if validate {
-		log.Printf("validating metric name with hashicorp docs")
 		if err = validateName(name, stringInfo); err != nil {
 			return "", err
 		}
-	} else {
-		log.Printf("=> skipping metric name validation with hashicorp docs")
 	}
-
 	unit, metricType := GetUnitAndType(name, telemetryInfo)
 	conv := ByteConverter{}
 	for _, metric := range b.Metrics.Metrics {
@@ -154,13 +162,26 @@ func (b *Debug) GetMetricValues(name string, validate, byValue bool) (string, er
 				} else {
 					v = fmt.Sprintf("%v", mValue)
 				}
-				result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
-					mTimestamp, mName, metricType, unit, v, label))
+				if short {
+					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f",
+						mTimestamp, v, label))
+				} else {
+					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
+						mTimestamp, mName, metricType, unit, v, label))
+				}
 			} else {
-				result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
-					mTimestamp, mName, metricType, unit, "<nil>", "-"))
+				if short {
+					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f",
+						mTimestamp, "<nil>", "-"))
+				} else {
+					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
+						mTimestamp, mName, metricType, unit, "<nil>", "-"))
+				}
 			}
 		}
+	}
+	if len(result) == 3 {
+		result = []string{fmt.Sprintf("*\x1f%s\x1f=>\x1fnil\x1fvalue(s)\x1freturned\x1f", name)}
 	}
 	if byValue {
 		sort.Sort(ByValue(result[1:]))

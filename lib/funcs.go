@@ -15,6 +15,12 @@ import (
 	"time"
 )
 
+func ClearScreen() {
+	clearScreen := exec.Command("clear")
+	clearScreen.Stdout = os.Stdout
+	_ = clearScreen.Run()
+}
+
 func TimeStampDuration(timeStart, timeStop string) time.Duration {
 	start, _ := time.Parse("2006-01-02 15:04:05 -0700 MST", timeStart)
 	stop, _ := time.Parse("2006-01-02 15:04:05 -0700 MST", timeStop)
@@ -378,4 +384,23 @@ func WriteFileWithPerms(outputFile, payload string, mode os.FileMode) error {
 		return fmt.Errorf("unable to write file: %s", err)
 	}
 	return os.Chmod(outputFile, mode)
+}
+
+func Dots(msg string, ch <-chan bool) {
+	dots := []string{".", "..", "...", "...."}
+	i := 0
+	for {
+		select {
+		case <-ch:
+			fmt.Print("\r")                                         // Carriage return to the beginning of the line
+			fmt.Print(fmt.Sprintf(strings.Repeat(" ", len(msg)+4))) // Overwrite the line with spaces
+			fmt.Print("\r")                                         // Carriage return again to the beginning of the line
+			return
+		default:
+			fmt.Printf("%s", msg)
+			fmt.Print(dots[i%len(dots)], "\r")
+			i++
+			time.Sleep(300 * time.Millisecond)
+		}
+	}
 }

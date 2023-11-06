@@ -27,7 +27,7 @@ if [ "${#telegraf_pids[@]}" -gt 1 ]; then
   done
   echo "telegraf stopped"
 elif [ "${#telegraf_pids[@]}" -eq 1 ] && [ -n "${telegraf_pids[0]}" ]; then
-      echo "stopping telegraf process with PID "${telegraf_pids[0]}" gracefully..."
+      echo "stopping telegraf process with PID ${telegraf_pids[0]} gracefully..."
       kill -INT "${telegraf_pids[0]}" >/dev/null
       sleep 5
       if kill -0 "${telegraf_pids[0]}" 2>/dev/null; then

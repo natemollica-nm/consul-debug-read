@@ -44,10 +44,10 @@ This includes:
 				log.Printf("debug-path:  '%s'\n", debugPath)
 			}
 			if err := debugBundle.DecodeJSON(debugPath, "agent"); err != nil {
-				return fmt.Errorf("failed to decode bundle: %v", err)
+				return fmt.Errorf("failed to decode agent.json %v", err)
 			}
 			if err := debugBundle.DecodeJSON(debugPath, "members"); err != nil {
-				return fmt.Errorf("failed to decode bundle: %v", err)
+				return fmt.Errorf("failed to decode members.json %v", err)
 			}
 			if verbose {
 				log.Printf("successfully read-in bundle from:  '%s'\n", debugPath)

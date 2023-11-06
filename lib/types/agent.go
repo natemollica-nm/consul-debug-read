@@ -833,7 +833,15 @@ func (b *Debug) DecodeJSON(debugPath, dataType string) error {
 }
 
 func (b *Debug) decodeFile(debugPath, fileName, dataType string) error {
-	file, _ := os.Open(fmt.Sprintf("%s/%s", debugPath, fileName))
+	file, err := os.Open(fmt.Sprintf("%s/%s", debugPath, fileName))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("file not found: %s/%s. ensure debug-path set to valid path\n", debugPath, fileName)
+			// Handle the "file not found" error here
+		} else {
+			return fmt.Errorf("error opening file: %s/%s - %v\n", debugPath, fileName, err)
+		}
+	}
 	cleanup := func(err error) error {
 		_ = file.Close()
 		return err
