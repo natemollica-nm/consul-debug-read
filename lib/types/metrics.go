@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Gauge struct {
@@ -74,7 +75,7 @@ func (m ByValue) Less(i, j int) bool {
 	columns_i := strings.Split(m[i], "\x1f")
 	columns_j := strings.Split(m[j], "\x1f")
 	var value_i, value_j float64
-	if len(columns_i) == 4 {
+	if len(columns_i) >= 2 && len(columns_i) <= 4 {
 		value_i, _ = strconv.ParseFloat(strings.TrimRight(columns_i[1], "%"), 64)
 		value_j, _ = strconv.ParseFloat(strings.TrimRight(columns_j[1], "%"), 64)
 	} else {
@@ -99,12 +100,12 @@ func (m ByValue) Less(i, j int) bool {
 func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (string, error) {
 	result := []string{fmt.Sprintf("\x1f%s\x1f", name)}
 	underline := fmt.Sprintf(strings.Repeat("-", len(name)))
-
 	result = append(result, fmt.Sprintf("\x1f%s\x1f", underline))
 	if short {
-		result = append(result, "Timestamp\x1fValue\x1fLabels\x1f")
+		result = append(result, "Timestamp\x1fValue\x1f")
+
 	} else {
-		result = append(result, "Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1fLabels\x1f")
+		result = append(result, "Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1f")
 	}
 	timeReg := regexp.MustCompile("^ns$|^ms$|^seconds$|^hours$")
 	bytesReg := regexp.MustCompile("bytes")
@@ -134,16 +135,19 @@ func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (str
 	}
 	unit, metricType := GetUnitAndType(name, telemetryInfo)
 	conv := ByteConverter{}
+	var dataMaps [][]map[string]interface{}
+	var label []string
 	for _, metric := range b.Metrics.Metrics {
 		data := metric.ExtractMetricValueByName(name)
+		dataMaps = append(dataMaps, data)
 		for _, info := range data {
 			mName := info["name"].(string)
 			mValue := info["value"]
 			mLabels := info["labels"].(map[string]interface{})
 			mTimestamp := info["timestamp"]
-			var label []string
+			label = []string{}
 			for k, v := range mLabels {
-				label = append(label, fmt.Sprintf("{%s: %v}", k, v))
+				label = append(label, fmt.Sprintf("%s=%v", k, v))
 			}
 			if mValue != nil {
 				var v string
@@ -163,20 +167,43 @@ func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (str
 					v = fmt.Sprintf("%v", mValue)
 				}
 				if short {
-					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f",
-						mTimestamp, v, label))
+					if len(label) > 0 {
+						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f",
+							mTimestamp, v, label))
+					} else {
+						result = append(result, fmt.Sprintf("%s\x1f%s\x1f",
+							mTimestamp, v))
+					}
 				} else {
-					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
-						mTimestamp, mName, metricType, unit, v, label))
+					if len(label) > 0 {
+						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
+							mTimestamp, mName, metricType, unit, v, label))
+					} else {
+						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
+							mTimestamp, mName, metricType, unit, v))
+					}
 				}
+			}
+		}
+	}
+	if len(label) > 0 {
+		result[2] += "Labels\x1f"
+	}
+	if name == "consul.runtime.total_gc_pause_ns" {
+		result[2] += "gc/min\x1f"
+		// Calculate the GC rate and add it to each line
+		for i := 0; i < len(dataMaps); i++ {
+			if i == 0 {
+				// no previous time stamped gc gauge value to perform non-neg diff calc
+				result[i+3] = fmt.Sprintf("%s%s\x1f", result[i+3], "-")
 			} else {
-				if short {
-					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f",
-						mTimestamp, "<nil>", "-"))
-				} else {
-					result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
-						mTimestamp, mName, metricType, unit, "<nil>", "-"))
+				// Calculate the rate using your CalculateGCRate function or another method
+				rate, err := CalculateGCRate(dataMaps[i], dataMaps[i-1])
+				if err != nil {
+					return "", fmt.Errorf("error calculating rate: %v", err)
 				}
+				// Append the calculated rate to the line
+				result[i+3] = fmt.Sprintf("%s%s\x1f", result[i+3], rate)
 			}
 		}
 	}
@@ -184,7 +211,7 @@ func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (str
 		result = []string{fmt.Sprintf("*\x1f%s\x1f=>\x1fnil\x1fvalue(s)\x1freturned\x1f", name)}
 	}
 	if byValue {
-		sort.Sort(ByValue(result[2:]))
+		sort.Sort(ByValue(result[3:]))
 	}
 	output, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 	if err != nil {
@@ -198,13 +225,21 @@ type MetricValueExtractor interface {
 	ExtractMetricValueByName(metricName string) interface{}
 }
 
+// GetUnitAndType returns the Unit and Type for a given Name.
+func GetUnitAndType(name string, telemetry []metrics.AgentTelemetryMetric) (string, string) {
+	for _, metric := range telemetry {
+		if metric.Name == name {
+			return metric.Unit, metric.Type
+		} else if name == "*" {
+			return metric.Unit, metric.Type
+		}
+	}
+	return "-", "-"
+}
+
 // ExtractMetricValueByName ExtractMetricValueByName: Interface implementation for MetricValueExtractor
 func (m Metric) ExtractMetricValueByName(metricName string) []map[string]interface{} {
 	var matches []map[string]interface{}
-
-	if strings.Contains(metricName, "consul.rpc") {
-
-	}
 
 	regex := regexp.MustCompile(".*" + metricName)
 
@@ -255,16 +290,51 @@ func (m Metric) ExtractMetricValueByName(metricName string) []map[string]interfa
 	return matches
 }
 
-// GetUnitAndType returns the Unit and Type for a given Name.
-func GetUnitAndType(name string, telemetry []metrics.AgentTelemetryMetric) (string, string) {
-	for _, metric := range telemetry {
-		if metric.Name == name {
-			return metric.Unit, metric.Type
-		} else if name == "*" {
-			return metric.Unit, metric.Type
-		}
+// nonNegativeDifference calculates the non-negative difference between two float64 values.
+func nonNegativeDifference(a, b float64) float64 {
+	diff := a - b
+	if diff >= 0 {
+		return diff
 	}
-	return "-", "-"
+	return -diff // Return the absolute value of the difference if < 0
+}
+
+// CalculateGCRate calculates the rate of Garbage Collection (GC) in nanoseconds per minute.
+func CalculateGCRate(currentValueData, previousValueData []map[string]interface{}) (string, error) {
+	var rate string
+
+	currentValue, ok := currentValueData[0]["value"].(float64)
+	if !ok {
+		return "", fmt.Errorf("invalid 'value' field in data")
+	}
+	previousValue, ok := previousValueData[0]["value"].(float64)
+	if !ok {
+		return "", fmt.Errorf("invalid 'value' field in data")
+	}
+	// Calculate the non-negative difference in GC pause times
+	diff := nonNegativeDifference(currentValue, previousValue)
+	timeCurrent, err := time.Parse("2006-01-02 15:04:05 -0700 MST", fmt.Sprintf("%s", currentValueData[0]["timestamp"]))
+	if err != nil {
+		return "", err
+	}
+	timePrevious, err := time.Parse("2006-01-02 15:04:05 -0700 MST", fmt.Sprintf("%s", previousValueData[0]["timestamp"]))
+	if err != nil {
+		return "", err
+	}
+	// consul debug caputures default to 5m/30s capture intervals (>= v1.16.x)
+	//
+	timeDiff := timeCurrent.Sub(timePrevious).Seconds()
+	if diff >= 0 && timeDiff > 0 {
+		rate, err = ConvertToReadableTime(diff/(timeDiff/60), "ns") // convert to ns/min to most-readable-time/minute
+		if err != nil {
+			return "", err
+		}
+		rate = fmt.Sprintf("%s/min", rate)
+	}
+	if rate == "" {
+		rate = "-"
+	}
+	return rate, nil
 }
 
 // ByteConverter
@@ -334,7 +404,6 @@ type TimeConverter interface {
 
 func ConvertToReadableTime(value interface{}, units string) (string, error) {
 	var converter TimeConverter
-
 	switch units {
 	case "ns":
 		converter = NanosecondsConverter{}
@@ -381,7 +450,7 @@ func (n NanosecondsConverter) Convert(timeValue interface{}) (string, error) {
 		case v >= nsInSecond:
 			return fmt.Sprintf("%.2fs", v/float64(nsInSecond)), nil
 		case v >= nsInMs:
-			return fmt.Sprintf("%.4fms", v/float64(nsInMs)), nil
+			return fmt.Sprintf("%.2fms", v/float64(nsInMs)), nil
 		default:
 			return fmt.Sprintf("%.4fns", v), nil
 		}

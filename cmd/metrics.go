@@ -19,9 +19,9 @@ var (
 		"Transaction Timing":               transactionTimingMetrics,
 		"Leadership Stability":             leaderShipMetrics,
 		"Certificate Authority Expiration": certAuthority,
-		"Autopilot":                        autoPilot,
-		"Memory Utilization":               memory,
-		"Network Activity":                 network,
+		"Autopilot":                        autoPilotMetrics,
+		"Memory Utilization":               memoryMetrics,
+		"Network Activity":                 networkMetrics,
 		"Raft Thread Saturation":           raftThreadSaturation,
 		"Raft Replication Capacity":        replicationCapacity,
 		"BoltDB Performance":               boldDBPerformance,
@@ -43,16 +43,16 @@ var (
 		"consul.mesh.active-signing-ca.expiry",
 		"consul.agent.tls.cert.expiry",
 	}
-	autoPilot = []string{
+	autoPilotMetrics = []string{
 		"consul.autopilot.healthy",
 		"consul.autopilot.failure_tolerance",
 	}
-	memory = []string{
+	memoryMetrics = []string{
 		"consul.runtime.alloc_bytes",
 		"consul.runtime.sys_bytes",
 		"consul.runtime.total_gc_pause_ns",
 	}
-	network = []string{
+	networkMetrics = []string{
 		"consul.client.rpc",
 		"consul.client.rpc.exceeded",
 		"consul.client.rpc.failed",
@@ -86,6 +86,20 @@ var (
 		"consul.xds.server.streamDrained",
 		"consul.xds.server.streamStart",
 	}
+	federationMetrics = []string{
+		"consul.leader.replication.acl-policies.status",
+		"consul.leader.replication.acl-policies.index",
+		"consul.leader.replication.acl-roles.status",
+		"consul.leader.replication.acl-roles.index",
+		"consul.leader.replication.acl-tokens.status",
+		"consul.leader.replication.acl-tokens.index",
+		"consul.leader.replication.config-entries.status",
+		"consul.leader.replication.config-entries.index",
+		"consul.leader.replication.federation-state.status",
+		"consul.leader.replication.federation-state.index",
+		"consul.leader.replication.namespaces.status",
+		"consul.leader.replication.namespaces.index",
+	}
 	metricsCmd = &cobra.Command{
 		Use:   "metrics",
 		Short: "Ingest metrics.json from consul debug bundle",
@@ -105,7 +119,7 @@ Example usage:
 		$ consul-debug-read metrics --name <name_of_metric> --sort-by-value
 	
 	Skip hashidoc metric name validation:
-		$ consul-debug-read metrics --name <valid_name_but_not_in_docs> --validate-metric-name=false
+		$ consul-debug-read metrics --name <valid_name_but_not_in_docs> --verify=false
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if _, ok := os.LookupEnv(envDebugPath); ok {
@@ -163,8 +177,12 @@ Example usage:
 			keyMetrics, _ := cmd.Flags().GetBool("get-key-metrics")
 			rateLimiting, _ := cmd.Flags().GetBool("rate-limiting")
 			dataPlane, _ := cmd.Flags().GetBool("dataplane")
+			autoPilot, _ := cmd.Flags().GetBool("auto-pilot")
+			network, _ := cmd.Flags().GetBool("network")
+			memory, _ := cmd.Flags().GetBool("memory")
 			transactionTiming, _ := cmd.Flags().GetBool("transaction-timing")
 			leadershipChanges, _ := cmd.Flags().GetBool("leadership-changes")
+			federationStatus, _ := cmd.Flags().GetBool("federation-status")
 			h, _ := cmd.Flags().GetBool("host")
 
 			// requires metrics.json
@@ -263,9 +281,39 @@ Example usage:
 				}
 			case rateLimiting:
 				funcs.ClearScreen()
+				fmt.Printf("\n[Rate Limiting Metrics]: press [ENTER] to retrieve values")
+				fmt.Scanln()
 				for _, name := range rateLimitingMetrics {
-					fmt.Printf("\n[Rate Limiting Metrics] => %s: press [ENTER] to retrieve values", name)
-					fmt.Scanln()
+					doneCh := make(chan bool)
+					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
+					values, err := debugBundle.GetMetricValues(name, false, byValue, short)
+					if err != nil {
+						return err
+					}
+					doneCh <- true // Stop the dot printing goroutine
+					close(doneCh)
+					fmt.Printf("%s\n", values)
+				}
+			case memory:
+				funcs.ClearScreen()
+				fmt.Printf("\n[Memory Metrics]: press [ENTER] to retrieve values")
+				fmt.Scanln()
+				for _, name := range memoryMetrics {
+					doneCh := make(chan bool)
+					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
+					values, err := debugBundle.GetMetricValues(name, false, byValue, short)
+					if err != nil {
+						return err
+					}
+					doneCh <- true // Stop the dot printing goroutine
+					close(doneCh)
+					fmt.Printf("%s\n", values)
+				}
+			case network:
+				funcs.ClearScreen()
+				fmt.Printf("\n[Network Metrics]: press [ENTER] to retrieve values")
+				fmt.Scanln()
+				for _, name := range networkMetrics {
 					doneCh := make(chan bool)
 					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
 					values, err := debugBundle.GetMetricValues(name, false, byValue, short)
@@ -278,9 +326,24 @@ Example usage:
 				}
 			case dataPlane:
 				funcs.ClearScreen()
+				fmt.Printf("\n[Dataplane Metrics]: press [ENTER] to retrieve values")
+				fmt.Scanln()
 				for _, name := range dataplaneMetrics {
-					fmt.Printf("\n[Dataplane Metrics] => %s: press [ENTER] to retrieve values", name)
-					fmt.Scanln()
+					doneCh := make(chan bool)
+					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
+					values, err := debugBundle.GetMetricValues(name, false, byValue, short)
+					if err != nil {
+						return err
+					}
+					doneCh <- true // Stop the dot printing goroutine
+					close(doneCh)
+					fmt.Printf("%s\n", values)
+				}
+			case autoPilot:
+				funcs.ClearScreen()
+				fmt.Printf("\n[Autopilot Metrics]: press [ENTER] to retrieve values")
+				fmt.Scanln()
+				for _, name := range autoPilotMetrics {
 					doneCh := make(chan bool)
 					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
 					values, err := debugBundle.GetMetricValues(name, false, byValue, short)
@@ -293,9 +356,9 @@ Example usage:
 				}
 			case transactionTiming:
 				funcs.ClearScreen()
+				fmt.Printf("\n[Transaction Timing Metrics]: press [ENTER] to retrieve values")
+				fmt.Scanln()
 				for _, name := range transactionTimingMetrics {
-					fmt.Printf("\n[Transaction Timing Metrics] => %s: press [ENTER] to retrieve values", name)
-					fmt.Scanln()
 					doneCh := make(chan bool)
 					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
 					values, err := debugBundle.GetMetricValues(name, false, byValue, short)
@@ -308,9 +371,24 @@ Example usage:
 				}
 			case leadershipChanges:
 				funcs.ClearScreen()
+				fmt.Printf("\n[Transaction Timing Metrics]: press [ENTER] to retrieve values")
+				fmt.Scanln()
 				for _, name := range leaderShipMetrics {
-					fmt.Printf("\n[Transaction Timing Metrics] => %s: press [ENTER] to retrieve values", name)
-					fmt.Scanln()
+					doneCh := make(chan bool)
+					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
+					values, err := debugBundle.GetMetricValues(name, false, byValue, short)
+					if err != nil {
+						return err
+					}
+					doneCh <- true // Stop the dot printing goroutine
+					close(doneCh)
+					fmt.Printf("%s\n", values)
+				}
+			case federationStatus:
+				funcs.ClearScreen()
+				fmt.Printf("\n[Federation Metrics]: press [ENTER] to retrieve values")
+				fmt.Scanln()
+				for _, name := range federationMetrics {
 					doneCh := make(chan bool)
 					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
 					values, err := debugBundle.GetMetricValues(name, false, byValue, short)
@@ -345,9 +423,13 @@ func init() {
 	metricsCmd.Flags().Bool("list-transaction-timing", false, "List key metrics for Consul txn and kv transaction timing.")
 	metricsCmd.Flags().Bool("get-key-metrics", false, "Retrieve key metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("rate-limiting", false, "Retrieve key rate limit metric values for Consul from debug bundle.")
+	metricsCmd.Flags().Bool("memory", false, "Retrieve key memory metric values for Consul from debug bundle.")
+	metricsCmd.Flags().Bool("network", false, "Retrieve key network metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("dataplane", false, "Retrieve key dataplane-related metric values for Consul from debug bundle.")
+	metricsCmd.Flags().Bool("auto-pilot", false, "Retrieve key autopilot related metric values.")
 	metricsCmd.Flags().Bool("transaction-timing", false, "Retrieve key transaction timing metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("leadership-changes", false, "Retrieve key raft leadership stability metric values for Consul from debug bundle.")
+	metricsCmd.Flags().Bool("federation-status", false, "Retrieve key secondary datacenter federation metric values for Consul from debug bundle.")
 	metricsCmd.Flags().StringP("name", "n", "", "Retrieve specific metric timestamped values by name.")
 	metricsCmd.Flags().Bool("sort-by-value", false, "Parse metric value by name and sort results by value vice timestamp order.")
 	metricsCmd.Flags().Bool("short", false, "Only print timestamp, value, and labels columns.")
