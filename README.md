@@ -1,7 +1,7 @@
 # consul-debug-read
 a simple cli tool for parsing consul-debug bundles to readable format
 
-![](assets/consul-debug-read_getting_started.gif)
+![](assets/consul-debug-read.gif)
 
 
 ## Table of Contents
@@ -25,6 +25,8 @@ a simple cli tool for parsing consul-debug bundles to readable format
 Follow the [Download and Installation Instructions](https://go.dev/doc/install#tarball_non_standard) for installing go for your platform.
 
 **Setup your **GOPATH** and **GOROOT** (if applicable) appropriately**
+
+_If using macbook and installing go with homebrew set GOPATH and GOROOT as outlined in the examples below._
 
 **GOPATH** is discussed in the [cmd/go documentation](http://golang.org/cmd/go/#hdr-GOPATH_environment_variable):
 
