@@ -21,12 +21,6 @@ func ClearScreen() {
 	_ = clearScreen.Run()
 }
 
-func TimeStampDuration(timeStart, timeStop string) time.Duration {
-	start, _ := time.Parse("2006-01-02 15:04:05 -0700 MST", timeStart)
-	stop, _ := time.Parse("2006-01-02 15:04:05 -0700 MST", timeStop)
-	return stop.Sub(start)
-}
-
 func ToRFC3339(ts string) (string, error) {
 	// Parse the timestamp string into a time.Time value
 	timestamp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", ts)
@@ -37,80 +31,6 @@ func ToRFC3339(ts string) (string, error) {
 	// Convert the time.Time value to RFC3339 format
 	rfc3339Str := timestamp.Format(time.RFC3339)
 	return rfc3339Str, nil
-}
-
-// GetExtractName
-// Returns tar rendered root directory name
-func GetExtractName(bundleName string) string {
-	var capturedPart string
-
-	// Define a regular expression pattern to capture the desired part of the string.
-	pattern := `^\d+(.*?)(?:\.tar\.gz)$`
-
-	// Compile the regular expression.
-	re := regexp.MustCompile(pattern)
-
-	// Find the submatch using FindStringSubmatch.
-	submatches := re.FindStringSubmatch(bundleName)
-
-	if submatches != nil && len(submatches) > 1 {
-		// Extract and print the captured part of the string.
-		capturedPart = submatches[1]
-	}
-	return capturedPart
-}
-
-// GetMostRecentFile returns the path of the most recently modified file in a directory.
-func GetMostRecentFile(directory string) (string, error) {
-	var mostRecentFile string
-	var mostRecentTime time.Time
-	var returnFile string
-	var debugExtracts []os.DirEntry
-
-	files, err := os.ReadDir(directory)
-	if err != nil {
-		return "", err
-	}
-
-	for _, file := range files {
-		if file.IsDir() && strings.HasPrefix(file.Name(), "consul-debug-") {
-			debugExtracts = append(debugExtracts, file)
-		}
-	}
-
-	fmt.Printf("\nSelect a consul debug extract directory to use:\n")
-	for i, file := range debugExtracts {
-		if file.IsDir() && strings.HasPrefix(file.Name(), "consul-debug-") {
-			info, _ := file.Info()
-			modTime := info.ModTime()
-			if modTime.After(mostRecentTime) {
-				mostRecentTime = modTime
-				mostRecentFile = filepath.Join(directory, file.Name())
-			}
-			fmt.Printf("%d: %s\n", i+1, file.Name())
-		}
-	}
-	fmt.Printf("[*] Most recently extract: '%s'\n", mostRecentFile)
-
-	fmt.Print("Enter the number of debug extract directory to use: ")
-	var selected int
-	if _, err := fmt.Scanf("%d", &selected); err != nil {
-		return "", err
-	}
-
-	if selected < 0 || selected > len(files) {
-		return "", fmt.Errorf("invalid selection")
-	}
-
-	switch {
-	case selected == 0:
-		returnFile = mostRecentFile
-	case selected >= 1 && selected < len(files):
-		selectedFile := debugExtracts[selected-1]
-		returnFile = filepath.Join(directory, selectedFile.Name())
-	}
-
-	return returnFile, nil
 }
 
 func extractTarGz(srcFile, destDir string) (string, error) {
@@ -133,17 +53,6 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 
 	// Create a tar reader
 	tarReader := tar.NewReader(gzipReader)
-
-	destFileName := GetExtractName(filepath.Base(srcFile))
-	destFilePath := fmt.Sprintf("%s/%s", destDir, destFileName)
-	// Check if destination dir exists
-	if _, err := os.Stat(destFilePath); err == nil {
-		log.Printf("removing previous extract dir - %s\n", destFilePath)
-		err := os.RemoveAll(destFilePath)
-		if err != nil {
-			return "", fmt.Errorf("unable to delete existing file: %v", err)
-		}
-	}
 
 	// Iterate through the tar archive and extract files
 	for {
@@ -185,6 +94,16 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 				extractRootDir = dir
 			}
 		}
+
+		//extractRootFullPath := fmt.Sprintf("%s/%s", destDir, extractRootDir)
+		//// Check if destination dir exists
+		//if _, err := os.Stat(extractRootFullPath); err == nil {
+		//	log.Printf("removing previous extract dir - %s\n", extractRootFullPath)
+		//	err := os.RemoveAll(extractRootFullPath)
+		//	if err != nil {
+		//		return "", fmt.Errorf("unable to delete existing file: %v", err)
+		//	}
+		//}
 
 		// Create and open the destination file
 		destFile, err := os.Create(destFilePath)
@@ -274,61 +193,6 @@ func ConvertToValidJSON(input string) string {
 	input = strings.Replace(input, ",]", `]`, 1)
 
 	return input
-}
-
-func ExecuteJQ(data string, jqFilter string) (string, error) {
-	cmd := exec.Command("jq", "--raw-output", jqFilter)
-
-	// Create pipes for stdin, stdout, and stderr
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return "", err
-	}
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return "", err
-	}
-
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return "", err
-	}
-
-	// Start the jq command
-	if err := cmd.Start(); err != nil {
-		return "", err
-	}
-
-	// Write data to stdin
-	_, err = io.WriteString(stdin, data)
-	if err != nil {
-		return "", err
-	}
-	stdin.Close()
-
-	// Read the result from stdout
-	result, err := io.ReadAll(stdout)
-	if err != nil {
-		return "", err
-	}
-
-	// Read and display any errors from stderr
-	errorOutput, err := io.ReadAll(stderr)
-	if err != nil {
-		return "", err
-	}
-
-	if len(errorOutput) > 0 {
-		return "", fmt.Errorf("jq error: %s", string(errorOutput))
-	}
-
-	// Wait for the jq command to complete
-	if err := cmd.Wait(); err != nil {
-		return "", err
-	}
-
-	return string(result), nil
 }
 
 func ConvertSecondsReadable(seconds int) string {

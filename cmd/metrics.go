@@ -49,6 +49,7 @@ var (
 	}
 	memoryMetrics = []string{
 		"consul.runtime.alloc_bytes",
+		"consul.runtime.heap_objects",
 		"consul.runtime.sys_bytes",
 		"consul.runtime.total_gc_pause_ns",
 	}
@@ -76,6 +77,8 @@ var (
 		"consul.client.rpc",
 		"consul.client.rpc.failed",
 		"consul.client.rpc.exceeded",
+		"consul.rpc.queries",
+		"consul.rpc.queries_blocking",
 		"consul.rpc.rate_limit.exceeded",
 		"consul.rpc.rate_limit.log_dropped",
 	}
@@ -180,6 +183,7 @@ Example usage:
 			autoPilot, _ := cmd.Flags().GetBool("auto-pilot")
 			network, _ := cmd.Flags().GetBool("network")
 			memory, _ := cmd.Flags().GetBool("memory")
+			bolt, _ := cmd.Flags().GetBool("bolt")
 			transactionTiming, _ := cmd.Flags().GetBool("transaction-timing")
 			leadershipChanges, _ := cmd.Flags().GetBool("leadership-changes")
 			federationStatus, _ := cmd.Flags().GetBool("federation-status")
@@ -265,7 +269,7 @@ Example usage:
 				funcs.ClearScreen()
 				for keyMetricTitle, row := range keyMetricNames {
 					fmt.Printf("\n[Next Key Metric] => %s: press [ENTER] to retrieve values", keyMetricTitle)
-					fmt.Scanln()
+					_, _ = fmt.Scanln()
 					funcs.ClearScreen()
 					for _, name := range row {
 						doneCh := make(chan bool)
@@ -282,7 +286,7 @@ Example usage:
 			case rateLimiting:
 				funcs.ClearScreen()
 				fmt.Printf("\n[Rate Limiting Metrics]: press [ENTER] to retrieve values")
-				fmt.Scanln()
+				_, _ = fmt.Scanln()
 				for _, name := range rateLimitingMetrics {
 					doneCh := make(chan bool)
 					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
@@ -297,7 +301,7 @@ Example usage:
 			case memory:
 				funcs.ClearScreen()
 				fmt.Printf("\n[Memory Metrics]: press [ENTER] to retrieve values")
-				fmt.Scanln()
+				_, _ = fmt.Scanln()
 				for _, name := range memoryMetrics {
 					doneCh := make(chan bool)
 					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
@@ -312,8 +316,23 @@ Example usage:
 			case network:
 				funcs.ClearScreen()
 				fmt.Printf("\n[Network Metrics]: press [ENTER] to retrieve values")
-				fmt.Scanln()
+				_, _ = fmt.Scanln()
 				for _, name := range networkMetrics {
+					doneCh := make(chan bool)
+					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
+					values, err := debugBundle.GetMetricValues(name, false, byValue, short)
+					if err != nil {
+						return err
+					}
+					doneCh <- true // Stop the dot printing goroutine
+					close(doneCh)
+					fmt.Printf("%s\n", values)
+				}
+			case bolt:
+				funcs.ClearScreen()
+				fmt.Printf("\n[BoltDB Metrics]: press [ENTER] to retrieve values")
+				_, _ = fmt.Scanln()
+				for _, name := range boldDBPerformance {
 					doneCh := make(chan bool)
 					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
 					values, err := debugBundle.GetMetricValues(name, false, byValue, short)
@@ -327,7 +346,7 @@ Example usage:
 			case dataPlane:
 				funcs.ClearScreen()
 				fmt.Printf("\n[Dataplane Metrics]: press [ENTER] to retrieve values")
-				fmt.Scanln()
+				_, _ = fmt.Scanln()
 				for _, name := range dataplaneMetrics {
 					doneCh := make(chan bool)
 					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
@@ -342,7 +361,7 @@ Example usage:
 			case autoPilot:
 				funcs.ClearScreen()
 				fmt.Printf("\n[Autopilot Metrics]: press [ENTER] to retrieve values")
-				fmt.Scanln()
+				_, _ = fmt.Scanln()
 				for _, name := range autoPilotMetrics {
 					doneCh := make(chan bool)
 					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
@@ -357,7 +376,7 @@ Example usage:
 			case transactionTiming:
 				funcs.ClearScreen()
 				fmt.Printf("\n[Transaction Timing Metrics]: press [ENTER] to retrieve values")
-				fmt.Scanln()
+				_, _ = fmt.Scanln()
 				for _, name := range transactionTimingMetrics {
 					doneCh := make(chan bool)
 					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
@@ -372,7 +391,7 @@ Example usage:
 			case leadershipChanges:
 				funcs.ClearScreen()
 				fmt.Printf("\n[Transaction Timing Metrics]: press [ENTER] to retrieve values")
-				fmt.Scanln()
+				_, _ = fmt.Scanln()
 				for _, name := range leaderShipMetrics {
 					doneCh := make(chan bool)
 					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
@@ -387,7 +406,7 @@ Example usage:
 			case federationStatus:
 				funcs.ClearScreen()
 				fmt.Printf("\n[Federation Metrics]: press [ENTER] to retrieve values")
-				fmt.Scanln()
+				_, _ = fmt.Scanln()
 				for _, name := range federationMetrics {
 					doneCh := make(chan bool)
 					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
@@ -425,6 +444,7 @@ func init() {
 	metricsCmd.Flags().Bool("rate-limiting", false, "Retrieve key rate limit metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("memory", false, "Retrieve key memory metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("network", false, "Retrieve key network metric values for Consul from debug bundle.")
+	metricsCmd.Flags().Bool("bolt", false, "Retrieve key boltDB related metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("dataplane", false, "Retrieve key dataplane-related metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("auto-pilot", false, "Retrieve key autopilot related metric values.")
 	metricsCmd.Flags().Bool("transaction-timing", false, "Retrieve key transaction timing metric values for Consul from debug bundle.")
