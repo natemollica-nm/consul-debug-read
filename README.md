@@ -65,7 +65,7 @@ The following sections explain how to point the tool to the right place using on
     $ mkdir -p ./bundles
     $ cp ~/Downloads/124722consul-debug-2023-10-04T18-29-47Z.tar.gz ./bundles/
     ```   
-2. Run `consul-debug-read set-debug-path` using `--file`flag to both extract and set the debug directory to the extracted contents:
+2. Run `consul-debug-read set-debug-path` using `--file` flag to both extract and set the debug directory to the extracted contents:
 
     ```shell
     $ consul-debug-read set-debug-path --file bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz  
@@ -109,11 +109,11 @@ Run: `consul-debug-read agent members`
 ```shell
 # Example member return
 Node                      Address             Status Type   Build      Protocol DC
-hashi-i-01582cee96cd7dc0d 10.34.24.112:8302   Alive  server 1.15.3+ent 2        eu-01-stag
-hashi-i-071c21a8d67edfe0d 10.34.23.73:8302    Alive  server 1.15.3+ent 2        eu-01-stag
-hashi-i-073d7d2439f2e180f 10.34.45.248:8302   Alive  server 1.15.3+ent 2        eu-01-stag
-hashi-i-0cc823f00596e8804 10.34.37.210:8302   Alive  server 1.15.3+ent 2        eu-01-stag
-hashi-i-0dd679e8a2f054ac1 10.34.12.122:8302   Alive  server 1.15.3+ent 2        eu-01-stag
+consul-i-01582cee96cd7dc0d 10.34.24.112:8302   Alive  server 1.15.3+ent 2        eu-01-stag
+consul-i-071c21a8d67edfe0d 10.34.23.73:8302    Alive  server 1.15.3+ent 2        eu-01-stag
+consul-i-073d7d2439f2e180f 10.34.45.248:8302   Alive  server 1.15.3+ent 2        eu-01-stag
+consul-i-0cc823f00596e8804 10.34.37.210:8302   Alive  server 1.15.3+ent 2        eu-01-stag
+consul-i-0dd679e8a2f054ac1 10.34.12.122:8302   Alive  server 1.15.3+ent 2        eu-01-stag
 ip-10-133-22-121          10.133.22.121:8302  Alive  server 1.15.6+ent 2        eu-133-stag-default
 ip-10-133-45-202          10.133.45.202:8302  Alive  server 1.15.6+ent 2        eu-133-stag-default
 ip-10-133-53-253          10.133.53.253:8302  Alive  server 1.15.6+ent 2        eu-133-stag-default
@@ -132,12 +132,12 @@ Run: `consul-debug-read raft-configuration`
 
 ```shell
 # Example raft configuration return
-Node              ID                                   Address             State    Voter
-ip-10-135-25-56   c24d7789-af04-7bca-2649-42ebe6a227a3 10.135.25.56:8300   leader   true
-ip-10-135-37-187  f20f69f5-3143-fdaa-3cd4-cde742808470 10.135.37.187:8300  follower true
-ip-10-135-120-205 24128fc9-bc46-ef90-58b5-815ac343c12b 10.135.120.205:8300 follower true
-ip-10-135-134-71  0060483d-9703-e017-087b-3f9635b462ab 10.135.134.71:8300  follower true
-ip-10-135-78-52   3f8d935c-e08f-6d6f-2705-8c603fef1498 10.135.78.52:8300   follower true
+Node                      ID                                   Address           State    Voter AppliedIndex CommitIndex
+consul-i-0aa97949095868769 666e152f-7316-81aa-848b-3f4719564404 10.2.101.211:8300 leader   true  2696106337   2696106337
+consul-i-0ba0dff4180ec2dc7 4f36f7ab-240a-61a6-c5e1-b78ce62813a2 10.2.4.230:8300   follower true  -            -
+consul-i-08e67d882fe525809 1baa8d56-a9ae-adf7-5309-b12460c3e6c5 10.2.64.253:8300  follower true  -            -
+consul-i-05a474f75fea384bb 263fd5e5-fbd7-90b1-a904-4ab3c53b74f7 10.2.17.109:8300  follower true  -            -
+consul-i-06033dd57876bf1a7 eca79896-dad9-1713-94a2-c2b35a37d7df 10.2.4.89:8300    follower true  -            -
 ```
 
 
@@ -151,10 +151,13 @@ Metrics Bundle Summary: bundles/consul-debug-2023-10-04T18-29-47Z/metrics.json
 ----------------------
 Host Name: ip-10-135-37-187.ec2.internal
 Agent Version: 1.15.6+ent
+Raft State: Leader
 Interval: 30s
 Duration: 5m2s
-Capture Targets: [metrics logs pprof host agent members]
-Raft State: Follower
+Capture Targets: [metrics logs host agent members]
+Total Captures: 30
+Capture Time Start: 2023-10-23 15:03:40 +0000 UTC
+Capture Time Stop: 2023-10-23 15:08:30 +0000 UTC
 ```
 
 ### Consul Metrics by Name
@@ -164,19 +167,39 @@ Run: `consul-debug-read metrics --name consul.runtime.sys_bytes`
 
 ```shell
 # Example return
-Timestamp                     Metric                   Value   
-2023-10-11 17:33:50 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
-2023-10-11 17:34:00 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
-2023-10-11 17:34:10 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
-2023-10-11 17:34:20 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
-2023-10-11 17:34:30 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
-2023-10-11 17:34:40 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
-2023-10-11 17:34:50 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
-2023-10-11 17:35:00 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
-2023-10-11 17:35:10 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
-2023-10-11 17:35:20 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
-2023-10-11 17:35:30 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
-2023-10-11 17:35:40 +0000 UTC consul.runtime.sys_bytes 4.62 GB 
+                              consul.runtime.sys_bytes           
+                              ------------------------           
+Timestamp                     Metric                             Type  Unit  Value    
+2023-10-23 15:03:40 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:03:50 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:04:00 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:04:10 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:04:20 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:04:30 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:04:40 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:04:50 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:05:00 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:05:10 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:05:20 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:05:30 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:05:40 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:05:50 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:06:00 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:06:10 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:06:20 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:06:30 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:06:40 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:06:50 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:07:00 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:07:10 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:07:20 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:07:30 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:07:40 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:07:50 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:08:00 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:08:10 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:08:20 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB 
+2023-10-23 15:08:30 +0000 UTC consul.runtime.sys_bytes.sys_bytes gauge bytes 16.25 GB
 ```
 
 ### Consul Host Metrics
@@ -185,31 +208,28 @@ Run: `consul-debug-read metrics --host`
 
 ```shell
 #Example Host Specific Metrics
-Host Metrics Summary: bundles/consul-debug-2023-10-11T17-33-55Z/host.json
+Host Metrics Summary: bundles/consul-debug-2023-10-23T11-03-40-0400/host.json
 ----------------------
 OS: linux
-Host Name hashi-i-073d7d2439f2e180f
+Host Name consul-i-0aa97949095868769.node.consul
 Architecture: x86_64
-Number of Cores: 8
+Number of Cores: 36
 CPU Vendor ID: GenuineIntel
-CPU Model Name: Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+CPU Model Name: Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz
 Platform: ubuntu | 20.04
-Running Since: 2023-07-31 13:27:58 PDT
-Uptime at Capture: 71 days, 21 hours, 5 minutes, 58 seconds
+Running Since: 2023-10-13 11:33:49 PDT
+Uptime at Capture: 9 days, 20 hours, 29 minutes, 52 seconds
 
-Host Memory Metrics Summary: bundles/consul-debug-2023-10-11T17-33-55Z/host.json
+Host Memory Metrics Summary:
 ----------------------
-Total: 30.89 GB
-Used: 6.70 GB  (21.68%)
-Total Available: 23.58 GB
-VM Alloc Total: 32.00 TB
-VM Alloc Used: 120.04 MB
-Cached: 16.38 GB
+Used: 15.92 GB  (23.21%)
+Total Available: 51.75 GB
+Total: 68.57 GB
 
-Host Disk Metrics Summary: bundles/consul-debug-2023-10-11T17-33-55Z/host.json
+Host Disk Metrics Summary:
 ----------------------
-Used: 6.11 GB  (3.15%)
-Free: 187.53 GB
+Used: 5.96 GB  (3.08%)
+Free: 187.67 GB
 Total: 193.65 GB
 ```
 
