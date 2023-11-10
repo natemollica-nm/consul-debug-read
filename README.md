@@ -31,12 +31,18 @@ Follow the [Download and Installation Instructions](https://go.dev/doc/install#t
 > The **GOPATH** environment variable lists places to look for Go code. On Unix, the value is a colon-separated string. On Windows, the value is a semicolon-separated string. On Plan 9, the value is a list.
 **GOPATH** must be set to get, build and install packages outside the standard Go tree.
 
+```shell
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
+```
+
 **GOROOT** is discussed in the [installation instructions](http://golang.org/doc/install#tarball_non_standard):
 
 > The Go binary distributions assume they will be installed in /usr/local/go (or c:\Go under Windows), but it is possible to install the Go tools to a different location. In this case you must set the **GOROOT** environment variable to point to the directory in which it was installed.
 For example, if you installed Go to your home directory you should add the following commands to $HOME/.profile:
 ```shell
-export GOROOT=$HOME/go
+# Example setting GOROOT with homebrew go installation.
+export GOROOT=/opt/homebrew/opt/go/libexec
 export PATH=$PATH:$GOROOT/bin
 ```
 > **Note:** **GOROOT** must be set only when installing to a custom location.
