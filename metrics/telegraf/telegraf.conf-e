@@ -34,6 +34,6 @@
  [[outputs.influxdb_v2]]
   precision = "30s"
   urls = ["http://localhost:8086"]
-  token = "8POM9rFvwOqQ239uQUqp9DHYMjniejEyTJOSgXnRcIOFv51FvPB5Muqtx-NcDuJdQvgMU5qZcLcsJYnTNyWB3Q=="
+  token = "aszphnMnnQBrRR-rBK7uBIBHcsG8UQ7WEmEjuezhzhqVbV6MWpmovbegGy94d75G2f_veB9Gr5QIRJAhfftEsQ=="
   organization = "hashicorp"
   bucket = "consul-debug-metrics"

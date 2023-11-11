@@ -34,4 +34,7 @@ cleanup() {
 }
 trap cleanup SIGINT SIGTERM
 
-echo "telegraf run script complete -- observe /tmp/telegraf.log for more info..."
+echo "telegraf: init complete and metrics ingestion started"
+echo "    ==> observe progress at '/tmp/telegraf.log'"
+echo "    ==> visit http://localhost:8086 (influxdb ui) to explore metrics"
+echo "        ==> un: consul | pw: hashicorp"

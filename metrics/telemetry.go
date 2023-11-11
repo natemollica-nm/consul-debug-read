@@ -29,7 +29,10 @@ func GetTelemetryMetrics() (string, []AgentTelemetryMetric, error) {
 		return "", []AgentTelemetryMetric{}, err
 	}
 	defer response.Body.Close()
-
+	cleanup := func(err error) error {
+		_ = response.Body.Close()
+		return err
+	}
 	// Parse the HTML content.
 	doc, err := goquery.NewDocumentFromReader(response.Body)
 	if err != nil {
@@ -60,11 +63,11 @@ func GetTelemetryMetrics() (string, []AgentTelemetryMetric, error) {
 		}
 		telemetryInfo = append(telemetryInfo, info)
 	}
-	// Build output string in columnized format for readability
-	output, err := columnize.Format(telemetryMetrics, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
-	if err != nil {
-		return "", []AgentTelemetryMetric{}, nil
+	if err := response.Body.Close(); err != nil {
+		return "", []AgentTelemetryMetric{}, cleanup(err)
 	}
+	// Build output string in columnized format for readability
+	output := columnize.Format(telemetryMetrics, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 	return output, telemetryInfo, nil
 }
 
@@ -79,7 +82,10 @@ func GetTransactionTimingMetrics() (string, []AgentTelemetryMetric, error) {
 		return "", []AgentTelemetryMetric{}, err
 	}
 	defer response.Body.Close()
-
+	cleanup := func(err error) error {
+		_ = response.Body.Close()
+		return err
+	}
 	// Parse the HTML content.
 	doc, err := goquery.NewDocumentFromReader(response.Body)
 	if err != nil {
@@ -110,11 +116,11 @@ func GetTransactionTimingMetrics() (string, []AgentTelemetryMetric, error) {
 		}
 		telemetryInfo = append(telemetryInfo, info)
 	}
-	// Build output string in columnized format for readability
-	output, err := columnize.Format(telemetryMetrics, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
-	if err != nil {
-		return "", []AgentTelemetryMetric{}, nil
+	if err := response.Body.Close(); err != nil {
+		return "", []AgentTelemetryMetric{}, cleanup(err)
 	}
+	// Build output string in columnized format for readability
+	output := columnize.Format(telemetryMetrics, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 	return output, telemetryInfo, nil
 }
 

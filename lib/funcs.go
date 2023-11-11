@@ -43,7 +43,10 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 		return "", fmt.Errorf("extract-tar-gz: failed to open %s: %v\n", srcFile, err)
 	}
 	defer srcFileReader.Close()
-
+	cleanup := func(err error) error {
+		_ = srcFileReader.Close()
+		return err
+	}
 	// Create a gzip reader
 	gzipReader, err := gzip.NewReader(srcFileReader)
 	if err != nil {
@@ -110,12 +113,20 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to create %s: %v\n", destFilePath, err)
 		}
-		defer destFile.Close()
 
 		// Copy file contents from the tar archive to the destination file
 		if _, err := io.Copy(destFile, tarReader); err != nil {
 			return "", err
 		}
+		if err := destFile.Close(); err != nil {
+			return "", cleanup(err)
+		}
+	}
+	if err := gzipReader.Close(); err != nil {
+		return "", cleanup(err)
+	}
+	if err := srcFileReader.Close(); err != nil {
+		return "", cleanup(err)
 	}
 	log.Printf("debug-extract: root extraction directory is %s\n", extractRootDir)
 	return extractRootDir, nil

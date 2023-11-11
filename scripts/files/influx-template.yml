@@ -1,0 +1,76 @@
+apiVersion: influxdata.com/v2alpha1
+kind: Label
+metadata:
+    name: dangerous-khayyam-b48001
+spec:
+    color: '#326BBA'
+    name: consul_rate_limiting
+---
+apiVersion: influxdata.com/v2alpha1
+kind: Dashboard
+metadata:
+    name: compassionate-franklin-f48001
+spec:
+    associations:
+        - kind: Label
+          name: dangerous-khayyam-b48001
+    charts:
+        - axes:
+            - base: "10"
+              name: x
+              scale: linear
+            - base: "10"
+              name: "y"
+              scale: linear
+          colorizeRows: true
+          colors:
+            - hex: '#31C0F6'
+              id: IMwi6-yhMaIe1b3lsh2qa
+              name: Nineteen Eighty Four
+              type: scale
+            - hex: '#A500A5'
+              id: dhV3hklLrMaI-6U_Nk121
+              name: Nineteen Eighty Four
+              type: scale
+            - hex: '#FF7E27'
+              id: 4TnxPicNbn9Q97dP3a0Yk
+              name: Nineteen Eighty Four
+              type: scale
+          generateXAxisTicks:
+            - xTickStart
+          geom: line
+          height: 5
+          heightRatio: 0.11529126213592233
+          hoverDimension: auto
+          kind: Xy
+          legendColorizeRows: true
+          legendOpacity: 1
+          legendOrientationThreshold: 1e+08
+          name: consul.rpc.rate_limit.exceeded
+          opacity: 1
+          orientationThreshold: 1e+08
+          position: overlaid
+          queries:
+            - query: |-
+                from(bucket: "consul-debug-metrics")
+                  |> range(start: 2023-10-23T15:03:40Z, stop: 2023-10-23T15:08:30Z)
+                  |> filter(fn: (r) =>
+                    r["Name"] == "consul.rpc.rate_limit.exceeded" and
+                    r["_field"] == "Count"
+                  )
+          shade: true
+          show: true
+          staticLegend:
+            colorizeRows: true
+            heightRatio: 0.11529126213592233
+            opacity: 1
+            orientationThreshold: 1e+08
+            show: true
+            widthRatio: 1
+          width: 10
+          widthRatio: 1
+          xCol: _time
+          xTickStart: 1.69807342e+12
+          yCol: _value
+    description: consul rpc server calls with rate limits exceeding
+    name: consul.rpc.rate_limit.exceeded

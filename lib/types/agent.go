@@ -729,7 +729,7 @@ func (b *Debug) MembersStandard() string {
 		}
 	}
 
-	output, _ := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
+	output := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 	return output
 }
 
@@ -978,10 +978,7 @@ func (b *Debug) RaftListPeers() (string, error) {
 				s.Node, s.ID, s.Address, state, s.Voter, "-", "-"))
 		}
 	}
-	output, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
-	if err != nil {
-		return "", err
-	}
+	output := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 	return output, nil
 }
 

@@ -5,6 +5,7 @@ import (
 	telemetry "consul-debug-read/metrics"
 	"fmt"
 	"github.com/ryanuber/columnize"
+	"log"
 	"reflect"
 	"regexp"
 	"sort"
@@ -124,6 +125,7 @@ func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (str
 		}
 		// list of metrics contains the name somewhere, return with no error
 		if strings.Contains(info, n) {
+			log.Printf("[metrics-name-validation]: validated metric name %s\n", name)
 			return nil
 		}
 		return fmt.Errorf(fmt.Sprintf("[metrics-name-validation] '%s' not a valid telemetry metric name\n  visit: %s for full list of consul telemetry metrics", name, telemetry.TelemetryURL))
@@ -133,10 +135,11 @@ func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (str
 			return "", err
 		}
 	}
+	log.Printf("[metric-value-by-name]: retrieving metric unit and type")
 	unit, metricType := GetUnitAndType(name, telemetryInfo)
-	conv := ByteConverter{}
 	var dataMaps [][]map[string]interface{}
 	var label []string
+	log.Printf("[metric-value-by-name]: performing readable conversion for value and mapping labels")
 	for _, metric := range b.Metrics.Metrics {
 		data := metric.ExtractMetricValueByName(name)
 		dataMaps = append(dataMaps, data)
@@ -157,6 +160,7 @@ func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (str
 						return "", err
 					}
 				} else if bytesReg.MatchString(unit) {
+					conv := ByteConverter{}
 					v = conv.ConvertToReadableBytes(mValue)
 				} else if percentageReg.MatchString(unit) {
 					vFloat, _ := strconv.ParseFloat(fmt.Sprintf("%v", mValue), 64)
@@ -213,10 +217,9 @@ func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (str
 	if byValue {
 		sort.Sort(ByValue(result[3:]))
 	}
-	output, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
-	if err != nil {
-		return "", err
-	}
+	log.Printf("[metric-value-by-name]: finishing processing metric by name. columnizing....")
+	output := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
+	log.Printf("[metric-value-by-name]: returning values")
 	return output, nil
 }
 
