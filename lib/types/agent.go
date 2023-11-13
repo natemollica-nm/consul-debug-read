@@ -989,6 +989,7 @@ func (a *Agent) AgentConfigFull() (string, error) {
 func (a *Agent) AgentSummary() {
 	fmt.Println("Server:", a.Config.Server)
 	fmt.Println("Version:", a.Config.Version)
+	fmt.Println("Raft State:", a.Stats.Raft.State)
 	fmt.Println("Datacenter:", a.Config.Datacenter)
 	fmt.Println("Primary DC:", a.Config.PrimaryDatacenter)
 	fmt.Println("NodeName:", a.Config.NodeName)
