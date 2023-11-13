@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 const (
@@ -68,11 +69,22 @@ func init() {
 }
 
 func initConfig() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println("Error: ", err)
+		os.Exit(1)
+	}
 	// Load configuration from a file (config.yaml)
-	viper.SetConfigName("config") // Set the name of the configuration file (config.yaml, config.json, etc.)
-	viper.AddConfigPath(".")      // Search for the configuration file in the current directory
-	if err := viper.ReadInConfig(); err != nil {
-		fmt.Printf("Config file (./config.yaml) not found or error reading config: %s\n", err)
+	viper.SetConfigName(".consul-debug-read") // Set the name of the configuration file (config.yaml, config.json, etc.)
+	viper.AddConfigPath(home)                 // Search for the configuration file in the home directory
+	if err := viper.ReadInConfig(); err == nil {
+		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	} else {
+		fmt.Println("No config file found. A new one will be created.")
+		err := viper.SafeWriteConfigAs(filepath.Join(home, ".consul-debug-read.yaml"))
+		if err != nil {
+			return
+		}
 	}
 	viper.SetEnvPrefix("CONSUL_DEBUG")
 	viper.AutomaticEnv()

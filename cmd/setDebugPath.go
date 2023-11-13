@@ -144,7 +144,7 @@ Example (--file) for extraction:
 			}
 
 			if err := viper.WriteConfig(); err != nil {
-				return fmt.Errorf("[set-debug-path] failed to write the configuration file: %v\n", err)
+				return fmt.Errorf("[set-debug-path] failed to write the configuration file -- %v\n", err)
 			} else {
 				log.Printf("[set-debug-path] config.yaml consul-debug-read debug-path has been set => %s\n", debugPath)
 				log.Printf("[set-debug-path][WARN] CONSUL_DEBUG_PATH env var will take precedence over this if set. Unset this variable or override it's value using 'unset' or 'export' as necessary.")
