@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	"time"
 )
@@ -22,7 +23,7 @@ var (
 		"Autopilot":                        autoPilotMetrics,
 		"Memory Utilization":               memoryMetrics,
 		"Network Activity":                 networkMetrics,
-		"Raft Thread Saturation":           raftThreadSaturation,
+		"Raft Thread Saturation":           raftThreadSaturationMetrics,
 		"Raft Replication Capacity":        replicationCapacity,
 		"BoltDB Performance":               boldDBPerformance,
 	}
@@ -58,7 +59,7 @@ var (
 		"consul.client.rpc.exceeded",
 		"consul.client.rpc.failed",
 	}
-	raftThreadSaturation = []string{
+	raftThreadSaturationMetrics = []string{
 		"consul.raft.thread.main.saturation",
 		"consul.raft.thread.fsm.saturation",
 	}
@@ -177,7 +178,7 @@ Example usage:
 			// no metrics.json ingestion required
 			l, _ := cmd.Flags().GetBool("list")
 			listTransactionTiming, _ := cmd.Flags().GetBool("list-transaction-timing")
-			keyMetrics, _ := cmd.Flags().GetBool("get-key-metrics")
+			keyMetrics, _ := cmd.Flags().GetBool("key-metrics")
 			rateLimiting, _ := cmd.Flags().GetBool("rate-limiting")
 			dataPlane, _ := cmd.Flags().GetBool("dataplane")
 			autoPilot, _ := cmd.Flags().GetBool("auto-pilot")
@@ -187,6 +188,7 @@ Example usage:
 			transactionTiming, _ := cmd.Flags().GetBool("transaction-timing")
 			leadershipChanges, _ := cmd.Flags().GetBool("leadership-changes")
 			federationStatus, _ := cmd.Flags().GetBool("federation-status")
+			threadSaturation, _ := cmd.Flags().GetBool("thread-saturation")
 			h, _ := cmd.Flags().GetBool("host")
 
 			// requires metrics.json
@@ -267,11 +269,17 @@ Example usage:
 				fmt.Println(values)
 			case keyMetrics:
 				funcs.ClearScreen()
-				for keyMetricTitle, row := range keyMetricNames {
+				var keyNames []string
+				for k := range keyMetricNames {
+					keyNames = append(keyNames, k)
+				}
+				sort.Strings(keyNames)
+				for _, keyMetricTitle := range keyNames {
 					fmt.Printf("\n[Next Key Metric] => %s: press [ENTER] to retrieve values", keyMetricTitle)
 					_, _ = fmt.Scanln()
 					funcs.ClearScreen()
-					for _, name := range row {
+					metricNames := keyMetricNames[keyMetricTitle]
+					for _, name := range metricNames {
 						doneCh := make(chan bool)
 						go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
 						values, err := debugBundle.GetMetricValues(name, false, byValue, short)
@@ -280,7 +288,7 @@ Example usage:
 						}
 						doneCh <- true // Stop the dot printing goroutine
 						close(doneCh)
-						fmt.Printf("\n%s\n", values)
+						fmt.Printf("%s\n", values)
 					}
 				}
 			case rateLimiting:
@@ -388,6 +396,21 @@ Example usage:
 					close(doneCh)
 					fmt.Printf("%s\n", values)
 				}
+			case threadSaturation:
+				funcs.ClearScreen()
+				fmt.Printf("\n[Raft Thread Saturation Metrics]: press [ENTER] to retrieve values")
+				_, _ = fmt.Scanln()
+				for _, name := range raftThreadSaturationMetrics {
+					doneCh := make(chan bool)
+					go funcs.Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
+					values, err := debugBundle.GetMetricValues(name, false, byValue, short)
+					if err != nil {
+						return err
+					}
+					doneCh <- true // Stop the dot printing goroutine
+					close(doneCh)
+					fmt.Printf("%s\n", values)
+				}
 			case leadershipChanges:
 				funcs.ClearScreen()
 				fmt.Printf("\n[Transaction Timing Metrics]: press [ENTER] to retrieve values")
@@ -440,7 +463,7 @@ func init() {
 	metricsCmd.Flags().Bool("host", false, "Retrieve Host specific metrics.")
 	metricsCmd.Flags().BoolP("list", "l", false, "List available metric names to parse with by name.")
 	metricsCmd.Flags().Bool("list-transaction-timing", false, "List key metrics for Consul txn and kv transaction timing.")
-	metricsCmd.Flags().Bool("get-key-metrics", false, "Retrieve key metric values for Consul from debug bundle.")
+	metricsCmd.Flags().Bool("key-metrics", false, "Retrieve key metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("rate-limiting", false, "Retrieve key rate limit metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("memory", false, "Retrieve key memory metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("network", false, "Retrieve key network metric values for Consul from debug bundle.")
@@ -450,6 +473,7 @@ func init() {
 	metricsCmd.Flags().Bool("transaction-timing", false, "Retrieve key transaction timing metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("leadership-changes", false, "Retrieve key raft leadership stability metric values for Consul from debug bundle.")
 	metricsCmd.Flags().Bool("federation-status", false, "Retrieve key secondary datacenter federation metric values for Consul from debug bundle.")
+	metricsCmd.Flags().Bool("thread-saturation", false, "Retrieve key raft thread saturation metric values for Consul from debug bundle.")
 	metricsCmd.Flags().StringP("name", "n", "", "Retrieve specific metric timestamped values by name.")
 	metricsCmd.Flags().Bool("sort-by-value", false, "Parse metric value by name and sort results by value vice timestamp order.")
 	metricsCmd.Flags().Bool("short", false, "Only print timestamp, value, and labels columns.")

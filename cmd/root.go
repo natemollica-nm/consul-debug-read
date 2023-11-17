@@ -30,22 +30,22 @@ agent, and consul host information from a 'consul debug' cmd bundle capture.
 		// Uncomment the following line if your bare application
 		// has an action associated with it:
 		RunE: func(cmd *cobra.Command, args []string) error {
+			v, _ := cmd.Flags().GetBool("verbose")
 			if _, ok := os.LookupEnv(envDebugPath); ok {
 				debugPath = os.Getenv(envDebugPath)
-				if verbose {
+				if v {
 					log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
 				}
 
 			} else {
 				debugPath = viper.GetString("debugPath")
-				if verbose {
+				if v {
 					log.Printf("using config.yaml debug path setting - %s\n", debugPath)
 				}
 			}
 			if err := cmd.Help(); err != nil {
 				return err
 			}
-			fmt.Printf("\n  ==> current debug-path: '%s'\n", debugPath)
 			return nil
 		},
 	}

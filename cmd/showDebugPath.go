@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	"log"
 	"os"
 	"strings"
 
@@ -22,7 +21,7 @@ To change file-path use consul-debug-read set-debug-path --path <path_to_debug_b
 Example:
 	$ consul-debug-read show-debug-path
 	  
-	2023/10/19 08:50:22 show-debug-path: debug-path => 'bundles/consul-debug-2023-10-04T18-29-47Z'
+	bundles/consul-debug-2023-10-04T18-29-47Z
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if _, ok := os.LookupEnv(envDebugPath); ok {
@@ -32,13 +31,11 @@ Example:
 				return fmt.Errorf("directory does not exists: %s - %v\n", envPath, err)
 			} else {
 				debugPath = envPath
-				log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
 			}
 		} else {
 			debugPath = viper.GetString("debugPath")
-			log.Printf("using config.yaml debug path setting - %s\n", debugPath)
 		}
-		log.Printf("debug-path => '%s'\n", debugPath)
+		fmt.Println(debugPath)
 		return nil
 	},
 }
