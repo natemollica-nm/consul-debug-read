@@ -30,3 +30,4 @@ bundles/
 
 # metrics.json bundles are too large to push up to GH
 metrics/telegraf/*.json
+dist/
