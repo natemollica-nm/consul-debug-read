@@ -57,10 +57,9 @@ for log in "${logs[@]}"; do
   if [ -n "$METHOD" ]; then
       echo "retrieving rpc $METHOD counts/minute: $log"
       # use awk to grep log for rpc method name and show calls/minute
+      printf "%-5s | %-30s | %-16s\n" "Count" "Method" "Minute-Interval"
+      printf "%-5s-|-%-30s-|-%-16s\n" "-----" "------------------------------" "----------------"
       awk -v log_name="$log_name" -v method_regex="method=$METHOD" -v method="$METHOD" '
-        BEGIN {
-          printf "%-5s | %-30s | %-16s\n", "Count", "Method", "Minute-Interval";
-        }
         $0 ~ method_regex {
           timestamp = $1 " " $2;
           gsub(/[\[\]]/, "", $3);               # Remove square brackets
@@ -72,7 +71,7 @@ for log in "${logs[@]}"; do
             printf "%-5d | %-30s | %-16s\n", count[interval], method, interval;
           }
         }
-      ' "$log" | tail -n +2 | sort -n -r
+      ' "$log" | sort -n -r
     printf '%s\n%s' "---------------------------------------------------------" "Total: "
     grep rpc_ < "$log" | grep --only-matching "method=$METHOD" | sed 's/method=//' | sort | uniq -c | sort -r -n
     echo ""
@@ -80,10 +79,11 @@ for log in "${logs[@]}"; do
       log_name="$(basename "$log")"
       echo "retrieving all rpc method counts/minute: $log"
       # Use awk to process the log file
+      printf "%-5s | %-30s | %-16s\n" "Count" "Method" "Minute-Interval"
+      printf "%-5s-|-%-30s-|-%-16s\n" "-----" "------------------------------" "----------------"
       awk -v log_name="$log_name" '
         BEGIN {
           method_regex = "rpc_server_call: method=[^ ]*";
-          printf "%-5s | %-30s | %-16s\n", "Count", "Method", "Minute-Interval";
         }
         {
           timestamp = $1 " " $2;
@@ -107,7 +107,7 @@ for log in "${logs[@]}"; do
             printf "%-5d | %-30s | %-16s\n", count[interval, method], method, interval;
           }
         }
-      ' "$log" | tail -n +2 | sort -n -r
+      ' "$log" | sort -n -r
     printf '%s\n%s\n' "---------------------------------------------------------" "Totals: "
     grep rpc_ < "$log" | grep --only-matching "method=[^ ]*" | sed 's/method=//' | sort | uniq -c | sort -r -n
     echo ""
