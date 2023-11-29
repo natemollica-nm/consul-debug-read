@@ -357,20 +357,20 @@ func (bc ByteConverter) ConvertToReadableBytes(value interface{}) string {
 
 func ConvertIntBytes(bytes int) string {
 	const (
-		kb = 1024
-		mb = 1024 * kb
-		gb = 1024 * mb
-		tb = 1024 * gb
+		kb int64 = 1024
+		mb       = 1024 * kb
+		gb       = 1024 * mb
+		tb       = 1024 * gb
 	)
 
 	switch {
-	case bytes >= tb:
+	case int64(bytes) >= tb:
 		return fmt.Sprintf("%.2f TB", float64(bytes)/float64(tb))
-	case bytes >= gb:
+	case int64(bytes) >= gb:
 		return fmt.Sprintf("%.2f GB", float64(bytes)/float64(gb))
-	case bytes >= mb:
+	case int64(bytes) >= mb:
 		return fmt.Sprintf("%.2f MB", float64(bytes)/float64(mb))
-	case bytes >= kb:
+	case int64(bytes) >= kb:
 		return fmt.Sprintf("%.2f KB", float64(bytes)/float64(kb))
 	default:
 		return fmt.Sprintf("%d bytes", bytes)
