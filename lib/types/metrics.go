@@ -92,7 +92,7 @@ func (m ByValue) Less(i, j int) bool {
 // 2. (if applicable) Sorts metric dataset by value (highest-to-lowest) vice the default timestamp order
 
 // GetMetricValues
-// 1. if no --skip-name-validation flag passed, validate metric name with telemetry hashidoc
+// 1. unless --validate set to false (i.e., --validate=false), validate metric name with telemetry hashidoc
 // 2. retrieve metric unit and type from telemetry page
 // 3. retrieve the metric all values by name
 // 4. perform conversion to readable format (time/bytes)
