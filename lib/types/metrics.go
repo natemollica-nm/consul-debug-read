@@ -436,11 +436,11 @@ func (n NanosecondsConverter) Convert(timeValue interface{}) (string, error) {
 	switch v := timeValue.(type) {
 	case int:
 		switch {
-		case v >= nsInHour:
+		case int64(v) >= int64(nsInHour):
 			return fmt.Sprintf("%.2fh", float64(v)/float64(nsInHour)), nil
-		case v >= nsInSecond:
+		case int64(v) >= int64(nsInSecond):
 			return fmt.Sprintf("%.2fs", float64(v)/float64(nsInSecond)), nil
-		case v >= nsInMs:
+		case int64(v) >= int64(nsInMs):
 			return fmt.Sprintf("%.2fms", float64(v)/float64(nsInMs)), nil
 		default:
 			return fmt.Sprintf("%dns", v), nil
