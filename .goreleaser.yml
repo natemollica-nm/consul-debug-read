@@ -24,8 +24,7 @@ archives:
     name_template: >-
       {{- .ProjectName }}_v
       {{- .Version }}_
-      {{- if eq .Os "darwin" }}macOs
-      {{- else }}{{ .Os }}{{ end }}_
+      {{ .Os }}_
       {{- if eq .Arch "arm" }}arm32-v{{ .Arm }}
       {{- else }}{{ .Arch }}{{ end }}
 
