@@ -10,19 +10,19 @@ URL=https://github.com/natemollica-nm/consul-debug-read/releases/download/"${VER
 trap cleanup EXIT TERM SIGINT
 function cleanup() {
   echo "cleaning up..."
-  rm -f ./consul-debug-read.tar.gz >/dev/null 2>&1 || true
-  rm -rf consul-debug-read >/dev/null 2>&1 || true
+  rm -f /tmp/consul-debug-read.tar.gz >/dev/null 2>&1 || true
+  rm -rf /tmp/consul-debug-read >/dev/null 2>&1 || true
   echo "done"
   exit
 }
 
 function install_latest_release() {
   echo "downloading consul-debug-read (${VERSION} | ${PLATFORM} | ${ARCH})"
-  rm -f ./consul-debug-read.tar.gz &>/dev/null || true
+  rm -f /tmp/consul-debug-read.tar.gz &>/dev/null || true
   ! test -f /usr/local/bin/consul-debug-read || { sudo rm -rf /usr/local/bin/consul-debug-read >/dev/null 2>&1 || true; }
-  wget -q --show-progress --tries=3 --timeout=10 --retry-connrefused "${URL}" -O consul-debug-read.tar.gz >/dev/null 2>&1 || true
-  tar -xf consul-debug-read.tar.gz >/dev/null 2>&1 || true
-  sudo mv -f consul-debug-read /usr/local/bin/consul-debug-read
+  wget -q --show-progress --tries=3 --timeout=10 --retry-connrefused "${URL}" -O /tmp/consul-debug-read.tar.gz >/dev/null 2>&1 || true
+  tar -xvf /tmp/consul-debug-read.tar.gz -C /tmp >/dev/null 2>&1 || true
+  sudo mv -f /tmp/consul-debug-read /usr/local/bin/consul-debug-read
   command -v consul-debug-read >/dev/null 2>&1 || {
     echo "consul-debug-read installation failed! exiting."
     exit 1
