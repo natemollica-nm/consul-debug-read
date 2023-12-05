@@ -98,7 +98,7 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 			}
 		}
 
-		//extractRootFullPath := fmt.Sprintf("%s/%s", destDir, extractRootDir)
+		// extractRootFullPath = fmt.Sprintf("%s/%s", destDir, extractRootDir)
 		//// Check if destination dir exists
 		//if _, err := os.Stat(extractRootFullPath); err == nil {
 		//	log.Printf("removing previous extract dir - %s\n", extractRootFullPath)
@@ -128,15 +128,14 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 	if err := srcFileReader.Close(); err != nil {
 		return "", cleanup(err)
 	}
-	log.Printf("debug-extract: root extraction directory is %s\n", extractRootDir)
+	log.Printf("[extract-tar-gz]: root extraction directory is %s\n", extractRootDir)
 	return extractRootDir, nil
 }
 
 // SelectAndExtractTarGzFilesInDir allows the user to interactively select and extract a .tar.gz file from a directory.
 func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 	var selectedFile os.DirEntry
-	var sourceFilePath string
-	var extractRoot string
+	var sourceFilePath, extractRoot, extractedDebugPath string
 
 	// If debug path is not a bundle directly, parse for bundles and extract
 	if !strings.HasSuffix(sourceDir, ".tar.gz") {
@@ -173,11 +172,16 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 
 	log.Printf("[select-and-extract] extracting %s\n", sourceFilePath)
 	extractRoot, err := extractTarGz(sourceFilePath, filepath.Dir(sourceFilePath))
-
 	if err != nil {
 		return "", fmt.Errorf("[select-and-extract] error extracting %s: %v\n", sourceFilePath, err)
 	}
-	extractedDebugPath := filepath.Join(sourceDir, extractRoot)
+
+	if strings.HasSuffix(sourceDir, ".tar.gz") {
+		sourceFilePath, _ = filepath.Abs(sourceFilePath)
+		extractedDebugPath = filepath.Join(filepath.Dir(sourceFilePath), extractRoot)
+	} else {
+		extractedDebugPath = filepath.Join(sourceDir, extractRoot)
+	}
 
 	log.Printf("[select-and-extract] extraction of %s completed successfully!\n", sourceFilePath)
 	log.Printf("[select-and-extract] setting debug path to %s\n", extractedDebugPath)
