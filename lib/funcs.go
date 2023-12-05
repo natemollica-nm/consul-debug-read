@@ -3,6 +3,7 @@ package lib
 import (
 	"archive/tar"
 	"compress/gzip"
+	"consul-debug-read/cmd/config"
 	"fmt"
 	"io"
 	"log"
@@ -128,7 +129,9 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 	if err := srcFileReader.Close(); err != nil {
 		return "", cleanup(err)
 	}
-	log.Printf("[extract-tar-gz]: root extraction directory is %s\n", extractRootDir)
+	if config.Verbose {
+		log.Printf("[extract-tar-gz]: root extraction directory is %s\n", extractRootDir)
+	}
 	return extractRootDir, nil
 }
 
@@ -169,8 +172,9 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 	} else {
 		sourceFilePath = sourceDir
 	}
-
-	log.Printf("[select-and-extract] extracting %s\n", sourceFilePath)
+	if config.Verbose {
+		log.Printf("[select-and-extract] extracting %s\n", sourceFilePath)
+	}
 	extractRoot, err := extractTarGz(sourceFilePath, filepath.Dir(sourceFilePath))
 	if err != nil {
 		return "", fmt.Errorf("[select-and-extract] error extracting %s: %v\n", sourceFilePath, err)
@@ -182,9 +186,10 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 	} else {
 		extractedDebugPath = filepath.Join(sourceDir, extractRoot)
 	}
-
-	log.Printf("[select-and-extract] extraction of %s completed successfully!\n", sourceFilePath)
-	log.Printf("[select-and-extract] setting debug path to %s\n", extractedDebugPath)
+	if config.Verbose {
+		log.Printf("[select-and-extract] extraction of %s completed successfully!\n", sourceFilePath)
+		log.Printf("[select-and-extract] setting debug path to %s\n", extractedDebugPath)
+	}
 	return extractedDebugPath, nil
 }
 

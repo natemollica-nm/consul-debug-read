@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"consul-debug-read/cmd/config"
 	funcs "consul-debug-read/lib"
 	"fmt"
 	"github.com/spf13/viper"
@@ -60,7 +61,9 @@ Example (--file) for extraction:
 
 			if debugFile != "" {
 				if isValidBundle := strings.HasSuffix(debugFile, ".tar.gz"); isValidBundle {
-					log.Printf("[set-debug-path] file passed in for extraction: %s\n", debugFile)
+					if config.Verbose {
+						log.Printf("[set-debug-path] file passed in for extraction: %s\n", debugFile)
+					}
 					if debugPath, err = funcs.SelectAndExtractTarGzFilesInDir(debugFile); err != nil {
 						return fmt.Errorf("[set-debug-path] failed to extract and select debug bundle %v\n", err)
 					}
@@ -102,7 +105,9 @@ Example (--file) for extraction:
 						if err := os.Rename(clusterJsonPath, membersJsonPath); err != nil {
 							return fmt.Errorf("[set-debug-path] error renaming file %s to members.json: %v\n", clusterJsonPath, err)
 						} else {
-							log.Printf("[set-debug-path] renamed %s to members.json\n", clusterJsonPath)
+							if config.Verbose {
+								log.Printf("[set-debug-path] renamed %s to members.json\n", clusterJsonPath)
+							}
 						}
 						membersJson = true
 					}
@@ -116,14 +121,20 @@ Example (--file) for extraction:
 						// Run the "merge-metrics.sh" script with debugPath as an argument
 						scriptPath := "scripts/merge-metrics.sh"
 						cmd := exec.Command(scriptPath, debugPath)
-						log.Printf("attempting to merge sub-directory metrics.json files (older debug capture bundle)...")
+						if config.Verbose {
+							log.Printf("attempting to merge sub-directory metrics.json files (older debug capture bundle)...")
+						}
 						if _, err := cmd.CombinedOutput(); err != nil {
 							return fmt.Errorf("error running %s: %v\n", scriptPath, err)
 						} else {
-							log.Printf("ran %s to merge %s sub-directory metrics.json files\n", scriptPath, debugPath)
+							if config.Verbose {
+								log.Printf("ran %s to merge %s sub-directory metrics.json files\n", scriptPath, debugPath)
+							}
 						}
 					}
-					log.Printf("[set-debug-path] path contents validated!\n")
+					if config.Verbose {
+						log.Printf("[set-debug-path] path contents validated!\n")
+					}
 				} else if fileInfo, err := os.Stat(debugPath); err == nil {
 					// if path is directory and no index.json, then it's probably a path to a dir containing multiple .tar.gz files
 					if fileInfo.IsDir() && !indexJson {
@@ -142,16 +153,19 @@ Example (--file) for extraction:
 			} else {
 				viper.Set("debugPath", debugPath)
 			}
-
 			if err := viper.WriteConfig(); err != nil {
 				return fmt.Errorf("[set-debug-path] failed to write the configuration file -- %v\n", err)
 			} else {
-				log.Printf("[set-debug-path] config.yaml consul-debug-read debug-path has been set => %s\n", debugPath)
-				log.Printf("[set-debug-path][WARN] CONSUL_DEBUG_PATH env var will take precedence over this if set. Unset this variable or override it's value using 'unset' or 'export' as necessary.")
+				if config.Verbose {
+					log.Printf("[set-debug-path] config.yaml consul-debug-read debug-path has been set => %s\n", debugPath)
+					log.Printf("[set-debug-path][WARN] 'CONSUL_DEBUG_PATH' env var will take precedence over %s."+
+						"Unset this variable or override it's value using 'unset' or 'export' as necessary.", viper.ConfigFileUsed())
+				}
 			}
 			if err := viper.ReadInConfig(); err != nil {
 				return fmt.Errorf("[set-debug-path] config.yaml not found or error reading config: %v\n", err)
 			}
+			fmt.Println("set consul-debug-read path successful =>", debugPath)
 			return nil
 		},
 	}
@@ -159,16 +173,6 @@ Example (--file) for extraction:
 
 func init() {
 	rootCmd.AddCommand(setDebugPathCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// setDebugPathCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// setDebugPathCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	setDebugPathCmd.Flags().StringVarP(&debugPath, "path", "d", "", "File path to directory containing consul-debug.tar.gz bundle(s).")
 	setDebugPathCmd.Flags().StringVarP(&debugFile, "file", "f", "", "File path to single consul-debug.tar.gz bundle.")
 	setDebugPathCmd.MarkFlagsMutuallyExclusive("path", "file")

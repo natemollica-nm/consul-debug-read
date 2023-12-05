@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"consul-debug-read/cmd/config"
 	"fmt"
 	"github.com/spf13/viper"
 	"log"
@@ -28,14 +29,20 @@ For example:
 				return fmt.Errorf("directory does not exists: %s - %v\n", envPath, err)
 			} else {
 				debugPath = envPath
-				log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+				if config.Verbose {
+					log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+				}
 			}
 		} else {
 			debugPath = viper.GetString("debugPath")
-			log.Printf("using config.yaml debug path setting - %s\n", debugPath)
+			if config.Verbose {
+				log.Printf("using config.yaml debug path setting - %s\n", debugPath)
+			}
 		}
 		if debugPath != "" {
-			log.Printf("debug-path:  '%s'\n", debugPath)
+			if config.Verbose {
+				log.Printf("debug-path:  '%s'\n", debugPath)
+			}
 			err := debugBundle.DecodeJSON(debugPath, "members")
 			if err != nil {
 				return fmt.Errorf("failed to decode members.json: %v", err)
@@ -44,14 +51,18 @@ For example:
 			if err != nil {
 				return fmt.Errorf("failed to decode agent.json: %v", err)
 			}
-			log.Printf("Successfully read-in bundle from:  '%s'\n", debugPath)
+			if config.Verbose {
+				log.Printf("Successfully read-in bundle from:  '%s'\n", debugPath)
+			}
 		} else {
 			return fmt.Errorf("debug-path is null")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Printf("compiled wan membership list (source node/dc: %s/%s)\n", debugBundle.Agent.Config.NodeName, debugBundle.Agent.Config.Datacenter)
+		if config.Verbose {
+			log.Printf("compiled wan membership list (source node/dc: %s/%s)\n", debugBundle.Agent.Config.NodeName, debugBundle.Agent.Config.Datacenter)
+		}
 		membersOutput := debugBundle.MembersStandard()
 		fmt.Print(membersOutput)
 	},

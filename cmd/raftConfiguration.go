@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"consul-debug-read/cmd/config"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -27,21 +28,29 @@ to quickly create a Cobra application.`,
 				return fmt.Errorf("directory does not exists: %s - %v\n", envPath, err)
 			} else {
 				debugPath = envPath
-				log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+				if config.Verbose {
+					log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+				}
 			}
 		} else {
 			debugPath = viper.GetString("debugPath")
-			log.Printf("using config.yaml debug path setting - %s\n", debugPath)
+			if config.Verbose {
+				log.Printf("using config.yaml debug path setting - %s\n", debugPath)
+			}
 		}
 		if ok := debugPath != ""; ok {
-			log.Printf("debug-path:  '%s'\n", debugPath)
+			if config.Verbose {
+				log.Printf("debug-path:  '%s'\n", debugPath)
+			}
 			if err := debugBundle.DecodeJSON(debugPath, "agent"); err != nil {
 				return fmt.Errorf("failed to decode bundle: %v", err)
 			}
 			if err := debugBundle.DecodeJSON(debugPath, "members"); err != nil {
 				return fmt.Errorf("failed to decode bundle: %v", err)
 			}
-			log.Printf("Successfully read-in agent and members from:  '%s'\n", debugPath)
+			if config.Verbose {
+				log.Printf("Successfully read-in agent and members from:  '%s'\n", debugPath)
+			}
 		} else {
 			return fmt.Errorf("debug-path is null")
 		}
@@ -52,7 +61,9 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			return err
 		}
-		log.Printf("compiled latest raft configuration (source node/dc: %s/%s)\n", debugBundle.Agent.Config.NodeName, debugBundle.Agent.Config.Datacenter)
+		if config.Verbose {
+			log.Printf("compiled latest raft configuration (source node/dc: %s/%s)\n", debugBundle.Agent.Config.NodeName, debugBundle.Agent.Config.Datacenter)
+		}
 		fmt.Println(raftConfiguration)
 		return nil
 	},

@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"consul-debug-read/cmd/config"
 	"fmt"
 	"github.com/spf13/viper"
+	"log"
 	"os"
 	"strings"
 
@@ -20,22 +22,33 @@ To change file-path use consul-debug-read set-debug-path --path <path_to_debug_b
 
 Example:
 	$ consul-debug-read show-debug-path
-	  
 	bundles/consul-debug-2023-10-04T18-29-47Z
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if _, ok := os.LookupEnv(envDebugPath); ok {
 			envPath := os.Getenv(envDebugPath)
+
 			envPath = strings.TrimSuffix(envPath, "/")
 			if _, err := os.Stat(envPath); os.IsNotExist(err) {
-				return fmt.Errorf("directory does not exists: %s - %v\n", envPath, err)
+				return fmt.Errorf("invalid debug bundle path set: %s - %v\n", envPath, err)
 			} else {
 				debugPath = envPath
+				if config.Verbose {
+					log.Printf("CONSUL_DEBUG_PATH env variable set\n")
+				}
 			}
 		} else {
 			debugPath = viper.GetString("debugPath")
+			if config.Verbose {
+				home, err := os.UserHomeDir()
+				if err != nil {
+					fmt.Println("Error: ", err)
+					os.Exit(1)
+				}
+				log.Printf("CONSUL_DEBUG_PATH env variable unset, using '%s/.consul-debug-read.yaml'\n", home)
+			}
 		}
-		fmt.Println(debugPath)
+		fmt.Printf("%s", debugPath)
 		return nil
 	},
 }

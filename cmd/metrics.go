@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"consul-debug-read/cmd/config"
 	funcs "consul-debug-read/lib"
 	"consul-debug-read/lib/types"
 	"consul-debug-read/metrics"
@@ -133,18 +134,24 @@ Example usage:
 					return fmt.Errorf("directory does not exists: %s - %v\n", envPath, err)
 				} else {
 					debugPath = envPath
-					log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+					if config.Verbose {
+						log.Printf("using environment variable CONSUL_DEBUG_PATH - %s\n", debugPath)
+					}
 				}
 			} else {
 				debugPath = viper.GetString("debugPath")
-				log.Printf("using config.yaml debug path setting - %s\n", debugPath)
+				if config.Verbose {
+					log.Printf("using config.yaml debug path setting - %s\n", debugPath)
+				}
 			}
 			if debugPath != "" {
 				l, _ := cmd.Flags().GetBool("list")
 				listTransactionTiming, _ := cmd.Flags().GetBool("list-transaction-timing")
 				h, _ := cmd.Flags().GetBool("host")
 				if !l && !listTransactionTiming {
-					log.Printf("debug-path:  '%s'\n", debugPath)
+					if config.Verbose {
+						log.Printf("debug-path:  '%s'\n", debugPath)
+					}
 					// don't read in metrics.json if we don't have to
 					if h {
 						if err := debugBundle.DecodeJSON(debugPath, "host"); err != nil {
@@ -166,7 +173,9 @@ Example usage:
 						if err := debugBundle.DecodeJSON(debugPath, "metrics"); err != nil {
 							log.Fatalf("failed to decode 'metrics.json' - %v", err)
 						}
-						log.Printf("successfully read-in agent, host, metrics, and index from:  '%s'\n", debugPath)
+						if config.Verbose {
+							log.Printf("successfully read-in agent, host, metrics, and index from:  '%s'\n", debugPath)
+						}
 					}
 				}
 			} else {
@@ -204,7 +213,7 @@ Example usage:
 				index := debugBundle.Index
 				host := debugBundle.Host
 				metricsFile := fmt.Sprintf(debugPath + "/metrics.json")
-				fmt.Printf("\nMetrics Bundle Summary: %s\n", metricsFile)
+				fmt.Printf("\nMetrics Bundle Summary:\n")
 				fmt.Println("----------------------------------------------")
 				fmt.Println("Datacenter:", debugBundle.Agent.Config.Datacenter)
 				fmt.Println("Hostname:", host.Host.Hostname)
@@ -216,6 +225,7 @@ Example usage:
 				fmt.Println("Total Captures:", len(m.Metrics))
 				fmt.Printf("Capture Time Start: %s\n", m.Metrics[0].Timestamp)
 				fmt.Printf("Capture Time Stop: %s\n", m.Metrics[len(m.Metrics)-1].Timestamp)
+				fmt.Printf("debug file: %s\n", metricsFile)
 				return nil
 			}
 			hostMetrics := func() {
@@ -225,7 +235,7 @@ Example usage:
 				bootTimeStamp := time.Unix(int64(host.Host.BootTime), 0)
 				bootTime := bootTimeStamp.Format("2006-01-02 15:04:05 MST")
 				upTime := funcs.ConvertSecondsReadable(host.Host.Uptime)
-				fmt.Printf("\nHost Metrics Summary: %s\n", hostFile)
+				fmt.Printf("\nHost Metrics Summary:\n")
 				fmt.Println("----------------------")
 				fmt.Println("OS:", host.Host.Os)
 				fmt.Println("Host Name", host.Host.Hostname)
@@ -246,6 +256,7 @@ Example usage:
 				fmt.Printf("Used: %s  (%.2f%%)\n", conv.ConvertToReadableBytes(host.Disk.Used), host.Disk.UsedPercent)
 				fmt.Println("Free:", conv.ConvertToReadableBytes(host.Disk.Free))
 				fmt.Println("Total:", conv.ConvertToReadableBytes(host.Disk.Total))
+				fmt.Printf("debug file: %s\n", hostFile)
 			}
 
 			switch {
@@ -448,7 +459,7 @@ Example usage:
 					return err
 				}
 			default:
-				if err := showSummary(); err != nil {
+				if err := cmd.Usage(); err != nil {
 					return err
 				}
 			}

@@ -22,6 +22,8 @@ a simple cli tool for parsing consul-debug bundles to readable format
 
 ### Download latest release
 
+**linux|darwin architecture installs**
+
 ```shell
 $ bash <(curl -sSL https://raw.githubusercontent.com/natemollica-nm/consul-debug-read/main/scripts/download.sh)
 ```

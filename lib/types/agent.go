@@ -1,6 +1,7 @@
 package types
 
 import (
+	"consul-debug-read/cmd/config"
 	"consul-debug-read/lib"
 	"encoding/json"
 	"fmt"
@@ -817,7 +818,9 @@ func (b *Debug) DecodeJSON(debugPath, dataType string) error {
 	}
 
 	if dataType == "all" {
-		log.Printf("Parsing %s, %s, %s, %s, %s", configs["agent"], configs["members"], configs["metrics"], configs["host"], configs["index"])
+		if config.Verbose {
+			log.Printf("Parsing %s, %s, %s, %s, %s", configs["agent"], configs["members"], configs["metrics"], configs["host"], configs["index"])
+		}
 		for dataType, fileName := range configs {
 			if dataType == "all" {
 				continue
@@ -828,7 +831,9 @@ func (b *Debug) DecodeJSON(debugPath, dataType string) error {
 		}
 		return nil
 	}
-	log.Printf("Parsing %s", configs[dataType])
+	if config.Verbose {
+		log.Printf("Parsing %s", configs[dataType])
+	}
 	return b.decodeFile(debugPath, fileName, dataType)
 }
 
@@ -987,6 +992,8 @@ func (a *Agent) AgentConfigFull() (string, error) {
 }
 
 func (a *Agent) AgentSummary() {
+	fmt.Printf("Agent Configuration Summary:\n")
+	fmt.Println("----------------------")
 	fmt.Println("Server:", a.Config.Server)
 	fmt.Println("Version:", a.Config.Version)
 	fmt.Println("Raft State:", a.Stats.Raft.State)
@@ -1016,12 +1023,13 @@ func (b *Debug) GenerateTelegrafMetrics() error {
 		// Must be 0644 because this is written by the consul-k8s user but needs
 		// to be readable by the consul user
 		metricsFile := fmt.Sprintf("%s/metrics-%d.json", telegrafMetricsFilePath, i)
-		log.Printf("[telegraf-metrics] generating %s\n", metricsFile)
+		if config.Verbose {
+			log.Printf("[telegraf-metrics] generating %s\n", metricsFile)
+		}
 		if err = lib.WriteFileWithPerms(metricsFile, string(data), 0755); err != nil {
 			return fmt.Errorf("error writing RFC3339 formatted metrics to %s: %v", telegrafMetricsFilePath, err)
 		}
 	}
-
-	log.Printf("telegraf metrics generated successfully")
+	fmt.Printf("telegraf metrics generated successfully to %s", telegrafMetricsFilePath)
 	return nil
 }
