@@ -25,8 +25,15 @@ a simple cli tool for parsing consul-debug bundles to readable format
 **linux|darwin architecture installs**
 
 ```shell
-$ bash <(curl -sSL https://raw.githubusercontent.com/natemollica-nm/consul-debug-read/main/scripts/download.sh)
+bash <(curl -sSL https://raw.githubusercontent.com/natemollica-nm/consul-debug-read/main/scripts/download.sh)
 ```
+
+**_If you're having issues running the above scripted installation, you can enable more verbose output by running with '1' flag:_**
+
+```shell
+bash <(curl -sSL https://raw.githubusercontent.com/natemollica-nm/consul-debug-read/main/scripts/download.sh) 1
+```
+
 
 ## Working with Debug Bundles
 
