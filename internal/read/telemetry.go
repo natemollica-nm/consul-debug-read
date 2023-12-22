@@ -1,16 +1,19 @@
-package metrics
+package read
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/ryanuber/columnize"
+	"log"
 	"net/http"
 	"strings"
 )
 
 // TODO: Make the URL Agent Version adaptable (i.e., alter URL string to corresponding version)
 const (
-	TelemetryURL = "https://developer.hashicorp.com/consul/docs/agent/telemetry"
+	TelemetryURL            = "https://developer.hashicorp.com/consul/docs/agent/telemetry"
+	telegrafMetricsFilePath = "metrics/telegraf"
 )
 
 type AgentTelemetryMetric struct {
@@ -140,5 +143,33 @@ func ListMetrics(all, transactionTiming bool) error {
 
 	fmt.Printf("\nConsul Telemetry Metric Names (pulled from: %s)\n\n", TelemetryURL)
 	fmt.Println(latestMetrics)
+	return nil
+}
+
+func (b *Debug) GenerateTelegrafMetrics() error {
+	metrics := b.Metrics.Metrics
+	log.Printf("converting metrics timestamps to RFC3339")
+	for i := range metrics {
+		telegrafMetrics := metrics[i]
+		ts := metrics[i].Timestamp
+		timestampRFC, err := ToRFC3339(ts)
+		if err != nil {
+			return err
+		}
+		telegrafMetrics.Timestamp = timestampRFC
+
+		data, err := json.MarshalIndent(telegrafMetrics, "", "  ")
+		if err != nil {
+			return err
+		}
+		// Write out the resultant metrics.json file.
+		// Must be 0644 because this is written by the consul-k8s user but needs
+		// to be readable by the consul user
+		metricsFile := fmt.Sprintf("%s/metrics-%d.json", telegrafMetricsFilePath, i)
+		if err = WriteFileWithPerms(metricsFile, string(data), 0755); err != nil {
+			return fmt.Errorf("error writing RFC3339 formatted metrics to %s: %v", telegrafMetricsFilePath, err)
+		}
+	}
+	fmt.Printf("telegraf metrics generated successfully to %s", telegrafMetricsFilePath)
 	return nil
 }

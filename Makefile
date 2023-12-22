@@ -1,5 +1,9 @@
 SHELL=$(PWD)/shell
 
+run-linter:
+	@golangci-lint run ./cmd/consul-debug-read
+	@golangci-lint run ./internal/read
+
 all: clean consul-debug-read split-debug-metrics init-influxdb configure-influxdb telegraf grafana
 
 telemetry: clean init-influxdb configure-influxdb telegraf grafana

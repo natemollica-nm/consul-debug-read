@@ -1,22 +1,13 @@
-package types
+package read
 
 import (
-	"consul-debug-read/cmd/config"
-	"consul-debug-read/lib"
 	"encoding/json"
 	"fmt"
 	"github.com/ryanuber/columnize"
-	"io"
-	"log"
 	"net"
-	"os"
 	"sort"
 	"strings"
 	"time"
-)
-
-const (
-	telegrafMetricsFilePath = "metrics/telegraf"
 )
 
 type Config struct {
@@ -638,14 +629,6 @@ type Agent struct {
 	XDS         xDS         `json:"xDS"`
 }
 
-type Debug struct {
-	Agent   Agent
-	Members []Member
-	Metrics Metrics
-	Host    Host
-	Index   MetricsIndex
-}
-
 // ByMemberName sorts members by name with a stable sort.
 // 1. servers go at the top
 // 2. group by datacenter name
@@ -655,22 +638,22 @@ type ByMemberName []Member
 func (m ByMemberName) Len() int      { return len(m) }
 func (m ByMemberName) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 func (m ByMemberName) Less(i, j int) bool {
-	tags_i := m[i].Tags
-	tags_j := m[j].Tags
+	tagsI := m[i].Tags
+	tagsJ := m[j].Tags
 
 	// put role=consul first
 	switch {
-	case tags_i.Role == "consul" && tags_j.Role != "consul":
+	case tagsI.Role == "consul" && tagsJ.Role != "consul":
 		return true
-	case tags_i.Role != "consul" && tags_j.Role == "consul":
+	case tagsI.Role != "consul" && tagsJ.Role == "consul":
 		return false
 	}
 
 	// then by datacenter
 	switch {
-	case tags_i.Dc < tags_j.Dc:
+	case tagsI.Dc < tagsJ.Dc:
 		return true
-	case tags_i.Dc > tags_j.Dc:
+	case tagsI.Dc > tagsJ.Dc:
 		return false
 	}
 
@@ -678,9 +661,54 @@ func (m ByMemberName) Less(i, j int) bool {
 	return m[i].Name < m[j].Name
 }
 
-// MembersStandard is used to dump the most useful information about nodes
-// in a more human-friendly format
+type RaftServer struct {
+	// ID is the unique ID for the server. These are currently the same
+	// as the address, but they will be changed to a real GUID in a future
+	// release of Consul.
+	ID string
+
+	// Node is the node name of the server, as known by Consul, or this
+	// will be set to "(unknown)" otherwise.
+	Node string
+
+	// Address is the IP:port of the server, used for Raft communications.
+	Address string
+
+	// Voter is true if this server has a vote in the cluster. This might
+	// be false if the server is staging and still coming online, or if
+	// it's a non-voting server, which will be added in a future release of
+	// Consul.
+	Voter bool
+}
+
+func (a *Agent) ParseDebugRaftConfig() string {
+	raftConfig := ConvertToValidJSON(a.Stats.Raft.LatestConfiguration)
+	return raftConfig
+}
+
+func (a *Agent) AgentConfigFull() string {
+	return StructToHCL(a.DebugConfig, "")
+}
+
+func (a *Agent) Summary() string {
+	title := "Agent Configuration Summary:"
+	ul := strings.Repeat("-", len(title))
+	return fmt.Sprintf("%s\n%s\nServer: %v\nVersion: %s\nRaft State: %s\nDatacenter: %s\nPrimary DC: %s\nNodeName: %s\nSupported Envoy Versions: %v\n",
+		title,
+		ul,
+		a.Config.Server,
+		a.Config.Version,
+		a.Stats.Raft.State,
+		a.Config.Datacenter,
+		a.Config.PrimaryDatacenter,
+		a.Config.NodeName,
+		a.XDS.SupportedProxies.Envoy)
+}
+
 func (b *Debug) MembersStandard() string {
+	if !b.Agent.Config.Server {
+		return "=> bundle is from non-server consul agent (client agent). membership info unavailable (/v1/agent/members?wan)."
+	}
 	result := make([]string, 0, len(b.Members))
 	header := "Node\x1fAddress\x1fStatus\x1fType\x1fBuild\x1fProtocol\x1fDC"
 	result = append(result, header)
@@ -734,170 +762,7 @@ func (b *Debug) MembersStandard() string {
 	return output
 }
 
-func (b *Debug) BundleSummary() {
-	b.Agent.AgentSummary()
-}
-
-func (b *Debug) DecodeAgent(agentDecoder *json.Decoder) error {
-	var agentConfig Agent
-	err := agentDecoder.Decode(&agentConfig)
-	if err != nil {
-		log.Fatalf("error decoding agent: %v", err)
-		return err
-	}
-	b.Agent = agentConfig
-	return nil
-}
-
-func (b *Debug) DecodeMembers(memberDecoder *json.Decoder) error {
-	var membersList []Member
-	err := memberDecoder.Decode(&membersList)
-	if err != nil {
-		log.Fatalf("error decoding members: %v", err)
-		return err
-	}
-	b.Members = membersList
-	return nil
-}
-
-func (b *Debug) DecodeMetrics(metricsDecoder *json.Decoder) error {
-	for {
-		var metric Metric
-		err := metricsDecoder.Decode(&metric)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("Error decoding | file: metrics.json %v", err)
-			return err
-		}
-		b.Metrics.Metrics = append(b.Metrics.Metrics, metric)
-	}
-	return nil
-}
-
-func (b *Debug) DecodeMetricsIndex(indexDecoder *json.Decoder) error {
-	var index MetricsIndex
-	err := indexDecoder.Decode(&index)
-	if err != nil {
-		log.Fatalf("error decoding metrics: %v", err)
-		return err
-	}
-	b.Index = index
-	return nil
-}
-
-func (b *Debug) DecodeHost(hostDecoder *json.Decoder) error {
-	for {
-		var hostObject Host
-		err := hostDecoder.Decode(&hostObject)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("error decoding host: %v", err)
-			return err
-		}
-		b.Host = hostObject
-	}
-	return nil
-}
-
-func (b *Debug) DecodeJSON(debugPath, dataType string) error {
-	configs := map[string]string{
-		"agent":   "agent.json",
-		"members": "members.json",
-		"metrics": "metrics.json",
-		"host":    "host.json",
-		"index":   "index.json",
-	}
-
-	fileName, found := configs[dataType]
-	if !found && dataType != "all" {
-		return fmt.Errorf("unknown data type: %s", dataType)
-	}
-
-	if dataType == "all" {
-		if config.Verbose {
-			log.Printf("Parsing %s, %s, %s, %s, %s", configs["agent"], configs["members"], configs["metrics"], configs["host"], configs["index"])
-		}
-		for dataType, fileName := range configs {
-			if dataType == "all" {
-				continue
-			}
-			if err := b.decodeFile(debugPath, fileName, dataType); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	if config.Verbose {
-		log.Printf("Parsing %s", configs[dataType])
-	}
-	return b.decodeFile(debugPath, fileName, dataType)
-}
-
-func (b *Debug) decodeFile(debugPath, fileName, dataType string) error {
-	file, err := os.Open(fmt.Sprintf("%s/%s", debugPath, fileName))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("file not found: %s/%s. ensure debug-path set to valid path\n", debugPath, fileName)
-			// Handle the "file not found" error here
-		} else {
-			return fmt.Errorf("error opening file: %s/%s - %v\n", debugPath, fileName, err)
-		}
-	}
-	cleanup := func(err error) error {
-		_ = file.Close()
-		return err
-	}
-	var dataTypeErr error
-	decoder := json.NewDecoder(file)
-	switch dataType {
-	case "agent":
-		return b.DecodeAgent(decoder)
-	case "members":
-		return b.DecodeMembers(decoder)
-	case "metrics":
-		return b.DecodeMetrics(decoder)
-	case "host":
-		return b.DecodeHost(decoder)
-	case "index":
-		return b.DecodeMetricsIndex(decoder)
-	default:
-		dataTypeErr = fmt.Errorf("unknown data type: %s", dataType)
-	}
-	if err := file.Close(); err != nil {
-		return cleanup(err)
-	}
-	if dataTypeErr != nil {
-		return dataTypeErr
-	}
-	return nil
-}
-
-// RaftServer has information about a server in the Raft configuration.
-type RaftServer struct {
-	// ID is the unique ID for the server. These are currently the same
-	// as the address, but they will be changed to a real GUID in a future
-	// release of Consul.
-	ID string
-
-	// Node is the node name of the server, as known by Consul, or this
-	// will be set to "(unknown)" otherwise.
-	Node string
-
-	// Address is the IP:port of the server, used for Raft communications.
-	Address string
-
-	// Voter is true if this server has a vote in the cluster. This might
-	// be false if the server is staging and still coming online, or if
-	// it's a non-voting server, which will be added in a future release of
-	// Consul.
-	Voter bool
-}
-
-func (b *Debug) converToRaftServer(raftDebugString string) ([]byte, error) {
+func (b *Debug) convertToRaftServer(raftDebugString string) ([]byte, error) {
 	var correctedRaftConfig []byte
 	// Define a struct to match the structure of your JSON data
 	var data []map[string]interface{}
@@ -945,17 +810,15 @@ func (b *Debug) converToRaftServer(raftDebugString string) ([]byte, error) {
 	return correctedRaftConfig, nil
 }
 
-func (a *Agent) parseDebugRaftConfig() string {
-	raftConfig := lib.ConvertToValidJSON(a.Stats.Raft.LatestConfiguration)
-	return raftConfig
-}
-
 func (b *Debug) RaftListPeers() (string, error) {
 	thisNode := b.Agent.Config.NodeName
 	var debugBundleRaftConfig []byte
 	var err error
-
-	if debugBundleRaftConfig, err = b.converToRaftServer(b.Agent.parseDebugRaftConfig()); err != nil {
+	if !b.Agent.Config.Server {
+		output := "=> bundle is from non-server consul agent (client agent). raft configuration unavailable."
+		return output, nil
+	}
+	if debugBundleRaftConfig, err = b.convertToRaftServer(b.Agent.ParseDebugRaftConfig()); err != nil {
 		return "", err
 	}
 	var raftServers []RaftServer
@@ -985,51 +848,4 @@ func (b *Debug) RaftListPeers() (string, error) {
 	}
 	output := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 	return output, nil
-}
-
-func (a *Agent) AgentConfigFull() (string, error) {
-	return lib.StructToHCL(a.DebugConfig, ""), nil
-}
-
-func (a *Agent) AgentSummary() {
-	fmt.Printf("Agent Configuration Summary:\n")
-	fmt.Println("----------------------")
-	fmt.Println("Server:", a.Config.Server)
-	fmt.Println("Version:", a.Config.Version)
-	fmt.Println("Raft State:", a.Stats.Raft.State)
-	fmt.Println("Datacenter:", a.Config.Datacenter)
-	fmt.Println("Primary DC:", a.Config.PrimaryDatacenter)
-	fmt.Println("NodeName:", a.Config.NodeName)
-	fmt.Println("Support Envoy Versions:", a.XDS.SupportedProxies.Envoy)
-}
-
-func (b *Debug) GenerateTelegrafMetrics() error {
-	metrics := b.Metrics.Metrics
-	log.Printf("converting metrics timestamps to RFC3339")
-	for i := range metrics {
-		telegrafMetrics := metrics[i]
-		ts := metrics[i].Timestamp
-		timestampRFC, err := lib.ToRFC3339(ts)
-		if err != nil {
-			return err
-		}
-		telegrafMetrics.Timestamp = timestampRFC
-
-		data, err := json.MarshalIndent(telegrafMetrics, "", "  ")
-		if err != nil {
-			return err
-		}
-		// Write out the resultant metrics.json file.
-		// Must be 0644 because this is written by the consul-k8s user but needs
-		// to be readable by the consul user
-		metricsFile := fmt.Sprintf("%s/metrics-%d.json", telegrafMetricsFilePath, i)
-		if config.Verbose {
-			log.Printf("[telegraf-metrics] generating %s\n", metricsFile)
-		}
-		if err = lib.WriteFileWithPerms(metricsFile, string(data), 0755); err != nil {
-			return fmt.Errorf("error writing RFC3339 formatted metrics to %s: %v", telegrafMetricsFilePath, err)
-		}
-	}
-	fmt.Printf("telegraf metrics generated successfully to %s", telegrafMetricsFilePath)
-	return nil
 }

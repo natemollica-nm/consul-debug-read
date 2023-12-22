@@ -1,4 +1,9 @@
-package types
+package read
+
+import (
+	"fmt"
+	"strings"
+)
 
 type CPU struct {
 	CacheSize  int      `json:"cacheSize"`
@@ -92,4 +97,49 @@ type Host struct {
 	Errors         any      `json:"Errors"`
 	Host           HostInfo `json:"Host"`
 	Memory         Memory   `json:"Memory"`
+}
+
+func (b *Debug) HostSummary() string {
+	return b.HostGeneralSummary() + b.HostMemorySummary() + b.HostDiskSummary()
+}
+
+func (b *Debug) HostGeneralSummary() string {
+	title := "Host Summary:"
+	ul := strings.Repeat("-", len(title))
+	return fmt.Sprintf("%s\n%s\nOS: %s\nHostname: %s\nArchitecture: %s\nCPU Cores: %d\nCPU Vendor ID: %s\nCPU Model: %s\nPlatform: %s | %s\nRunning Since: %d\nTotal Uptime: %s\n",
+		title,
+		ul,
+		b.Host.Host.Os,
+		b.Host.Host.Hostname,
+		b.Host.Host.KernelArch,
+		len(b.Host.CPU),
+		b.Host.CPU[0].VendorID,
+		b.Host.CPU[0].ModelName,
+		b.Host.Host.Platform, b.Host.Host.PlatformVersion,
+		b.Host.Host.BootTime,
+		ConvertSecondsReadable(b.Host.Host.Uptime))
+}
+
+func (b *Debug) HostMemorySummary() string {
+	conv := ByteConverter{}
+	title := "Host Memory Metrics Summary:"
+	ul := strings.Repeat("-", len(title))
+	return fmt.Sprintf("\n%s\n%s\nUsed: %s  (%.2f%%)\nTotal Available: %s\nTotal: %s\n",
+		title,
+		ul,
+		conv.ConvertToReadableBytes(b.Host.Memory.Used), b.Host.Memory.UsedPercent,
+		conv.ConvertToReadableBytes(b.Host.Memory.Available),
+		conv.ConvertToReadableBytes(b.Host.Memory.Total))
+}
+
+func (b *Debug) HostDiskSummary() string {
+	conv := ByteConverter{}
+	title := "Host Disk Metrics Summary:"
+	ul := strings.Repeat("-", len(title))
+	return fmt.Sprintf("\n%s\n%s\nUsed: %s  (%.2f%%)\nTotal Available: %s\nTotal: %s\n",
+		title,
+		ul,
+		conv.ConvertToReadableBytes(b.Host.Disk.Used), b.Host.Disk.UsedPercent,
+		conv.ConvertToReadableBytes(b.Host.Disk.Free),
+		conv.ConvertToReadableBytes(b.Host.Disk.Total))
 }
