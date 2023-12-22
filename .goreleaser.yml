@@ -1,24 +1,20 @@
 builds:
   -
     binary: consul-debug-read
-
     flags:
-      - -trimpath 
-
+      - -trimpath
     goos:
       - linux
       - windows
       - darwin
-
     goarch:
       - amd64
       - arm64
       - arm
-
     goarm:
       - 6
       - 7
-
+    main: ./cmd/consul-debug-read
 archives:
   -
     name_template: >-
