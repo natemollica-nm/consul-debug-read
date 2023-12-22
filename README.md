@@ -292,6 +292,6 @@ export PATH=$PATH:$GOROOT/bin
 2. Change to repo directory:
    `$ cd consul-debug-read`
 3. Build and install binary:
-   `$ go install`
+   `$ go install ./cmd/consul-debug-read`
 4. Test binary installed in path:
    `$ consul-debug-read --help`
