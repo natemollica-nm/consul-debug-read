@@ -492,16 +492,16 @@ Usage: consul-debug-read metrics [options]
 		$ consul-debug-read metrics
 
 	Display full list of queryable metric names
-		$ consul-debug-read metrics --list 
+		$ consul-debug-read metrics -list 
 	
 	Retrieve all timestamped captures of metric
-		$ consul-debug-read metrics --name <name_of_metric>
+		$ consul-debug-read metrics -name <name_of_metric>
 	
 	Sort metric capture by value (highest to lowest)
-		$ consul-debug-read metrics --name <name_of_metric> --sort-by-value
+		$ consul-debug-read metrics -name <name_of_metric> -sort
 	
 	Skip hashidoc metric name validation:
-		$ consul-debug-read metrics --name <valid_name_but_not_in_docs> --verify=false`
+		$ consul-debug-read metrics -name <valid_name_but_not_in_docs> -verify=false`
 
 func ClearScreenPrompt(message string) {
 	clearScreen := exec.Command("clear")

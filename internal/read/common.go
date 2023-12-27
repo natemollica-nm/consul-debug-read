@@ -12,11 +12,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"runtime"
-	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -163,6 +160,9 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 				bundles = append(bundles, file)
 			}
 		}
+		if len(bundles) < 1 {
+			return sourceDir, nil
+		}
 		fmt.Println("select a .tar.gz file to extract:")
 		for i, bundle := range bundles {
 			fmt.Printf("%d: %s\n", i+1, bundle.Name())
@@ -191,7 +191,8 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 		sourceFilePath, _ = filepath.Abs(sourceFilePath)
 		extractedDebugPath = filepath.Join(filepath.Dir(sourceFilePath), extractRoot)
 	} else {
-		extractedDebugPath = filepath.Join(sourceDir, extractRoot)
+		sourceFilePath, _ = filepath.Abs(sourceDir)
+		extractedDebugPath = filepath.Join(sourceFilePath, extractRoot)
 	}
 	return extractedDebugPath, nil
 }
@@ -295,24 +296,10 @@ func (b *Debug) DecodeMembers(memberDecoder *json.Decoder) error {
 }
 
 func (b *Debug) DecodeMetrics(metricsDecoder *json.Decoder) error {
-	type MetricData struct {
-		Timestamp string
-		Metric    Metric
-	}
-
-	// Determine the number of CPU cores
-	numCores := runtime.NumCPU()
-
-	// Create a channel to receive metric data with a buffered size based on CPU cores
-	bufferSize := numCores * 10000 // Tweak this as needed
-	metricDataChan := make(chan MetricData, bufferSize)
-
-	// Create a wait group to wait for all goroutines to finish
-	var wg sync.WaitGroup
-
+	var err error
 	for {
 		var metric Metric
-		err := metricsDecoder.Decode(&metric)
+		err = metricsDecoder.Decode(&metric)
 		if err == io.EOF {
 			break
 		}
@@ -320,53 +307,9 @@ func (b *Debug) DecodeMetrics(metricsDecoder *json.Decoder) error {
 			log.Fatalf("Error decoding | file: metrics.json %v", err)
 			return err
 		}
-
-		wg.Add(1)
-		go func(metric Metric) {
-			defer wg.Done()
-
-			// Extract the timestamp from the metric
-			timestamp := metric.Timestamp
-
-			// Send metric data to the channel
-			metricDataChan <- MetricData{Timestamp: timestamp, Metric: metric}
-		}(metric)
+		// Assign the Metrics to the Debug struct
+		b.Metrics.Metrics = append(b.Metrics.Metrics, metric)
 	}
-
-	// Close the channel when all goroutines are done
-	go func() {
-		wg.Wait()
-		close(metricDataChan)
-	}()
-
-	// Create a map to organize metrics by timestamp
-	metricsByTimestamp := make(map[string][]Metric)
-
-	// Organize metrics by timestamp and build the map
-	for metricData := range metricDataChan {
-		timestamp := metricData.Timestamp
-		metric := metricData.Metric
-
-		// Append metric to the map
-		metricsByTimestamp[timestamp] = append(metricsByTimestamp[timestamp], metric)
-	}
-
-	// Sort timestamps
-	sortedTimestamps := make([]string, 0, len(metricsByTimestamp))
-	for timestamp := range metricsByTimestamp {
-		sortedTimestamps = append(sortedTimestamps, timestamp)
-	}
-	sort.Strings(sortedTimestamps)
-
-	// Reconstruct the Metrics slice in timestamped order
-	var sortedMetrics []Metric
-	for _, timestamp := range sortedTimestamps {
-		sortedMetrics = append(sortedMetrics, metricsByTimestamp[timestamp]...)
-	}
-
-	// Assign the sorted Metrics to the Debug struct
-	b.Metrics.Metrics = sortedMetrics
-
 	// Build the metrics map from the sorted metrics
 	b.Metrics.BuildMetricsMap()
 
@@ -460,8 +403,6 @@ func (b *Debug) decodeFile(debugPath, fileName, dataType string) error {
 		return fmt.Errorf("unknown data type: %s", dataType)
 	}
 }
-
-type Map map[string][]map[string]interface{}
 
 type ByValue []string
 
