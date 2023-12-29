@@ -267,7 +267,28 @@ func (c *cmd) Run(args []string) int {
 	var data read.Debug
 	var result string
 
-	if c.name != "" || c.keyMetrics || c.summary || c.memory || c.network || c.rateLimiting || c.autopilot || c.transactionTiming || c.leadershipChanges || c.bolt || c.dataplane || c.federationStatus || c.telegraf {
+	if c.name != "" {
+		hclog.L().Debug("reading in index.json")
+		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "index"); err != nil {
+			hclog.L().Error("failed to decode index.json", "error", err)
+			return 1
+		}
+		hclog.L().Debug("reading in metrics.json")
+		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "metrics"); err != nil {
+			hclog.L().Error("failed to decode metrics.json", "error", err)
+			return 1
+		}
+		hclog.L().Debug("successfully read in bundle contents")
+	}
+	if c.host {
+		hclog.L().Debug("reading in host.json")
+		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "host"); err != nil {
+			hclog.L().Error("failed to decode host.json", "error", err)
+			return 1
+		}
+		hclog.L().Debug("successfully read in host.json bundle contents")
+	}
+	if c.keyMetrics || c.summary || c.memory || c.network || c.rateLimiting || c.autopilot || c.transactionTiming || c.leadershipChanges || c.bolt || c.dataplane || c.federationStatus || c.telegraf {
 		hclog.L().Debug("reading in agent.json")
 		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "agent"); err != nil {
 			hclog.L().Error("failed to decode agent.json", "error", err)
@@ -288,14 +309,7 @@ func (c *cmd) Run(args []string) int {
 			hclog.L().Error("failed to decode metrics.json", "error", err)
 			return 1
 		}
-		hclog.L().Debug("successfully read in metrics information from bundle")
-	}
-	if c.host {
-		hclog.L().Debug("reading in host.json")
-		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "host"); err != nil {
-			hclog.L().Error("failed to decode host.json", "error", err)
-			return 1
-		}
+		hclog.L().Debug("successfully read in bundle contents")
 	}
 
 	switch {

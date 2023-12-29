@@ -6,6 +6,7 @@ import (
 	"consul-debug-read/internal/read/commands/agent/members"
 	"consul-debug-read/internal/read/commands/agent/raft"
 	"consul-debug-read/internal/read/commands/metrics"
+	"consul-debug-read/internal/read/commands/run"
 	set "consul-debug-read/internal/read/commands/set-debug-path"
 	show "consul-debug-read/internal/read/commands/show-debug-path"
 	"fmt"
@@ -21,6 +22,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"agent members", func(cli.Ui) (mcli.Command, error) { return members.New(ui) }},
 		entry{"agent raft-configuration", func(cli.Ui) (mcli.Command, error) { return raft.New(ui) }},
 		entry{"metrics", func(cli.Ui) (mcli.Command, error) { return metrics.New(ui) }},
+		entry{"run", func(cli.Ui) (mcli.Command, error) { return run.New(ui) }},
 	)
 	return registry
 }

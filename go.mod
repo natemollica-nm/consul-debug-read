@@ -10,6 +10,7 @@ require (
 	github.com/mitchellh/cli v1.1.5
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/ryanuber/columnize v2.1.2+incompatible
+	go.etcd.io/bbolt v1.3.8
 	gopkg.in/yaml.v2 v2.4.0
 )
 
