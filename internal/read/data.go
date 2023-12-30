@@ -3,6 +3,7 @@ package read
 import (
 	"fmt"
 	bolt "go.etcd.io/bbolt"
+	"os"
 )
 
 var (
@@ -37,11 +38,17 @@ func NewBackend() *Backend {
 }
 
 func initMemDB() (*bolt.DB, error) {
+	if _, err := os.Stat(DefaultDBPath); err == nil {
+		if err = os.Remove(DefaultDBPath); err != nil {
+			return nil, err
+		}
+	}
 	// Open the BoltDB file
 	// It will be created if it doesn't exist
 	db, err := bolt.Open(DefaultDBPath, 0666, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not open db, %v", err)
 	}
+
 	return db, nil
 }

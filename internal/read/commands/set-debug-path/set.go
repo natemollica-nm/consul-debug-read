@@ -35,6 +35,7 @@ func New(ui cli.Ui) (cli.Command, error) {
 	c.flags.BoolVar(&c.silent, "silent", false, "Disables all normal log output")
 	c.flags.BoolVar(&c.verbose, "verbose", false, "Enable verbose debugging output")
 	c.flags.StringVar(&c.path, "path", "", "File path to set for debug bundle reading analysis")
+	c.flags.StringVar(&c.file, "file", "", "File path to .tar.gz set for debug bundle reading analysis")
 
 	flags.FlagMerge(c.flags, c.pathFlags.Flags())
 
@@ -66,49 +67,49 @@ func (c *cmd) Run(args []string) int {
 
 	commands.InitLogging(c.ui, level)
 
-	if _, err := os.Stat(read.DebugReadConfigDirPath); os.IsNotExist(err) {
-		hclog.L().Info("default configuration filepath not found, attempting to create and populate", "file", read.DebugReadConfigFullPath)
-		err := os.MkdirAll(read.DebugReadConfigDirPath, 0755)
-		if err != nil {
-			hclog.L().Error("failed to create directory", "error", err)
-			c.ui.Error("failed to set consul-debug-read path")
-			return 1
-		}
-	}
-
-	if _, err := os.Stat(read.DebugReadConfigFullPath); err != nil {
-		if os.IsNotExist(err) {
-			hclog.L().Debug("configuring default debug path to current directory", "dir", read.CurrentDir)
-			// Create Default Configuration File
-			config := &read.ReaderConfig{
-				DebugDirectoryPath: read.CurrentDir,
-			}
-			defaultCfgBytes, err := yaml.Marshal(&config)
-			if err != nil {
-				hclog.L().Error("failed to create default configuration file", "error", err)
-				c.ui.Error("failed to set consul-debug-read path")
-				return 1
-			}
-			err = os.WriteFile(read.DebugReadConfigFullPath, defaultCfgBytes, 0755)
-			if err != nil {
-				hclog.L().Error("failed to create write to configuration file", "error", err)
-				c.ui.Error("failed to set consul-debug-read path")
-				return 1
-			}
-		}
-	}
+	//if _, err := os.Stat(read.DebugReadConfigDirPath); os.IsNotExist(err) {
+	//	hclog.L().Info("default configuration filepath not found, attempting to create and populate", "file", read.DebugReadConfigFullPath)
+	//	err := os.MkdirAll(read.DebugReadConfigDirPath, 0755)
+	//	if err != nil {
+	//		hclog.L().Error("failed to create directory", "error", err)
+	//		c.ui.Error("failed to set consul-debug-read path")
+	//		return 1
+	//	}
+	//}
+	//
+	//if _, err := os.Stat(read.DebugReadConfigFullPath); err != nil {
+	//	if os.IsNotExist(err) {
+	//		hclog.L().Debug("configuring default debug path to current directory", "dir", read.CurrentDir)
+	//		// Create Default Configuration File
+	//		config := &read.ReaderConfig{
+	//			DebugDirectoryPath: read.CurrentDir,
+	//		}
+	//		defaultCfgBytes, err := yaml.Marshal(&config)
+	//		if err != nil {
+	//			hclog.L().Error("failed to create default configuration file", "error", err)
+	//			c.ui.Error("failed to set consul-debug-read path")
+	//			return 1
+	//		}
+	//		err = os.WriteFile(read.DebugReadConfigFullPath, defaultCfgBytes, 0755)
+	//		if err != nil {
+	//			hclog.L().Error("failed to create write to configuration file", "error", err)
+	//			c.ui.Error("failed to set consul-debug-read path")
+	//			return 1
+	//		}
+	//	}
+	//}
 
 	var extractedPath string
 	var err error
 	hclog.L().Debug("checking env var (if set)", "env", read.DebugReadEnvVar)
 	if path := os.Getenv(read.DebugReadEnvVar); path != "" {
-		if ok, err := validateDebugPath(path); !ok {
+		if ok, err := ValidateDebugPath(path); !ok {
 			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
 		hclog.L().Debug("env variable set, updating config file", "CONSUL_DEBUG_PATH", path)
-		if ok, err := updateDebugReadConfig(path); !ok {
+		if ok, err := UpdateDebugReadConfig(path); !ok {
 			hclog.L().Error("failed update debug-read configuration file", "error", err)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
@@ -123,12 +124,12 @@ func (c *cmd) Run(args []string) int {
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
-		if ok, err := validateDebugPath(extractedPath); !ok {
+		if ok, err := ValidateDebugPath(extractedPath); !ok {
 			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
-		if ok, err := updateDebugReadConfig(extractedPath); !ok {
+		if ok, err := UpdateDebugReadConfig(extractedPath); !ok {
 			hclog.L().Error("failed update debug-read configuration file", "error", err)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
@@ -144,12 +145,12 @@ func (c *cmd) Run(args []string) int {
 				return 1
 			}
 		}
-		if ok, err := validateDebugPath(extractedPath); !ok {
+		if ok, err := ValidateDebugPath(extractedPath); !ok {
 			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
-		if ok, err := updateDebugReadConfig(extractedPath); !ok {
+		if ok, err := UpdateDebugReadConfig(extractedPath); !ok {
 			hclog.L().Error("failed update debug-read configuration file", "error", err)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
@@ -159,7 +160,7 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func updateDebugReadConfig(updatePath string) (bool, error) {
+func UpdateDebugReadConfig(updatePath string) (bool, error) {
 	config := &read.ReaderConfig{
 		DebugDirectoryPath: updatePath,
 	}
@@ -209,7 +210,7 @@ Example (-file) for extraction:
 	$ consul-debug-read set-debug-path --file bundles/124722consul-debug-2023-10-11T17-43-15Z.tar.gz
 `
 
-func validateDebugPath(path string) (bool, error) {
+func ValidateDebugPath(path string) (bool, error) {
 	files, err := os.ReadDir(path)
 	if err != nil {
 		return false, err

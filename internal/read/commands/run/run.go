@@ -15,6 +15,10 @@ import (
 	"syscall"
 )
 
+var (
+	RunTimeBundle = &read.Debug{}
+)
+
 type cmd struct {
 	ui        cli.Ui
 	flags     *flag.FlagSet
@@ -52,7 +56,10 @@ func (c *cmd) Run(args []string) int {
 		ErrorPrefix:  "  ==> ",
 		Ui:           c.ui,
 	}
-	if err := c.flags.Parse(args); err != nil {
+	var err error
+	// var path, values string
+
+	if err = c.flags.Parse(args); err != nil {
 		ui.Error(fmt.Sprintf("Failed to parse flags: %v", err))
 		return 1
 	}
@@ -70,49 +77,49 @@ func (c *cmd) Run(args []string) int {
 	}
 	commands.InitLogging(c.ui, level)
 
-	path, err := getPath()
-	if err != nil {
-		ui.Error(fmt.Sprintf("failed to retrieve path setting error=%v", err))
-		return 1
-	}
-	ui.Output(fmt.Sprintf("current set path: %s", path))
-
-	ui.Output("initializing boltDB")
-	ui.Output(fmt.Sprintf("consul-debug-read running | v%s", read.Version))
-	var data read.Debug
-	data.Backend = read.NewBackend()
-	ui.Output("successfully initialized backend boltDB")
-
-	ui.Output("starting bundle serialization to boltDB")
-	ui.Output("reading in agent.json")
-	if err := data.DecodeJSON(path, "agent"); err != nil {
-		hclog.L().Error("failed to decode agent.json", "error", err)
-		return 1
-	}
-	ui.Output("reading in host.json")
-	if err := data.DecodeJSON(path, "host"); err != nil {
-		hclog.L().Error("failed to decode host.json", "error", err)
-		return 1
-	}
-	ui.Output("reading in index.json")
-	if err := data.DecodeJSON(path, "index"); err != nil {
-		hclog.L().Error("failed to decode index.json", "error", err)
-		return 1
-	}
-	ui.Output("reading in metrics.json")
-	if err := data.DecodeJSON(path, "metrics"); err != nil {
-		hclog.L().Error("failed to decode metrics.json", "error", err)
-		return 1
-	}
-	ui.Output("successfully read in bundle contents to boltDB")
-
-	ui.Output("testing boltDB query")
-	values, err := data.GetMetricValuesMemDB("consul.rpc.rate_limit.exceeded", true, false, false)
-	if err != nil {
-		ui.Error(fmt.Sprintf("failed to retrieve memDB values error=%v", err))
-		return 1
-	}
-	c.ui.Output(values)
+	//ui.Output("retrieving current path setting and initializing boltDB")
+	//
+	//path, err = GetPath()
+	//if err != nil {
+	//	ui.Error(fmt.Sprintf("failed to retrieve path setting error=%v", err))
+	//	return 1
+	//}
+	//ui.Output(fmt.Sprintf("current set path: %s", path))
+	//
+	//RunTimeBundle.Backend = read.NewBackend()
+	//ui.Output("successfully initialized backend boltDB")
+	//ui.Output(fmt.Sprintf("consul-debug-read running | v%s", read.Version))
+	//
+	//ui.Output("starting bundle serialization to boltDB")
+	//ui.Output("reading in agent.json")
+	//if err = RunTimeBundle.DecodeJSON(path, "agent"); err != nil {
+	//	hclog.L().Error("failed to decode agent.json", "error", err)
+	//	return 1
+	//}
+	//ui.Output("reading in host.json")
+	//if err = RunTimeBundle.DecodeJSON(path, "host"); err != nil {
+	//	hclog.L().Error("failed to decode host.json", "error", err)
+	//	return 1
+	//}
+	//ui.Output("reading in index.json")
+	//if err = RunTimeBundle.DecodeJSON(path, "index"); err != nil {
+	//	hclog.L().Error("failed to decode index.json", "error", err)
+	//	return 1
+	//}
+	//ui.Output("reading in metrics.json")
+	//if err = RunTimeBundle.DecodeJSON(path, "metrics"); err != nil {
+	//	hclog.L().Error("failed to decode metrics.json", "error", err)
+	//	return 1
+	//}
+	//ui.Output("successfully read in bundle contents to boltDB")
+	//
+	//ui.Output("testing boltDB query")
+	//values, err = RunTimeBundle.GetMetricValuesMemDB("consul.rpc.rate_limit.exceeded", true, false, false)
+	//if err != nil {
+	//	ui.Error(fmt.Sprintf("failed to retrieve memDB values error=%v", err))
+	//	return 1
+	//}
+	//c.ui.Output(values)
 
 	ui.Output("terminate at anytime by sending interrupt sig (ctrl + c)")
 	// wait for signal
@@ -138,7 +145,7 @@ func (c *cmd) Run(args []string) int {
 	}
 }
 
-func getPath() (string, error) {
+func GetPath() (string, error) {
 	if path := os.Getenv(read.DebugReadEnvVar); path != "" {
 		return path, nil
 	}
