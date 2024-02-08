@@ -73,7 +73,7 @@ func (c *cmd) Run(args []string) int {
 	hclog.L().Debug("checking env var (if set)", "env", read.DebugReadEnvVar)
 	if path := os.Getenv(read.DebugReadEnvVar); path != "" {
 		if ok, err = ValidateDebugPath(path); !ok {
-			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err)
+			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err, "path", path)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
@@ -94,7 +94,7 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		if ok, err = ValidateDebugPath(extractedPath); !ok {
-			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err)
+			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err, "path", extractedPath)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
@@ -115,7 +115,7 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 		if ok, err = ValidateDebugPath(extractedPath); !ok {
-			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err)
+			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err, "path", extractedPath)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
@@ -179,12 +179,22 @@ Example (-file) for extraction:
 `
 
 func ValidateDebugPath(path string) (bool, error) {
-	files, err := os.ReadDir(path)
+	dir, err := os.Open(path)
 	if err != nil {
 		return false, err
 	}
+	defer dir.Close()
+
+	entries, err := dir.ReadDir(0)
+	if err != nil {
+		return false, err
+	}
+
 	var metricsJson, agentJson, membersJson, hostJson, indexJson bool
-	for _, file := range files {
+	for _, file := range entries {
+		if file.IsDir() {
+			continue
+		}
 		switch file.Name() {
 		case "metrics.json":
 			metricsJson = true
@@ -199,7 +209,7 @@ func ValidateDebugPath(path string) (bool, error) {
 		case "cluster.json":
 			clusterJsonPath := path + "/" + file.Name()
 			membersJsonPath := path + "/members.json"
-			if err := os.Rename(clusterJsonPath, membersJsonPath); err != nil {
+			if err = os.Rename(clusterJsonPath, membersJsonPath); err != nil {
 				return false, err
 			}
 			membersJson = true
@@ -213,8 +223,8 @@ func ValidateDebugPath(path string) (bool, error) {
 			// "metrics.json" not found in the current directory
 			// Run the "merge-metrics.sh" script with debugPath as an argument
 			scriptPath := "scripts/merge-metrics.sh"
-			cmd := exec.Command(scriptPath, path)
-			if _, err := cmd.CombinedOutput(); err != nil {
+			merge := exec.Command(scriptPath, path)
+			if _, err = merge.CombinedOutput(); err != nil {
 				return false, err
 			}
 		}

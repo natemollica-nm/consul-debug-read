@@ -57,7 +57,7 @@ func ToRFC3339(ts string) (string, error) {
 
 func extractTarGz(srcFile, destDir string) (string, error) {
 	var extractRootDir string
-	directoryPrefixCount := make(map[string]int)
+	// directoryPrefixCount := make(map[string]int)
 
 	// Open the source .tar.gz file
 	srcFileReader, err := os.Open(srcFile)
@@ -79,9 +79,11 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 	// Create a tar reader
 	tarReader := tar.NewReader(gzipReader)
 
+	i := 0
 	// Iterate through the tar archive and extract files
 	for {
-		header, err := tarReader.Next()
+		var header *tar.Header
+		header, err = tarReader.Next()
 		if err == io.EOF {
 			break // End of archive
 		}
@@ -94,69 +96,52 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 
 		// Create directories as needed
 		if header.FileInfo().IsDir() {
-			if err := os.MkdirAll(destFilePath, 0755); err != nil {
+			if err = os.MkdirAll(destFilePath, 0755); err != nil {
 				return "", fmt.Errorf("failed to create dir %s: %v\n", destFilePath, err)
 			}
 			continue
 		}
 
-		// Root Directory Prefix Determination
-		// * Extract directory from filepath of header
-		dir := ""
-		if idx := strings.LastIndex(header.Name, "/"); idx >= 0 {
-			dir = header.Name[:idx]
-		} else {
-			dir = "."
-		}
-		directoryPrefixCount[dir]++
-		// Root Directory Prefix Determination:
-		// 1. Iterate through dir prefix count map[string]int
-		// 2. Dir with most counts will most likely be the root extract dir
-		dirMaxCount := 0
-		for dir, count := range directoryPrefixCount {
-			if count > dirMaxCount {
-				dirMaxCount = count
-				extractRootDir = dir
-			}
-		}
-
-		// extractRootFullPath = fmt.Sprintf("%s/%s", destDir, extractRootDir)
-		//// Check if destination dir exists
-		//if _, err := os.Stat(extractRootFullPath); err == nil {
-		//	log.Printf("removing previous extract dir - %s\n", extractRootFullPath)
-		//	err := os.RemoveAll(extractRootFullPath)
-		//	if err != nil {
-		//		return "", fmt.Errorf("unable to delete existing file: %v", err)
-		//	}
-		//}
-
 		// Create and open the destination file
-		destFile, err := os.Create(destFilePath)
+		var destFile *os.File
+		destFile, err = os.Create(destFilePath)
+
+		// Identify the debug bundle's root directory
+		//  => all bundles contain an index.json in the root directory
+		//  => set the extract root to whatever this dir name is
+		if filepath.Base(destFile.Name()) == "index.json" {
+			extractRootDir = filepath.Dir(destFile.Name())
+		}
+
 		if err != nil {
 			return "", fmt.Errorf("failed to create %s: %v\n", destFilePath, err)
 		}
 
 		// Copy file contents from the tar archive to the destination file
-		if _, err := io.Copy(destFile, tarReader); err != nil {
+		if _, err = io.Copy(destFile, tarReader); err != nil {
 			return "", err
 		}
-		if err := destFile.Close(); err != nil {
+		if err = destFile.Close(); err != nil {
 			return "", cleanup(err)
 		}
+		i++
 	}
-	if err := gzipReader.Close(); err != nil {
+
+	if err = gzipReader.Close(); err != nil {
 		return "", cleanup(err)
 	}
-	if err := srcFileReader.Close(); err != nil {
+
+	if err = srcFileReader.Close(); err != nil {
 		return "", cleanup(err)
 	}
+
 	return extractRootDir, nil
 }
 
 func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 	var selectedFile os.DirEntry
-	var sourceFilePath, extractRoot, extractedDebugPath string
-
+	var sourceFilePath, extractRoot string
+	// var extractedDebugPath string
 	// If debug path is not a bundle directly, parse for bundles and extract
 	if !strings.HasSuffix(sourceDir, ".tar.gz") {
 		var bundles []os.DirEntry
@@ -187,7 +172,7 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 		}
 		fmt.Print("enter the number of the file to extract: ")
 		var selected int
-		if _, err := fmt.Scanf("%d", &selected); err != nil {
+		if _, err = fmt.Scanf("%d", &selected); err != nil {
 			return "", err
 		}
 
@@ -202,17 +187,10 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 	}
 	extractRoot, err := extractTarGz(sourceFilePath, filepath.Dir(sourceFilePath))
 	if err != nil {
-		return "", fmt.Errorf("[select-and-extract] error extracting %s: %v\n", sourceFilePath, err)
+		return "", fmt.Errorf("error extracting %s: %v\n", sourceFilePath, err)
 	}
 
-	if strings.HasSuffix(sourceDir, ".tar.gz") {
-		sourceFilePath, _ = filepath.Abs(sourceFilePath)
-		extractedDebugPath = filepath.Join(filepath.Dir(sourceFilePath), extractRoot)
-	} else {
-		sourceFilePath, _ = filepath.Abs(sourceDir)
-		extractedDebugPath = filepath.Join(sourceFilePath, extractRoot)
-	}
-	return extractedDebugPath, nil
+	return extractRoot, nil
 }
 
 func ConvertToValidJSON(input string) string {
