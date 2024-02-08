@@ -3,7 +3,6 @@ package read
 import (
 	"archive/tar"
 	"compress/gzip"
-	crand "crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,7 +21,6 @@ const (
 	DefaultCmdConfigFileName    = "config.yaml"
 	DefaultCmdConfigFileDirName = ".consul-debug-read"
 	DebugScrapeIntervalDefault  = 10 // consul debug scrapes the /metrics endpoint every 10s
-	ConsulDebugDb               = "consul_debug_read.db"
 )
 
 var (
@@ -33,21 +31,8 @@ var (
 	timeReg                 = regexp.MustCompile("^ns$|^ms$|^seconds$|^hours$")
 	bytesReg                = regexp.MustCompile("bytes")
 	percentageReg           = regexp.MustCompile("percentage")
+	EnvVarPathSetting       = os.Getenv(DebugReadEnvVar)
 )
-
-func generateUUID() ([]byte, string) {
-	buf := make([]byte, 16)
-	if _, err := crand.Read(buf); err != nil {
-		panic(fmt.Errorf("failed to read random bytes: %v", err))
-	}
-	uuid := fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
-		buf[0:4],
-		buf[4:6],
-		buf[6:8],
-		buf[8:10],
-		buf[10:16])
-	return buf, uuid
-}
 
 // parseDuration converts a string representing a time duration into a time.Duration type
 func parseDuration(durationStr string) (time.Duration, error) {
@@ -392,10 +377,7 @@ func (b *Debug) DecodeMetrics(metricsDecoder *json.Decoder) error {
 		// Assign the Metrics to the Debug struct
 		b.Metrics.Metrics[i] = metric
 	}
-	err = b.BoltDBUpload()
-	if err != nil {
-		return fmt.Errorf("error building boltDB error=%v", err)
-	}
+	b.BuildMetricsIndex()
 	return nil
 }
 
@@ -478,29 +460,30 @@ func nonNegativeDifference(a, b float64) float64 {
 }
 
 // CalculateGCRate calculates the rate of Garbage Collection (GC) in nanoseconds per minute.
-func CalculateGCRate(currentValueData, previousValueData []map[string]interface{}) (string, error) {
+func CalculateGCRate(value, prev map[string]interface{}) (string, error) {
 	var rate string
 
-	currentValue, ok := currentValueData[0]["value"].(float64)
+	currentValue, ok := value["value"].(float64)
 	if !ok {
 		return "", fmt.Errorf("invalid 'value' field in data")
 	}
-	previousValue, ok := previousValueData[0]["value"].(float64)
+	previousValue, ok := prev["value"].(float64)
 	if !ok {
-		return "", fmt.Errorf("invalid 'value' field in data")
+		return "", fmt.Errorf("invalid 'value' field in previous data")
 	}
+
 	// Calculate the non-negative difference in GC pause times
 	diff := nonNegativeDifference(currentValue, previousValue)
-	timeCurrent, err := time.Parse("2006-01-02 15:04:05 -0700 MST", fmt.Sprintf("%s", currentValueData[0]["timestamp"]))
+
+	timeCurrent, err := time.Parse("2006-01-02 15:04:05 -0700 MST", fmt.Sprintf("%s", value["timestamp"]))
 	if err != nil {
 		return "", err
 	}
-	timePrevious, err := time.Parse("2006-01-02 15:04:05 -0700 MST", fmt.Sprintf("%s", previousValueData[0]["timestamp"]))
+	timePrevious, err := time.Parse("2006-01-02 15:04:05 -0700 MST", fmt.Sprintf("%s", prev["timestamp"]))
 	if err != nil {
 		return "", err
 	}
 	// consul debug caputures default to 5m/30s capture intervals (>= v1.16.x)
-	//
 	timeDiff := timeCurrent.Sub(timePrevious).Seconds()
 	if diff >= 0 && timeDiff > 0 {
 		rate, err = ConvertToReadableTime(diff/(timeDiff/60), "ns") // convert to ns/min to most-readable-time/minute

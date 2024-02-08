@@ -1,22 +1,26 @@
 package read
 
-import (
-	"fmt"
-	bolt "go.etcd.io/bbolt"
-	"os"
-)
-
-var (
-	DefaultDBPath = fmt.Sprintf("%s/%s", DebugReadConfigDirPath, ConsulDebugDb)
-)
-
-type Backend struct {
-	id string
-	DB *bolt.DB
+type ReaderConfig struct {
+	ConfigFile         string `yaml:"config"`
+	DebugDirectoryPath string `yaml:"current-debug-path"`
+	PathRenderedFrom   string `yaml:"Using"`
+	DebugEnvVarSetting string `yaml:"CONSUL_DEBUG_PATH"`
 }
 
-type ReaderConfig struct {
-	DebugDirectoryPath string `yaml:"current-debug-path"`
+func DefaultReaderConfig() *ReaderConfig {
+	var renderedFrom string
+	if EnvVarPathSetting != "" {
+		renderedFrom = "env:CONSUL_DEBUG_PATH"
+	} else {
+		renderedFrom = "file:config.yaml"
+	}
+	return &ReaderConfig{
+		// Create Default Configuration File
+		ConfigFile:         DebugReadConfigFullPath,
+		DebugDirectoryPath: CurrentDir,
+		DebugEnvVarSetting: EnvVarPathSetting,
+		PathRenderedFrom:   renderedFrom,
+	}
 }
 
 type Debug struct {
@@ -25,30 +29,4 @@ type Debug struct {
 	Metrics Metrics
 	Host    Host
 	Index   Index
-	Backend *Backend
-}
-
-func NewBackend() *Backend {
-	_, uuid := generateUUID()
-	store, _ := initMemDB()
-	return &Backend{
-		id: uuid,
-		DB: store,
-	}
-}
-
-func initMemDB() (*bolt.DB, error) {
-	if _, err := os.Stat(DefaultDBPath); err == nil {
-		if err = os.Remove(DefaultDBPath); err != nil {
-			return nil, err
-		}
-	}
-	// Open the BoltDB file
-	// It will be created if it doesn't exist
-	db, err := bolt.Open(DefaultDBPath, 0666, nil)
-	if err != nil {
-		return nil, fmt.Errorf("could not open db, %v", err)
-	}
-
-	return db, nil
 }

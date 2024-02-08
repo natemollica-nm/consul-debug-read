@@ -315,6 +315,12 @@ func (c *cmd) Run(args []string) int {
 	switch {
 	case c.summary:
 		result = data.Summary()
+	case c.listAvailableTelemetry:
+		result, err = read.ListMetrics()
+		if err != nil {
+			hclog.L().Error("failed to retrieve agent telemetry available metrics", "error", err)
+			return 1
+		}
 	case c.host:
 		result = data.HostSummary()
 	case c.name != "":

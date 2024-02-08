@@ -51,29 +51,30 @@ func realMain() int {
 
 func baseConfigs() bool {
 	if _, err := os.Stat(read.DebugReadConfigDirPath); os.IsNotExist(err) {
-		hclog.L().Info("default configuration filepath not found, attempting to create and populate", "file", read.DebugReadConfigFullPath)
+		fmt.Printf("default configuration filepath not found, attempting to create and populate file=%s\n", read.DebugReadConfigFullPath)
 		err = os.MkdirAll(read.DebugReadConfigDirPath, 0755)
 		if err != nil {
 			hclog.L().Error("failed to create directory", "error", err)
 			return false
 		}
 	}
-
 	if _, err := os.Stat(read.DebugReadConfigFullPath); err != nil {
 		if os.IsNotExist(err) {
-			hclog.L().Debug("configuring default debug path to current directory", "dir", read.CurrentDir)
+			fmt.Printf("configuring default debug path to current directory dir=%s\n", read.CurrentDir)
 			// Create Default Configuration File
-			config := &read.ReaderConfig{
-				DebugDirectoryPath: read.CurrentDir,
+			config := read.DefaultReaderConfig()
+			if path := os.Getenv(read.DebugReadEnvVar); path != "" {
+				config.DebugDirectoryPath = path
+				config.PathRenderedFrom = "env"
 			}
 			defaultCfgBytes, err := yaml.Marshal(&config)
 			if err != nil {
-				hclog.L().Error("failed to create default configuration file", "error", err)
+				fmt.Printf("failed to create configuration file error=%v", err)
 				return false
 			}
 			err = os.WriteFile(read.DebugReadConfigFullPath, defaultCfgBytes, 0755)
 			if err != nil {
-				hclog.L().Error("failed to create write to configuration file", "error", err)
+				fmt.Printf("failed to write to configuration file error=%v", err)
 				return false
 			}
 		}

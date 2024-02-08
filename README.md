@@ -52,40 +52,53 @@ The following sections explain how to point the tool to the right place using on
     $ mkdir -p ./bundles
     $ cp ~/Downloads/124722consul-debug-2023-10-04T18-29-47Z.tar.gz ./bundles/
     ```   
-2. Run `consul-debug-read set-debug-path` using `--file` flag to both extract and set the debug directory to the extracted contents:
+2. Run `consul-debug-read set-debug-path` using `-file` flag to both extract and set the debug directory to the extracted contents:
 
     ```shell
-    $ consul-debug-read set-debug-path --file bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz  
-      2023/10/19 09:56:07 file passed in for extraction: bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz
-      2023/10/19 09:56:07 Extracting: bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz
-      2023/10/19 09:56:07 Destination File Extract Path: bundles/consul-debug-2023-10-04T18-29-47Z
-      2023/10/19 09:56:08 Extraction of bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz completed successfully.
-      2023/10/19 09:56:08 set-debug-path: consul-debug-read debug-path has been set => bundles/consul-debug-2023-10-04T18-29-47Z
+    $ consul-debug-read set-debug-path -file bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz  
+      2024-02-08T11:48:44.973-0800 [DEBUG] checking CONSUL_DEBUG_PATH env variable
+      2024-02-08T11:48:44.974-0800 [DEBUG] CONSUL_DEBUG_PATH unset, rendering config path setting
+      /Users/natemollica/HashiCorp/consul-debug-read/bundles/consul-debug-2024-02-07T17-43-22Z
     ```
    
 ### Setting/changing debug path
 
-1. Run `consul-debug-read set-debug-path` using `--path` flag to set the running config debug directory:
+1. Run `consul-debug-read set-debug-path` using `-path` flag to set the running config debug directory:
    ```shell
-   $ consul-debug-read set-debug-path --path bundles/consul-debug-2023-10-04T18-29-47Z
-     2023/10/19 10:09:15 set-debug-path: consul-debug-read debug-path has been set => bundles/consul-debug-2023-10-04T18-29-47Z
+   $ consul-debug-read set-debug-path -path bundles/                                                                                                                                                                                                                                                        79%  
+      select a .tar.gz file to extract:
+      1: 124722consul-debug-2023-10-11T17-33-55Z.tar.gz  (7.67 MB)
+      2: 124722consul-debug-2023-10-11T17-43-15Z.tar.gz  (7.67 MB)
+      3: 124722consul-debug-2023-12-20T05-23-33Z.tar.gz  (27.00 MB)
+      4: 124722consul-debug-2023-12-20T05-26-56Z.tar.gz  (32.97 MB)
+      5: 124722consul-debug-applications-i-059035cccfad9383e.tar.gz  (16.54 MB)
+      enter the number of the file to extract: 5
+      consul-debug-path set successfully
    ```
-
+   
+    ```shell
+    $ consul-debug-read show-debug-path -verbose                                                                                                                                                                                                                                                             79%  
+      2024-02-08T11:50:44.069-0800 [DEBUG] checking CONSUL_DEBUG_PATH env variable
+      2024-02-08T11:50:44.070-0800 [DEBUG] CONSUL_DEBUG_PATH unset, rendering config path setting
+      /Users/natemollica/HashiCorp/consul-debug-read/bundles/consul-debug-2023-12-04T22-53-04-0500
+    ```
+    
 ### Using environment variable
 
 1. Export your terminal/shell session `CONSUL_DEBUG_PATH` variable:
 
     ```shell
     $ export CONSUL_DEBUG_PATH=bundles/consul-debug-2023-10-04T18-29-47Z
+    $ consul-debug-read set-debug-path
+      consul-debug-path set successfully using env var
     $ consul-debug-read show-debug-path
-      2023/10/19 14:46:31 using environment variable CONSUL_DEBUG_PATH - bundles/consul-debug-2023-10-04T18-29-47Z
-      2023/10/19 14:46:31 debug-path => 'bundles/consul-debug-2023-10-04T18-29-47Z'
+      bundles/consul-debug-2023-10-04T18-29-47Z
     ```
 
 ## Usage
 
 1. Extract (if applicable) and set debug file path as outlined in [Working with Debug Bundles](#Working-with-debug-bundles) section above.
-2. Explore bundle return options using `consul-debug-read --help`
+2. Explore bundle return options using `consul-debug-read -help`
 
 ### Consul Serf Membership
 
@@ -115,7 +128,7 @@ ip-10-135-78-52           10.135.78.52:8302   Alive  server 1.15.6+ent 2        
 
 ### Consul Raft Configuration
 
-Run: `consul-debug-read raft-configuration`
+Run: `consul-debug-read agent raft-configuration`
 
 ```shell
 # Example raft configuration return
@@ -149,7 +162,7 @@ Capture Time Stop: 2023-10-23 15:08:30 +0000 UTC
 
 ### Consul Metrics by Name
 
-Run: `consul-debug-read metrics --name consul.runtime.sys_bytes`
+Run: `consul-debug-read metrics -name consul.runtime.sys_bytes`
 
 
 ```shell
@@ -191,7 +204,7 @@ Timestamp                     Metric                             Type  Unit  Val
 
 ### Consul Host Metrics
 
-Run: `consul-debug-read metrics --host`
+Run: `consul-debug-read metrics -host`
 
 ```shell
 #Example Host Specific Metrics
@@ -222,7 +235,7 @@ Total: 193.65 GB
 
 ### Consul Agent Configuration
 
-Run: `consul-debug-read agent --config`
+Run: `consul-debug-read agent -config`
 
 ```hcl
 ACLEnableKeyListPolicy = false
@@ -292,6 +305,6 @@ export PATH=$PATH:$GOROOT/bin
 2. Change to repo directory:
    `$ cd consul-debug-read`
 3. Build and install binary:
-   `$ go install ./cmd/consul-debug-read`
+   `$ go install`
 4. Test binary installed in path:
-   `$ consul-debug-read --help`
+   `$ consul-debug-read -help`
