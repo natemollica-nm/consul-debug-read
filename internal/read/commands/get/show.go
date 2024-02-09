@@ -1,4 +1,4 @@
-package show_debug_path
+package get
 
 import (
 	"consul-debug-read/internal/read"
@@ -101,9 +101,9 @@ const showDebugPathHelp = `
 Shows currently set consul-debug-read command debug path as set in
 config.yaml viper configuration file. 
 
-To change file-path use consul-debug-read set-debug-path --path <path_to_debug_bundle> to alter.
+To change file-path use consul-debug-read set --path <path_to_debug_bundle> to alter.
 
 Example:
-	$ consul-debug-read show-debug-path
+	$ consul-debug-read get
 	bundles/consul-debug-2023-10-04T18-29-47Z
 `

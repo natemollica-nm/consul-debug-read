@@ -111,10 +111,4 @@ func agentConfig(bundle read.Debug) string {
 }
 
 const synopsis = `Debug bundle agent.json information parsing`
-const agentCommandHelp = `The agent flag will ingest the agent.json and parse for additional information pertaining to the agent.
-This includes:
-  - Consul Versioning
-  - Server Agent Status
-  - Client Agent Status
-  - Known Serf Members
-  - Current Raft Configuration`
+const agentCommandHelp = `The agent flag will ingest the agent.json and parse for additional information pertaining to the agent.`

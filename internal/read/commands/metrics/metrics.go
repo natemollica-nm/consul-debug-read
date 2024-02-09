@@ -509,7 +509,7 @@ Usage: consul-debug-read metrics [options]
   Parses and outputs consul debug bundle metrics.json data in readable format.
 
 	Display summary of bundle capture	
-		$ consul-debug-read metrics
+		$ consul-debug-read metrics -summary
 
 	Display full list of queryable metric names
 		$ consul-debug-read metrics -list 

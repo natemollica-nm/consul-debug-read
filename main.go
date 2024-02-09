@@ -34,7 +34,7 @@ func realMain() int {
 	appCLI := mcli.NewCLI("consul-debug-read", read.Version)
 	appCLI.Args = os.Args[1:]
 	appCLI.Commands = cmds
-	appCLI.HelpFunc = mcli.FilteredHelpFunc(names, mcli.BasicHelpFunc("consul-debug-read"))
+	appCLI.HelpFunc = mcli.BasicHelpFunc("consul-debug-read")
 	appCLI.HelpWriter = os.Stdout
 	appCLI.ErrorWriter = os.Stderr
 	if ok := baseConfigs(); !ok {

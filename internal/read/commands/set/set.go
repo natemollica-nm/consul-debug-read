@@ -1,4 +1,4 @@
-package set_debug_path
+package set
 
 import (
 	"consul-debug-read/internal/read"
@@ -146,7 +146,7 @@ func UpdateDebugReadConfig(updatePath string) (bool, error) {
 }
 
 const synopsis = `Changes which bundle you're focusing on for analysis`
-const setDebugPathHelp = `consul-debug-read set-debug-path [options]
+const setDebugPathHelp = `consul-debug-read set [options]
 
 Validates the path contents or extracts a valid .tar.gz bundle and points to this valid directory path for processing.
 
@@ -159,10 +159,10 @@ Validates the path contents or extracts a valid .tar.gz bundle and points to thi
   * path to multiple bundles available for extraction and path setting
 
 Example (-path):
-	$ consul-debug-read set-debug-path -path bundles/consul-debug-2023-10-04T18-29-47Z
+	$ consul-debug-read set -path bundles/consul-debug-2023-10-04T18-29-47Z
 
 Example (-path) for dir containing multiple .tar.gz bundles:
-	$ consul-debug-read set-debug-path -path bundles
+	$ consul-debug-read set -path bundles
 
 	select a .tar.gz file to extract:
 	1: 124722consul-debug-2023-10-04T18-29-47Z.tar.gz
@@ -175,7 +175,7 @@ Example (-path) for dir containing multiple .tar.gz bundles:
 	enter the number of the file to extract: 
 
 Example (-file) for extraction:
-	$ consul-debug-read set-debug-path -file bundles/124722consul-debug-2023-10-11T17-43-15Z.tar.gz
+	$ consul-debug-read set -file bundles/124722consul-debug-2023-10-11T17-43-15Z.tar.gz
 `
 
 func ValidateDebugPath(path string) (bool, error) {

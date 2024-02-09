@@ -158,7 +158,7 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 		}
 		// If there are no .tar.gz files (i.e., len(bundles) <= 0),
 		// just return the directory and handle the validation
-		// within the set-debug-path cmd.The validation ensures
+		// within the set cmd.The validation ensures
 		// there are the appropriate files within the passed in directory.
 		if len(bundles) < 1 {
 			return sourceDir, nil
@@ -317,14 +317,14 @@ func (b *Debug) DecodeHost(hostDecoder *json.Decoder) error {
 	return nil
 }
 
-func (b *Debug) DecodeMembers(memberDecoder *json.Decoder) error {
+func (a *Agent) DecodeMembers(memberDecoder *json.Decoder) error {
 	var membersList []Member
 	err := memberDecoder.Decode(&membersList)
 	if err != nil {
 		log.Fatalf("error decoding members: %v", err)
 		return err
 	}
-	b.Members = membersList
+	a.Members = membersList
 	return nil
 }
 
@@ -396,7 +396,7 @@ func (b *Debug) decodeFile(debugPath, fileName, dataType string) error {
 	case "agent":
 		return b.DecodeAgent(decoder)
 	case "members":
-		return b.DecodeMembers(decoder)
+		return b.Agent.DecodeMembers(decoder)
 	case "metrics":
 		return b.DecodeMetrics(decoder)
 	case "host":

@@ -6,6 +6,7 @@ import (
 	"github.com/ryanuber/columnize"
 	"net"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -627,6 +628,37 @@ type Agent struct {
 	Meta        Meta        `json:"Meta"`
 	Stats       Stats       `json:"Stats"`
 	XDS         xDS         `json:"xDS"`
+	Members     []Member
+}
+
+// CompareVersion compares the Version field of Config with a given version string
+// It returns 1 if the Config version is greater, -1 if the given version is greater,
+// and 0 if they are equal.
+func CompareVersion(c Config, givenVersion string) int {
+	// Split the version strings into their components
+	cParts := strings.Split(c.Version, ".")
+	givenParts := strings.Split(givenVersion, ".")
+
+	// Convert each component to integers and compare them
+	for i := 0; i < len(cParts) && i < len(givenParts); i++ {
+		cNum, _ := strconv.Atoi(cParts[i])
+		givenNum, _ := strconv.Atoi(givenParts[i])
+
+		if cNum > givenNum {
+			return 1
+		} else if cNum < givenNum {
+			return -1
+		}
+	}
+
+	// If all components are equal, check if one version has more components
+	if len(cParts) > len(givenParts) {
+		return 1
+	} else if len(cParts) < len(givenParts) {
+		return -1
+	}
+
+	return 0
 }
 
 // ByMemberName sorts members by name with a stable sort.
@@ -690,30 +722,68 @@ func (a *Agent) AgentConfigFull() string {
 	return StructToHCL(a.DebugConfig, "")
 }
 
-func (a *Agent) Summary() string {
-	title := "Agent Configuration Summary:"
-	ul := strings.Repeat("-", len(title))
-	return fmt.Sprintf("%s\n%s\nServer: %v\nVersion: %s\nRaft State: %s\nDatacenter: %s\nPrimary DC: %s\nNodeName: %s\nSupported Envoy Versions: %v\n",
-		title,
-		ul,
-		a.Config.Server,
-		a.Config.Version,
-		a.Stats.Raft.State,
-		a.Config.Datacenter,
-		a.Config.PrimaryDatacenter,
-		a.Config.NodeName,
-		a.XDS.SupportedProxies.Envoy)
+func (a *Agent) LogLevel() string {
+	var defaultLogLevel string
+	check := CompareVersion(a.Config, "1.13.0")
+	switch check {
+	case 1:
+		defaultLogLevel = "TRACE"
+	case -1:
+		defaultLogLevel = "DEBUG"
+	case 0:
+		defaultLogLevel = "TRACE"
+	}
+	return defaultLogLevel
 }
 
-func (b *Debug) MembersStandard() string {
-	if !b.Agent.Config.Server {
+func (a *Agent) memberCount() string {
+	return fmt.Sprintf("%d", len(a.Members))
+}
+
+func (a *Agent) wanFederatedStatus() (string, bool) {
+	if a.DebugConfig.ConnectMeshGatewayWANFederationEnabled {
+		return "Mesh Gateway(s)", true
+	} else if len(a.DebugConfig.RetryJoinIntervalWAN) > 0 {
+		return "Basic (WAN Gossip)", true
+	} else {
+		return "N/A", false
+	}
+}
+
+// WanMemberCount
+// Function to count WAN Members
+func (a *Agent) WanMemberCount() int {
+	count := 0
+	for _, member := range a.Members {
+		if member.Tags.Dc != a.Config.Datacenter {
+			count++
+		}
+	}
+	return count
+}
+
+// FederatedDatacenterCount
+// Function to count non-local datacenters in federated configuration
+func (a *Agent) FederatedDatacenterCount() int {
+	uniqueDatacenters := make(map[string]struct{})
+
+	for _, member := range a.Members {
+		if member.Tags.Dc != a.Config.Datacenter {
+			uniqueDatacenters[member.Tags.Dc] = struct{}{}
+		}
+	}
+	return len(uniqueDatacenters)
+}
+
+func (a *Agent) MembersStandard() string {
+	if !a.Config.Server {
 		return "=> bundle is from non-server consul agent (client agent). membership info unavailable (/v1/agent/members?wan)."
 	}
-	result := make([]string, 0, len(b.Members))
+	result := make([]string, 0, len(a.Members))
 	header := "Node\x1fAddress\x1fStatus\x1fType\x1fBuild\x1fProtocol\x1fDC"
 	result = append(result, header)
-	sort.Sort(ByMemberName(b.Members))
-	for _, member := range b.Members {
+	sort.Sort(ByMemberName(a.Members))
+	for _, member := range a.Members {
 		tags := member.Tags
 
 		addr := net.TCPAddr{IP: net.ParseIP(member.Addr), Port: int(member.Port)}
@@ -762,7 +832,7 @@ func (b *Debug) MembersStandard() string {
 	return output
 }
 
-func (b *Debug) convertToRaftServer(raftDebugString string) ([]byte, error) {
+func (a *Agent) convertToRaftServer(raftDebugString string) ([]byte, error) {
 	var correctedRaftConfig []byte
 	// Define a struct to match the structure of your JSON data
 	var data []map[string]interface{}
@@ -788,7 +858,7 @@ func (b *Debug) convertToRaftServer(raftDebugString string) ([]byte, error) {
 		delete(data[i], "Suffrage")
 
 		// Set raftServer "Node" field to corresponding member node name
-		for _, member := range b.Members {
+		for _, member := range a.Members {
 			if nodeID, ok := data[i]["ID"]; ok {
 				if nodeID == member.Tags.ID {
 					// Strip domain info from node name
@@ -818,7 +888,7 @@ func (b *Debug) RaftListPeers() (string, error) {
 		output := "=> bundle is from non-server consul agent (client agent). raft configuration unavailable."
 		return output, nil
 	}
-	if debugBundleRaftConfig, err = b.convertToRaftServer(b.Agent.ParseDebugRaftConfig()); err != nil {
+	if debugBundleRaftConfig, err = b.Agent.convertToRaftServer(b.Agent.ParseDebugRaftConfig()); err != nil {
 		return "", err
 	}
 	var raftServers []RaftServer
@@ -848,4 +918,29 @@ func (b *Debug) RaftListPeers() (string, error) {
 	}
 	output := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 	return output, nil
+}
+
+func (a *Agent) Summary() string {
+	federationType, isFederated := a.wanFederatedStatus()
+	var wanMemberCount, federatedDCCount int
+	if isFederated {
+		wanMemberCount = a.WanMemberCount()
+		federatedDCCount = a.FederatedDatacenterCount()
+	}
+	title := "Agent Configuration Summary:"
+	ul := strings.Repeat("-", len(title))
+	return fmt.Sprintf("%s\n%s\nVersion: %s\nServer: %v\nRaft State: %s\nWAN Federation Status: %v\nWAN Federation Method: %s\nWAN Member Count: %d\nWAN Datacenter Count: %d\nDatacenter: %s\nPrimary DC: %s\nNodeName: %s\nSupported Envoy Versions: %v\n",
+		title,
+		ul,
+		a.Config.Version,
+		a.Config.Server,
+		a.Stats.Raft.State,
+		isFederated,
+		federationType,
+		wanMemberCount,
+		federatedDCCount,
+		a.Config.Datacenter,
+		a.Config.PrimaryDatacenter,
+		a.Config.NodeName,
+		a.XDS.SupportedProxies.Envoy)
 }
