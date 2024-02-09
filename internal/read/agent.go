@@ -736,10 +736,6 @@ func (a *Agent) LogLevel() string {
 	return defaultLogLevel
 }
 
-func (a *Agent) memberCount() string {
-	return fmt.Sprintf("%d", len(a.Members))
-}
-
 func (a *Agent) wanFederatedStatus() (string, bool) {
 	if a.DebugConfig.ConnectMeshGatewayWANFederationEnabled {
 		return "Mesh Gateway(s)", true
