@@ -43,7 +43,7 @@ func (c *cmd) Help() string { return commands.Usage(help, c.flags) }
 func (c *cmd) Synopsis() string { return synopsis }
 
 func (c *cmd) Run(args []string) int {
-	var result []log.LogEntry
+	var entries []log.Entry
 	if err := c.flags.Parse(args); err != nil {
 		c.ui.Error(fmt.Sprintf("Failed to parse flags: %v", err))
 		return 1
@@ -77,12 +77,12 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	logFile := cfg.DebugDirectoryPath + "/consul.log"
-	result, err = log.ParseLogFile(logFile, "")
+	entries, err = log.ParseLogFile(logFile, "")
 	if err != nil {
 		hclog.L().Error("error parsing log file", "file", logFile, "error", err)
 		return 1
 	}
-	counts := log.AggregateEntries(result)
+	counts := log.AggregateEntries(entries)
 	out := log.RPCCounts(counts)
 	c.ui.Output(out)
 	return 0

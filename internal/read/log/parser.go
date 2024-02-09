@@ -9,20 +9,20 @@ import (
 )
 
 // LogEntry represents a single log entry
-type LogEntry struct {
+type Entry struct {
 	Timestamp time.Time
 	Method    string
 }
 
 // ParseLogFile parses a log file and returns a slice of LogEntry
-func ParseLogFile(filePath, filterMethod string) ([]LogEntry, error) {
+func ParseLogFile(filePath, filterMethod string) ([]Entry, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	var entries []LogEntry
+	var entries []Entry
 	scanner := bufio.NewScanner(file)
 	timestampRegex := regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$`)
 	methodRegex := regexp.MustCompile(`method=([^\s]+)`)
@@ -42,7 +42,7 @@ func ParseLogFile(filePath, filterMethod string) ([]LogEntry, error) {
 		method := matches[1]
 
 		if filterMethod == "" || filterMethod == method {
-			entries = append(entries, LogEntry{
+			entries = append(entries, Entry{
 				Timestamp: timestamp,
 				Method:    method,
 			})
