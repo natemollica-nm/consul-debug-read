@@ -8,7 +8,7 @@ a simple cli tool for parsing consul-debug bundles to readable format
 
 * [Getting Started](#Getting-Started)
 * [Working with Debug Bundles](#Working-with-Debug-Bundles)
-  * [Extract and Set Using CLI](#Extract-and-set-debug-path-using-CLI)
+  * [Extract and Set Using CLI](#Extract-and-set-path-using-CLI)
   * [Setting Debug Path](#settingchanging-debug-path)
   * [Using environment variable `CONSUL_DEBUG_PATH`](#Using-environment-variable)
 * [Usage](#Usage)
@@ -40,7 +40,7 @@ bash <(curl -sSL https://raw.githubusercontent.com/natemollica-nm/consul-debug-r
 This tool uses the contents from the extracted bundle path to deliver a more useful and readable interpretation of the bundle.
 The following sections explain how to point the tool to the right place using one of the three options:
 
-* [Extract and set debug path using CLI](#Extract-and-set-debug-path-using-CLI) 
+* [Extract and set debug path using CLI](#Extract-and-set-path-using-CLI) 
 * [Set path to previously extracted bundle](#settingchanging-debug-path)
 * [Using environment variable `CONSUL_DEBUG_PATH`](#Using-environment-variable)
 
@@ -52,10 +52,10 @@ The following sections explain how to point the tool to the right place using on
     $ mkdir -p ./bundles
     $ cp ~/Downloads/124722consul-debug-2023-10-04T18-29-47Z.tar.gz ./bundles/
     ```   
-2. Run `consul-debug-read set-debug-path` using `-file` flag to both extract and set the debug directory to the extracted contents:
+2. Run `consul-debug-read set-path` using `-file` flag to both extract and set the debug directory to the extracted contents:
 
     ```shell
-    $ consul-debug-read set-debug-path -file bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz  
+    $ consul-debug-read set-path -file bundles/124722consul-debug-2023-10-04T18-29-47Z.tar.gz  
       2024-02-08T11:48:44.973-0800 [DEBUG] checking CONSUL_DEBUG_PATH env variable
       2024-02-08T11:48:44.974-0800 [DEBUG] CONSUL_DEBUG_PATH unset, rendering config path setting
       /Users/natemollica/HashiCorp/consul-debug-read/bundles/consul-debug-2024-02-07T17-43-22Z
@@ -63,9 +63,9 @@ The following sections explain how to point the tool to the right place using on
    
 ### Setting/changing debug path
 
-1. Run `consul-debug-read set-debug-path` using `-path` flag to set the running config debug directory:
+1. Run `consul-debug-read set-path` using `-path` flag to set the running config debug directory:
    ```shell
-   $ consul-debug-read set-debug-path -path bundles/                                                                                                                                                                                                                                                        79%  
+   $ consul-debug-read set-path -path bundles/                                                                                                                                                                                                                                                        79%  
       select a .tar.gz file to extract:
       1: 124722consul-debug-2023-10-11T17-33-55Z.tar.gz  (7.67 MB)
       2: 124722consul-debug-2023-10-11T17-43-15Z.tar.gz  (7.67 MB)
@@ -77,7 +77,7 @@ The following sections explain how to point the tool to the right place using on
    ```
    
     ```shell
-    $ consul-debug-read show-debug-path -verbose                                                                                                                                                                                                                                                             79%  
+    $ consul-debug-read current-path -verbose                                                                                                                                                                                                                                                             79%  
       2024-02-08T11:50:44.069-0800 [DEBUG] checking CONSUL_DEBUG_PATH env variable
       2024-02-08T11:50:44.070-0800 [DEBUG] CONSUL_DEBUG_PATH unset, rendering config path setting
       /Users/natemollica/HashiCorp/consul-debug-read/bundles/consul-debug-2023-12-04T22-53-04-0500
@@ -89,9 +89,9 @@ The following sections explain how to point the tool to the right place using on
 
     ```shell
     $ export CONSUL_DEBUG_PATH=bundles/consul-debug-2023-10-04T18-29-47Z
-    $ consul-debug-read set-debug-path
+    $ consul-debug-read set-path
       consul-debug-path set successfully using env var
-    $ consul-debug-read show-debug-path
+    $ consul-debug-read current-path
       bundles/consul-debug-2023-10-04T18-29-47Z
     ```
 
@@ -99,6 +99,70 @@ The following sections explain how to point the tool to the right place using on
 
 1. Extract (if applicable) and set debug file path as outlined in [Working with Debug Bundles](#Working-with-debug-bundles) section above.
 2. Explore bundle return options using `consul-debug-read -help`
+
+
+### Consul Debug Overall Summary
+
+Run: `consul-debug-read summary`
+
+```shell
+# Example summary return
+Consul Debug Bundle (2024-02-07 13:33:52): bundles/consul-debug-2024-02-07T12-40-42-0500
+Debug Command Log Level: TRACE (Default) 
+  * bundles/consul-debug-2024-02-07T12-40-42-0500/consul.log (1.57 MB)
+
+Agent Configuration Summary:
+----------------------------
+Version: 1.17.1+ent
+Server: true
+Raft State: Leader
+WAN Federation Status: true
+WAN Federation Method: Basic (WAN Gossip)
+WAN Member Count: 29
+WAN Datacenter Count: 5
+Datacenter: us-42-prod-default
+Primary DC: us-east-primary
+NodeName: ip-10-137-45-113
+Supported Envoy Versions: [1.28.0 1.27.2 1.26.6 1.25.11 1.24.12 1.23.12 1.22.11]
+
+Metrics Bundle Summary
+----------------------
+Datacenter: us-42-prod-default
+Hostname: ip-10-28-78-42.ec2.internal
+Agent Version: 1.17.2+ent
+Raft State: Leader
+Interval: 30s
+Duration: 5m2s
+Capture Targets: [metrics logs host agent members]
+Total Captures: 30
+Capture Time Start: 2024-02-07 17:40:40 +0000 UTC
+Capture Time Stop: 2024-02-07 17:45:30 +0000 UTC
+
+Host Summary:
+-------------
+OS: linux
+Hostname: ip-10-28-78-42.ec2.internal
+Architecture: aarch64
+CPU Cores: 8
+CPU Vendor ID: ARM
+CPU Model: 
+Platform: alpine | 3.17.7
+Running Since: 1706635334
+Total Uptime: 8 days, 0 hours, 18 minutes, 29 seconds
+
+Host Memory Metrics Summary:
+----------------------------
+Used: 2.68 GB  (8.76%)
+Total Available: 27.58 GB
+Total: 30.63 GB
+
+Host Disk Metrics Summary:
+--------------------------
+Used: 11.79 GB  (42.33%)
+Total Available: 16.06 GB
+Total: 29.36 GB
+```
+
 
 ### Consul Serf Membership
 
@@ -143,7 +207,7 @@ consul-i-06033dd57876bf1a7 eca79896-dad9-1713-94a2-c2b35a37d7df 10.2.4.89:8300  
 
 ### Consul Metrics Summary
 
-Run: `consul-debug-read metrics`
+Run: `consul-debug-read metrics -summary`
 
 ```shell
 # Example metrics summary overview return
@@ -158,6 +222,76 @@ Capture Targets: [metrics logs host agent members]
 Total Captures: 30
 Capture Time Start: 2023-10-23 15:03:40 +0000 UTC
 Capture Time Stop: 2023-10-23 15:08:30 +0000 UTC
+```
+
+### Consul Metrics by Type
+
+`consul-debug-read` comes with prebuilt variable groupings for each key-metric data type 
+to aid in quickly assessing more important metrics to the scenario
+
+| Command Option         | Description                                                                                             |
+|------------------------|---------------------------------------------------------------------------------------------------------|
+| `-auto-pilot`          | Retrieve key autopilot related metric values                                                           |
+| `-bolt-db`             | Retrieve key boltDB related metric values for Consul from debug bundle                                  |
+| `-dataplane-health`    | Retrieve key dataplane-related metric values for Consul from debug bundle                               |
+| `-federation-health`   | Retrieve key secondary datacenter federation metric values for Consul from debug bundle                |
+| `-host`                | Retrieve Host specific metrics                                                                          |
+| `-key-metrics`         | Retrieve key metric values for Consul from debug bundle                                                 |
+| `-leadership-health`   | Retrieve key raft leadership stability metric values for Consul from debug bundle                      |
+| `-list-available-telemetry` | List available metric names as retrieved from consul telemetry docs                                |
+| `-memory`              | Retrieve key memory metric values for Consul from debug bundle                                           |
+| `-name=<string>`       | Retrieve specific metric timestamped values by name                                                      |
+| `-network`             | Retrieve key network metric values for Consul from debug bundle                                           |
+| `-raft-thread-health`  | Retrieve key raft thread saturation metric values for Consul from debug bundle                            |
+| `-rate-limiting`       | Retrieve key rate limit metric values for Consul from debug bundle                                        |
+| `-transaction-timing`  | Retrieve key transaction timing metric values for Consul from debug bundle                               |
+
+
+```shell
+# Example using -memory flag
+$ consul-debug-read metrics -memory
+
+                              consul.runtime.alloc_bytes 
+                              -------------------------- 
+Timestamp                     Metric                     Type  Unit  Value    
+2024-02-07 17:44:40 +0000 UTC consul.runtime.alloc_bytes gauge bytes 55.17 MB 
+2024-02-07 17:44:50 +0000 UTC consul.runtime.alloc_bytes gauge bytes 35.74 MB 
+2024-02-07 17:45:00 +0000 UTC consul.runtime.alloc_bytes gauge bytes 45.64 MB 
+2024-02-07 17:45:10 +0000 UTC consul.runtime.alloc_bytes gauge bytes 55.04 MB 
+2024-02-07 17:45:20 +0000 UTC consul.runtime.alloc_bytes gauge bytes 65.78 MB 
+2024-02-07 17:45:30 +0000 UTC consul.runtime.alloc_bytes gauge bytes 41.88 MB 
+
+                              consul.runtime.heap_objects 
+                              --------------------------- 
+Timestamp                     Metric                      Type  Unit              Value  
+2024-02-07 17:44:40 +0000 UTC consul.runtime.heap_objects gauge number of objects 365517 
+2024-02-07 17:44:50 +0000 UTC consul.runtime.heap_objects gauge number of objects 162247 
+2024-02-07 17:45:00 +0000 UTC consul.runtime.heap_objects gauge number of objects 252355 
+2024-02-07 17:45:10 +0000 UTC consul.runtime.heap_objects gauge number of objects 341498 
+2024-02-07 17:45:20 +0000 UTC consul.runtime.heap_objects gauge number of objects 434737 
+2024-02-07 17:45:30 +0000 UTC consul.runtime.heap_objects gauge number of objects 217709 
+                                                     
+                                                  
+                              consul.runtime.sys_bytes 
+                              ------------------------ 
+Timestamp                     Metric                   Type  Unit  Value     
+2024-02-07 17:44:40 +0000 UTC consul.runtime.sys_bytes gauge bytes 191.30 MB 
+2024-02-07 17:44:50 +0000 UTC consul.runtime.sys_bytes gauge bytes 191.30 MB 
+2024-02-07 17:45:00 +0000 UTC consul.runtime.sys_bytes gauge bytes 191.30 MB 
+2024-02-07 17:45:10 +0000 UTC consul.runtime.sys_bytes gauge bytes 191.30 MB 
+2024-02-07 17:45:20 +0000 UTC consul.runtime.sys_bytes gauge bytes 191.30 MB 
+2024-02-07 17:45:30 +0000 UTC consul.runtime.sys_bytes gauge bytes 191.30 MB 
+
+                                                          
+                              consul.runtime.total_gc_pause_ns 
+                              -------------------------------- 
+Timestamp                     Metric                           Type  Unit Value gc/min       
+2024-02-07 17:44:40 +0000 UTC consul.runtime.total_gc_pause_ns gauge ns   1.77s -            
+2024-02-07 17:44:50 +0000 UTC consul.runtime.total_gc_pause_ns gauge ns   1.77s 1.18ms/min   
+2024-02-07 17:45:00 +0000 UTC consul.runtime.total_gc_pause_ns gauge ns   1.77s 0.0000ns/min 
+2024-02-07 17:45:10 +0000 UTC consul.runtime.total_gc_pause_ns gauge ns   1.77s 0.0000ns/min 
+2024-02-07 17:45:20 +0000 UTC consul.runtime.total_gc_pause_ns gauge ns   1.77s 0.0000ns/min 
+2024-02-07 17:45:30 +0000 UTC consul.runtime.total_gc_pause_ns gauge ns   1.77s 1.01ms/min   
 ```
 
 ### Consul Metrics by Name
