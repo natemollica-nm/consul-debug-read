@@ -9,3 +9,13 @@
 
 * Release:
   * `goreleaser release --clean`
+
+
+
+## Recreate tag post-correction
+
+`git tag -d v1.1.0`
+
+`git push --delete origin v1.1.0 `
+
+re-run the above
