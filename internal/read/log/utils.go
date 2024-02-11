@@ -160,14 +160,11 @@ func FormatCounts(aggregated map[string][]AggregateEntry, selector string) strin
 		if len(out) > 200 {
 			out = out[:47] + "..."
 		}
-		// Typically not worried about messages or single entry logs when
-		// troubleshooting Consul issues via logs.
-		if mc.Count > 1 {
-			if entryType == "Message" {
-				result = append(result, fmt.Sprintf("%s\x1f%d\x1f%s\x1f%s\x1f", mc.Minute, mc.Count, mc.Source, out))
-			} else {
-				result = append(result, fmt.Sprintf("%s\x1f%d\x1f%s\x1f", mc.Minute, mc.Count, out))
-			}
+
+		if entryType == "Message" {
+			result = append(result, fmt.Sprintf("%s\x1f%d\x1f%s\x1f%s\x1f", mc.Minute, mc.Count, mc.Source, out))
+		} else {
+			result = append(result, fmt.Sprintf("%s\x1f%d\x1f%s\x1f", mc.Minute, mc.Count, out))
 		}
 
 	}

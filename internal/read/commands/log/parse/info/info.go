@@ -1,4 +1,4 @@
-package trace
+package info
 
 import (
 	"consul-debug-read/internal/read"
@@ -34,9 +34,9 @@ func New(ui cli.Ui) (cli.Command, error) {
 		pathFlags: &flags.DebugReadFlags{},
 		flags:     flag.NewFlagSet("", flag.ContinueOnError),
 	}
-	c.flags.StringVar(&c.source, "source", "", "Capture TRACE messages from specific sources (e.g., \"agent.http\", \"agent.server\")")
-	c.flags.BoolVar(&c.messageCount, "message-count", false, "Parse log for TRACE messages and return timestamp sorted list of messages received")
-	c.flags.BoolVar(&c.sourceCount, "source-count", false, "Parse log for TRACE messages and return count sorted (descending order) list of messages received from specific sources")
+	c.flags.StringVar(&c.source, "source", "", "Capture INFO messages from specific sources (e.g., \"agent.http\", \"agent.server\")")
+	c.flags.BoolVar(&c.messageCount, "message-count", false, "Parse log for INFO messages and return timestamp sorted list of messages received")
+	c.flags.BoolVar(&c.sourceCount, "source-count", false, "Parse log for INFO messages and return count sorted (descending order) list of messages received from specific sources")
 
 	c.flags.BoolVar(&c.silent, "silent", false, "Disables all normal log output")
 	c.flags.BoolVar(&c.verbose, "verbose", false, "Enable verbose debugging output")
@@ -89,36 +89,36 @@ func (c *cmd) Run(args []string) int {
 
 	switch {
 	case c.source != "" && !c.sourceCount:
-		hclog.L().Debug("parsing trace bundle log file [TRACE] messages", "log-file", logFile)
-		entries, err = log.ParseLog(logFile, log.TraceLevel, c.source, time.Time{}, time.Time{})
+		hclog.L().Debug("parsing info bundle log file [INFO] messages", "log-file", logFile)
+		entries, err = log.ParseLog(logFile, log.InfoLevel, c.source, time.Time{}, time.Time{})
 		if err != nil {
 			hclog.L().Error("error parsing log file", "file", logFile, "error", err)
 			return 1
 		}
 		out = log.FormatLog(entries)
 	case c.sourceCount:
-		hclog.L().Debug("parsing trace bundle log file [TRACE] messages", "log-file", logFile)
-		entries, err = log.ParseLog(logFile, log.TraceLevel, c.source, time.Time{}, time.Time{})
+		hclog.L().Debug("parsing info bundle log file [INFO] messages", "log-file", logFile)
+		entries, err = log.ParseLog(logFile, log.InfoLevel, c.source, time.Time{}, time.Time{})
 		if err != nil {
 			hclog.L().Error("error parsing log file", "file", logFile, "error", err)
 			return 1
 		}
-		hclog.L().Debug("aggregating [TRACE] messages by logged entry source type", "log-file", logFile)
-		counts := log.AggregateLogEntries(entries, log.TraceLevel, log.SourceSelect)
+		hclog.L().Debug("aggregating [INFO] messages by logged entry source type", "log-file", logFile)
+		counts := log.AggregateLogEntries(entries, log.InfoLevel, log.SourceSelect)
 		out = log.FormatCounts(counts, "source")
 	case c.messageCount:
-		hclog.L().Debug("parsing trace bundle log file [TRACE] messages", "log-file", logFile)
-		entries, err = log.ParseLog(logFile, log.TraceLevel, c.source, time.Time{}, time.Time{})
+		hclog.L().Debug("parsing info bundle log file [INFO] messages", "log-file", logFile)
+		entries, err = log.ParseLog(logFile, log.InfoLevel, c.source, time.Time{}, time.Time{})
 		if err != nil {
 			hclog.L().Error("error parsing log file", "file", logFile, "error", err)
 			return 1
 		}
-		hclog.L().Debug("aggregating [TRACE] messages by message string", "log-file", logFile)
-		counts := log.AggregateLogEntries(entries, log.TraceLevel, log.MessageSelect)
+		hclog.L().Debug("aggregating [INFO] messages by message string", "log-file", logFile)
+		counts := log.AggregateLogEntries(entries, log.InfoLevel, log.MessageSelect)
 		out = log.FormatCounts(counts, "message")
 	default:
-		hclog.L().Debug("parsing trace bundle log file [TRACE] messages", "log-file", logFile)
-		entries, err = log.ParseLog(logFile, log.TraceLevel, "", time.Time{}, time.Time{})
+		hclog.L().Debug("parsing info bundle log file [INFO] messages", "log-file", logFile)
+		entries, err = log.ParseLog(logFile, log.InfoLevel, "", time.Time{}, time.Time{})
 		if err != nil {
 			hclog.L().Error("error parsing log file", "file", logFile, "error", err)
 			return 1
@@ -130,10 +130,10 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-const synopsis = `Parses debug bundle log for [TRACE] messages`
+const synopsis = `Parses debug bundle log for [INFO] messages`
 const help = `
 Usage: 
-    consul-debug-read log parse-trace [options]
+    consul-debug-read log parse-warn [options]
 
-Parses consul debug bundle logs for processing [TRACE] messages
+Parses consul debug bundle logs for processing [INFO] messages
 `

@@ -7,6 +7,7 @@ const (
 	ErrorLevel = "ERROR"
 	DebugLevel = "DEBUG"
 	TraceLevel = "TRACE"
+	WarnLevel  = "WARN"
 )
 
 // LogEntry represents a single log entry
