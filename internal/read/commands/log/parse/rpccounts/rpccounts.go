@@ -1,9 +1,10 @@
-package agent
+package rpccounts
 
 import (
 	"consul-debug-read/internal/read"
 	"consul-debug-read/internal/read/commands"
 	"consul-debug-read/internal/read/commands/flags"
+	"consul-debug-read/internal/read/log"
 	"flag"
 	"fmt"
 	"github.com/hashicorp/go-hclog"
@@ -17,8 +18,8 @@ type cmd struct {
 	flags     *flag.FlagSet
 	pathFlags *flags.DebugReadFlags
 
-	summary bool
-	config  bool
+	method string
+
 	verbose bool
 	silent  bool
 }
@@ -29,8 +30,7 @@ func New(ui cli.Ui) (cli.Command, error) {
 		pathFlags: &flags.DebugReadFlags{},
 		flags:     flag.NewFlagSet("", flag.ContinueOnError),
 	}
-	c.flags.BoolVar(&c.config, "config", false, "Retrieve agent configuration in HCL format")
-	c.flags.BoolVar(&c.summary, "summary", false, "Retrieve agent configuration summary details")
+	c.flags.StringVar(&c.method, "method", "", "Specify a specific RPC method for filtering results (i.e., 'Catalog.NodeServiceList')")
 	c.flags.BoolVar(&c.silent, "silent", false, "Disables all normal log output")
 	c.flags.BoolVar(&c.verbose, "verbose", false, "Enable verbose debugging output")
 
@@ -39,14 +39,12 @@ func New(ui cli.Ui) (cli.Command, error) {
 	return c, nil
 }
 
-func (c *cmd) Help() string { return commands.Usage(agentCommandHelp, c.flags) }
+func (c *cmd) Help() string { return commands.Usage(help, c.flags) }
 
 func (c *cmd) Synopsis() string { return synopsis }
 
-// TODO: Refactor this code correctly (similarly to log command) to properly handle subcommands
-//   - change 'agent -config' => 'agent config'
-//   - introduce 'agent -summary' => 'agent summary'
 func (c *cmd) Run(args []string) int {
+	var entries []log.Entry
 	if err := c.flags.Parse(args); err != nil {
 		c.ui.Error(fmt.Sprintf("Failed to parse flags: %v", err))
 		return 1
@@ -79,39 +77,44 @@ func (c *cmd) Run(args []string) int {
 		hclog.L().Error("empty or null consul-debug-path setting", "error", read.DebugReadConfigFullPath)
 		return 1
 	}
-
-	var data read.Debug
-	if err := data.DecodeJSON(cfg.DebugDirectoryPath, "agent"); err != nil {
-		hclog.L().Error("failed to decode agent.json", "error", err)
-		return 1
-	}
-	if err := data.DecodeJSON(cfg.DebugDirectoryPath, "members"); err != nil {
-		hclog.L().Error("failed to decode members.json", "error", err)
-		return 1
-	}
-	hclog.L().Debug("successfully read in agent cmd information from bundle")
-
-	var result string
+	logFile := cfg.DebugDirectoryPath + "/consul.log"
+	var out string
 
 	switch {
-	case c.summary:
-		result = agentSummary(data)
-	case c.config:
-		result = agentConfig(data)
+	case c.method != "":
+		entries, err = log.ParseRPCMethods(logFile, c.method)
+		if err != nil {
+			hclog.L().Error("error parsing log file", "file", logFile, "error", err)
+			return 1
+		}
+		counts := log.AggregateRPCEntries(entries)
+		out = log.RPCCounts(counts)
 	default:
-		result = c.Help()
+		entries, err = log.ParseRPCMethods(logFile, "")
+		if err != nil {
+			hclog.L().Error("error parsing log file", "file", logFile, "error", err)
+			return 1
+		}
+		counts := log.AggregateRPCEntries(entries)
+		out = log.RPCCounts(counts)
 	}
-	c.ui.Output(result)
+
+	c.ui.Output(out)
 	return 0
 }
 
-func agentSummary(bundle read.Debug) string {
-	return bundle.Agent.Summary()
-}
+const synopsis = `Parses debug bundle log for [TRACE] messages pertaining to RPC Rate Limiting`
+const help = `
+Usage: 
+    consul-debug-read log parse-rpc-counts [options]
 
-func agentConfig(bundle read.Debug) string {
-	return bundle.Agent.AgentConfigFull()
-}
+Parses consul trace logs for all (default) or specified ([method]) rpc method calls and provides
+	=> Rate-per-minute count of rpc call(s) sorted from highest to lowest
+	=> Total log capture count of rpc call(s) sorted from highest to lowest
 
-const synopsis = `Debug bundle agent.json information parsing`
-const agentCommandHelp = `The agent flag will ingest the agent.json and parse for additional information pertaining to the agent.`
+Requires:
+    - Valid consul monitor or consul log file with '.log' extension
+    - TRACE level capture enabled on agent's log or monitor
+      - agent cmd:   '-log-level=trace'
+      - agent conf:  'log_level=trace'
+      - monitor cmd: 'consul monitor -log-level=trace'`

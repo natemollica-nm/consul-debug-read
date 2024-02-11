@@ -35,6 +35,7 @@ if [ $# -eq 0 ]; then
   echo ""
   echo "Options:"
   echo "  [method]: Specify an RPC method to filter results (e.g., 'Catalog.NodeServiceList') - Optional"
+
   exit 1
 fi
 

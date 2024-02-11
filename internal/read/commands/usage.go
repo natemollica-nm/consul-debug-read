@@ -50,7 +50,7 @@ func (u *usager) String() string {
 		})
 
 		if debugReadFlags != nil {
-			printTitle(out, "HTTP API Options")
+			printTitle(out, "")
 			debugReadFlags.VisitAll(func(f *flag.Flag) {
 				printFlag(out, f)
 			})

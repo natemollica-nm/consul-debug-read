@@ -1,4 +1,4 @@
-package show_debug_path
+package get
 
 import (
 	"consul-debug-read/internal/read"
@@ -59,27 +59,41 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	commands.InitLogging(c.ui, level)
-	hclog.L().Debug("reading debug path from env variable if set")
-	if path := os.Getenv(read.DebugReadEnvVar); path != "" {
+	hclog.L().Debug("checking CONSUL_DEBUG_PATH env variable")
+	if ok, path := c.CheckPathEnvVarSet(); ok {
 		c.ui.Output(path)
 		return 0
 	}
+	hclog.L().Debug("CONSUL_DEBUG_PATH unset, rendering config path setting")
+	if ok, path := c.RenderPathFromConfig(); ok {
+		c.ui.Output(path)
+	}
+	return 0
+}
+
+func (c *cmd) CheckPathEnvVarSet() (bool, string) {
+	if path := os.Getenv(read.DebugReadEnvVar); path != "" {
+		return true, path
+	}
+	return false, ""
+}
+
+func (c *cmd) RenderPathFromConfig() (bool, string) {
 	cmdYamlCfg, err := os.ReadFile(read.DebugReadConfigFullPath)
 	if err != nil {
 		hclog.L().Error("error reading consul-debug-read user config file", "filepath", read.DebugReadConfigFullPath, "error", err)
-		return 1
+		return false, ""
 	}
 	var currentPathSetting read.ReaderConfig
 	err = yaml.Unmarshal(cmdYamlCfg, &currentPathSetting)
 	if err != nil {
 		hclog.L().Error("error deserializing YAML contents", "filepath", read.DebugReadConfigFullPath, "error", err)
-		return 1
+		return false, ""
 	}
 	if currentPathSetting.DebugDirectoryPath == "" {
 		hclog.L().Warn("empty or null consul-debug-path set", "warn", read.DebugReadConfigFullPath)
 	}
-	c.ui.Output(currentPathSetting.DebugDirectoryPath)
-	return 0
+	return true, currentPathSetting.DebugDirectoryPath
 }
 
 const synopsis = `Show the current debug bundle path under analysis`
@@ -87,55 +101,9 @@ const showDebugPathHelp = `
 Shows currently set consul-debug-read command debug path as set in
 config.yaml viper configuration file. 
 
-To change file-path use consul-debug-read set-debug-path --path <path_to_debug_bundle> to alter.
+To change file-path use consul-debug-read set --path <path_to_debug_bundle> to alter.
 
 Example:
-	$ consul-debug-read show-debug-path
+	$ consul-debug-read get
 	bundles/consul-debug-2023-10-04T18-29-47Z
 `
-
-//// ShowDebugPathCmd represents the showDebugPath command
-//var ShowDebugPathCmd = &cobra.Command{
-//	Use:   "show-debug-path",
-//	Short: "Show currently configured extracted debug bundle filepath",
-//	Long: `Shows currently set consul-debug-read command debug path as set in
-//config.yaml viper configuration file.
-//
-//To change file-path use consul-debug-read set-debug-path --path <path_to_debug_bundle> to alter.
-//
-//Example:
-//	$ consul-debug-read show-debug-path
-//	bundles/consul-debug-2023-10-04T18-29-47Z
-//`,
-//	RunE: func(cmd *cobra.Command, args []string) error {
-//		if _, ok := os.LookupEnv(config.EnvDebugPath); ok {
-//			envPath := os.Getenv(config.EnvDebugPath)
-//
-//			envPath = strings.TrimSuffix(envPath, "/")
-//			if _, err := os.Stat(envPath); os.IsNotExist(err) {
-//				return fmt.Errorf("invalid debug bundle path set: %s - %v\n", envPath, err)
-//			} else {
-//				config.DebugPath = envPath
-//				if config.Verbose {
-//					log.Printf("CONSUL_DEBUG_PATH env variable set\n")
-//				}
-//			}
-//		} else {
-//			config.DebugPath = viper.GetString("config.DebugPath")
-//			if config.Verbose {
-//				home, err := os.UserHomeDir()
-//				if err != nil {
-//					fmt.Println("Error: ", err)
-//					os.Exit(1)
-//				}
-//				log.Printf("CONSUL_DEBUG_PATH env variable unset, using '%s/.consul-debug-read.yaml'\n", home)
-//			}
-//		}
-//		fmt.Printf("%s", config.DebugPath)
-//		return nil
-//	},
-//}
-//
-//func init() {
-//	consul_debug_read.RootCmd.AddCommand(ShowDebugPathCmd)
-//}

@@ -2,7 +2,6 @@ package read
 
 import (
 	"archive/tar"
-	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
@@ -12,11 +11,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"runtime"
-	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -24,6 +20,11 @@ const (
 	DebugReadEnvVar             = "CONSUL_DEBUG_PATH"
 	DefaultCmdConfigFileName    = "config.yaml"
 	DefaultCmdConfigFileDirName = ".consul-debug-read"
+	DebugScrapeIntervalDefault  = 10 // consul debug scrapes the /metrics endpoint every 10s
+	TimeUnitsRegex              = "^ns$|^ms$|^seconds$|^hours$"
+	BytesRegex                  = "bytes"
+	PercentRegex                = "percentage"
+	TimeStampRegex              = `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$`
 )
 
 var (
@@ -31,10 +32,20 @@ var (
 	CurrentDir, _           = os.Getwd()
 	DebugReadConfigDirPath  = fmt.Sprintf("%s/%s", UserHomeDir, DefaultCmdConfigFileDirName)
 	DebugReadConfigFullPath = fmt.Sprintf("%s/%s", DebugReadConfigDirPath, DefaultCmdConfigFileName)
-	timeReg                 = regexp.MustCompile("^ns$|^ms$|^seconds$|^hours$")
-	bytesReg                = regexp.MustCompile("bytes")
-	percentageReg           = regexp.MustCompile("percentage")
+	timeReg                 = regexp.MustCompile(TimeUnitsRegex)
+	bytesReg                = regexp.MustCompile(BytesRegex)
+	percentageReg           = regexp.MustCompile(PercentRegex)
+	EnvVarPathSetting       = os.Getenv(DebugReadEnvVar)
 )
+
+// parseDuration converts a string representing a time duration into a time.Duration type
+func parseDuration(durationStr string) (time.Duration, error) {
+	duration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		return 0, err
+	}
+	return duration, nil
+}
 
 func ToRFC3339(ts string) (string, error) {
 	// Parse the timestamp string into a time.Time value
@@ -50,7 +61,7 @@ func ToRFC3339(ts string) (string, error) {
 
 func extractTarGz(srcFile, destDir string) (string, error) {
 	var extractRootDir string
-	directoryPrefixCount := make(map[string]int)
+	// directoryPrefixCount := make(map[string]int)
 
 	// Open the source .tar.gz file
 	srcFileReader, err := os.Open(srcFile)
@@ -72,9 +83,11 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 	// Create a tar reader
 	tarReader := tar.NewReader(gzipReader)
 
+	i := 0
 	// Iterate through the tar archive and extract files
 	for {
-		header, err := tarReader.Next()
+		var header *tar.Header
+		header, err = tarReader.Next()
 		if err == io.EOF {
 			break // End of archive
 		}
@@ -87,75 +100,59 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 
 		// Create directories as needed
 		if header.FileInfo().IsDir() {
-			if err := os.MkdirAll(destFilePath, 0755); err != nil {
+			if err = os.MkdirAll(destFilePath, 0755); err != nil {
 				return "", fmt.Errorf("failed to create dir %s: %v\n", destFilePath, err)
 			}
 			continue
 		}
 
-		// Root Directory Prefix Determination
-		// * Extract directory from filepath of header
-		dir := ""
-		if idx := strings.LastIndex(header.Name, "/"); idx >= 0 {
-			dir = header.Name[:idx]
-		} else {
-			dir = "."
-		}
-		directoryPrefixCount[dir]++
-		// Root Directory Prefix Determination:
-		// 1. Iterate through dir prefix count map[string]int
-		// 2. Dir with most counts will most likely be the root extract dir
-		dirMaxCount := 0
-		for dir, count := range directoryPrefixCount {
-			if count > dirMaxCount {
-				dirMaxCount = count
-				extractRootDir = dir
-			}
-		}
-
-		// extractRootFullPath = fmt.Sprintf("%s/%s", destDir, extractRootDir)
-		//// Check if destination dir exists
-		//if _, err := os.Stat(extractRootFullPath); err == nil {
-		//	log.Printf("removing previous extract dir - %s\n", extractRootFullPath)
-		//	err := os.RemoveAll(extractRootFullPath)
-		//	if err != nil {
-		//		return "", fmt.Errorf("unable to delete existing file: %v", err)
-		//	}
-		//}
-
 		// Create and open the destination file
-		destFile, err := os.Create(destFilePath)
+		var destFile *os.File
+		destFile, err = os.Create(destFilePath)
+
+		// Identify the debug bundle's root directory
+		//  => all bundles contain an index.json in the root directory
+		//  => set the extract root to whatever this dir name is
+		if filepath.Base(destFile.Name()) == "index.json" {
+			extractRootDir = filepath.Dir(destFile.Name())
+		}
+
 		if err != nil {
 			return "", fmt.Errorf("failed to create %s: %v\n", destFilePath, err)
 		}
 
 		// Copy file contents from the tar archive to the destination file
-		if _, err := io.Copy(destFile, tarReader); err != nil {
+		if _, err = io.Copy(destFile, tarReader); err != nil {
 			return "", err
 		}
-		if err := destFile.Close(); err != nil {
+		if err = destFile.Close(); err != nil {
 			return "", cleanup(err)
 		}
+		i++
 	}
-	if err := gzipReader.Close(); err != nil {
+
+	if err = gzipReader.Close(); err != nil {
 		return "", cleanup(err)
 	}
-	if err := srcFileReader.Close(); err != nil {
+
+	if err = srcFileReader.Close(); err != nil {
 		return "", cleanup(err)
 	}
+
 	return extractRootDir, nil
 }
 
 func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 	var selectedFile os.DirEntry
-	var sourceFilePath, extractRoot, extractedDebugPath string
-
+	var sourceFilePath, extractRoot string
+	// var extractedDebugPath string
 	// If debug path is not a bundle directly, parse for bundles and extract
 	if !strings.HasSuffix(sourceDir, ".tar.gz") {
 		var bundles []os.DirEntry
+
 		files, err := os.ReadDir(sourceDir)
 		if err != nil {
-			return "", fmt.Errorf("[select-and-extract] failed to read debug-path directory %s\n%v\n", sourceDir, err)
+			return "", fmt.Errorf("failed to read debug-path directory %s\n%v\n", sourceDir, err)
 		}
 		// Filter files for .tar.gz bundles
 		for _, file := range files {
@@ -163,13 +160,23 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 				bundles = append(bundles, file)
 			}
 		}
+		// If there are no .tar.gz files (i.e., len(bundles) <= 0),
+		// just return the directory and handle the validation
+		// within the set cmd.The validation ensures
+		// there are the appropriate files within the passed in directory.
+		if len(bundles) < 1 {
+			return sourceDir, nil
+		}
 		fmt.Println("select a .tar.gz file to extract:")
+		conv := ByteConverter{}
 		for i, bundle := range bundles {
-			fmt.Printf("%d: %s\n", i+1, bundle.Name())
+			info, _ := bundle.Info()
+			bundleSize := conv.ConvertToReadableBytes(info.Size())
+			fmt.Printf("%d: %s  (%s)\n", i+1, bundle.Name(), bundleSize)
 		}
 		fmt.Print("enter the number of the file to extract: ")
 		var selected int
-		if _, err := fmt.Scanf("%d", &selected); err != nil {
+		if _, err = fmt.Scanf("%d", &selected); err != nil {
 			return "", err
 		}
 
@@ -184,16 +191,10 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 	}
 	extractRoot, err := extractTarGz(sourceFilePath, filepath.Dir(sourceFilePath))
 	if err != nil {
-		return "", fmt.Errorf("[select-and-extract] error extracting %s: %v\n", sourceFilePath, err)
+		return "", fmt.Errorf("error extracting %s: %v\n", sourceFilePath, err)
 	}
 
-	if strings.HasSuffix(sourceDir, ".tar.gz") {
-		sourceFilePath, _ = filepath.Abs(sourceFilePath)
-		extractedDebugPath = filepath.Join(filepath.Dir(sourceFilePath), extractRoot)
-	} else {
-		extractedDebugPath = filepath.Join(sourceDir, extractRoot)
-	}
-	return extractedDebugPath, nil
+	return extractRoot, nil
 }
 
 func ConvertToValidJSON(input string) string {
@@ -272,6 +273,27 @@ func WriteFileWithPerms(outputFile, payload string, mode os.FileMode) error {
 	return os.Chmod(outputFile, mode)
 }
 
+func (b *Debug) numberOfCaptures() (int, error) {
+	i, err := parseDuration(b.Index.Interval)
+	if err != nil {
+		return -1, fmt.Errorf("failed to convert bundle interval to int %v", err)
+	}
+	d, err := parseDuration(b.Index.Duration)
+	if err != nil {
+		return -1, fmt.Errorf("failed to convert bundle duration to int %v", err)
+	}
+	// Calculate the number of intervals within the total duration
+	numIntervals := int(d / i)
+
+	// Calculate the number of events per interval
+	eventsPerInterval := int(i.Seconds()) / DebugScrapeIntervalDefault
+
+	// Calculate the total number of events
+	totalEvents := numIntervals * eventsPerInterval
+
+	return totalEvents, nil
+}
+
 func (b *Debug) DecodeAgent(agentDecoder *json.Decoder) error {
 	var agentConfig Agent
 	err := agentDecoder.Decode(&agentConfig)
@@ -280,107 +302,6 @@ func (b *Debug) DecodeAgent(agentDecoder *json.Decoder) error {
 		return err
 	}
 	b.Agent = agentConfig
-	return nil
-}
-
-func (b *Debug) DecodeMembers(memberDecoder *json.Decoder) error {
-	var membersList []Member
-	err := memberDecoder.Decode(&membersList)
-	if err != nil {
-		log.Fatalf("error decoding members: %v", err)
-		return err
-	}
-	b.Members = membersList
-	return nil
-}
-
-func (b *Debug) DecodeMetrics(metricsDecoder *json.Decoder) error {
-	type MetricData struct {
-		Timestamp string
-		Metric    Metric
-	}
-
-	// Determine the number of CPU cores
-	numCores := runtime.NumCPU()
-
-	// Create a channel to receive metric data with a buffered size based on CPU cores
-	bufferSize := numCores * 10000 // Tweak this as needed
-	metricDataChan := make(chan MetricData, bufferSize)
-
-	// Create a wait group to wait for all goroutines to finish
-	var wg sync.WaitGroup
-
-	for {
-		var metric Metric
-		err := metricsDecoder.Decode(&metric)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("Error decoding | file: metrics.json %v", err)
-			return err
-		}
-
-		wg.Add(1)
-		go func(metric Metric) {
-			defer wg.Done()
-
-			// Extract the timestamp from the metric
-			timestamp := metric.Timestamp
-
-			// Send metric data to the channel
-			metricDataChan <- MetricData{Timestamp: timestamp, Metric: metric}
-		}(metric)
-	}
-
-	// Close the channel when all goroutines are done
-	go func() {
-		wg.Wait()
-		close(metricDataChan)
-	}()
-
-	// Create a map to organize metrics by timestamp
-	metricsByTimestamp := make(map[string][]Metric)
-
-	// Organize metrics by timestamp and build the map
-	for metricData := range metricDataChan {
-		timestamp := metricData.Timestamp
-		metric := metricData.Metric
-
-		// Append metric to the map
-		metricsByTimestamp[timestamp] = append(metricsByTimestamp[timestamp], metric)
-	}
-
-	// Sort timestamps
-	sortedTimestamps := make([]string, 0, len(metricsByTimestamp))
-	for timestamp := range metricsByTimestamp {
-		sortedTimestamps = append(sortedTimestamps, timestamp)
-	}
-	sort.Strings(sortedTimestamps)
-
-	// Reconstruct the Metrics slice in timestamped order
-	var sortedMetrics []Metric
-	for _, timestamp := range sortedTimestamps {
-		sortedMetrics = append(sortedMetrics, metricsByTimestamp[timestamp]...)
-	}
-
-	// Assign the sorted Metrics to the Debug struct
-	b.Metrics.Metrics = sortedMetrics
-
-	// Build the metrics map from the sorted metrics
-	b.Metrics.BuildMetricsMap()
-
-	return nil
-}
-
-func (b *Debug) DecodeMetricsIndex(indexDecoder *json.Decoder) error {
-	var index Index
-	err := indexDecoder.Decode(&index)
-	if err != nil {
-		log.Fatalf("error decoding metrics: %v", err)
-		return err
-	}
-	b.Index = index
 	return nil
 }
 
@@ -400,6 +321,48 @@ func (b *Debug) DecodeHost(hostDecoder *json.Decoder) error {
 	return nil
 }
 
+func (a *Agent) DecodeMembers(memberDecoder *json.Decoder) error {
+	var membersList []Member
+	err := memberDecoder.Decode(&membersList)
+	if err != nil {
+		log.Fatalf("error decoding members: %v", err)
+		return err
+	}
+	a.Members = membersList
+	return nil
+}
+
+func (b *Debug) DecodeMetricsIndex(indexDecoder *json.Decoder) error {
+	var index Index
+	err := indexDecoder.Decode(&index)
+	if err != nil {
+		log.Fatalf("error decoding metrics: %v", err)
+		return err
+	}
+	b.Index = index
+	return nil
+}
+
+func (b *Debug) DecodeMetrics(metricsDecoder *json.Decoder) error {
+	var err error
+	captures, _ := b.numberOfCaptures()
+	b.Metrics.Metrics = make([]Metric, captures)
+	for i := 0; i < captures; i++ {
+		var metric Metric
+		err = metricsDecoder.Decode(&metric)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("error decoding | file: metrics.json %v", err)
+		}
+		// Assign the Metrics to the Debug struct
+		b.Metrics.Metrics[i] = metric
+	}
+	b.BuildMetricsIndex()
+	return nil
+}
+
 func (b *Debug) DecodeJSON(debugPath, dataType string) error {
 	configs := map[string]string{
 		"agent":   "agent.json",
@@ -410,21 +373,10 @@ func (b *Debug) DecodeJSON(debugPath, dataType string) error {
 	}
 
 	fileName, found := configs[dataType]
-	if !found && dataType != "all" {
+	if !found {
 		return fmt.Errorf("unknown data type: %s", dataType)
 	}
 
-	if dataType == "all" {
-		for dataType, fileName := range configs {
-			if dataType == "all" {
-				continue
-			}
-			if err := b.decodeFile(debugPath, fileName, dataType); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
 	return b.decodeFile(debugPath, fileName, dataType)
 }
 
@@ -432,7 +384,7 @@ func (b *Debug) decodeFile(debugPath, fileName, dataType string) error {
 	filePath := fmt.Sprintf("%s/%s", debugPath, fileName)
 
 	// Read the entire file into memory
-	fileData, err := os.ReadFile(filePath)
+	fileData, err := os.Open(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("file not found: %s. Ensure debug-path is set to a valid path\n", filePath)
@@ -440,16 +392,15 @@ func (b *Debug) decodeFile(debugPath, fileName, dataType string) error {
 			return fmt.Errorf("error reading file: %s - %v\n", filePath, err)
 		}
 	}
-
 	// Create a JSON decoder for the file data
-	decoder := json.NewDecoder(bytes.NewReader(fileData))
+	decoder := json.NewDecoder(fileData)
 
 	// Decode JSON based on the data type
 	switch dataType {
 	case "agent":
 		return b.DecodeAgent(decoder)
 	case "members":
-		return b.DecodeMembers(decoder)
+		return b.Agent.DecodeMembers(decoder)
 	case "metrics":
 		return b.DecodeMetrics(decoder)
 	case "host":
@@ -460,8 +411,6 @@ func (b *Debug) decodeFile(debugPath, fileName, dataType string) error {
 		return fmt.Errorf("unknown data type: %s", dataType)
 	}
 }
-
-type Map map[string][]map[string]interface{}
 
 type ByValue []string
 
@@ -489,33 +438,34 @@ func nonNegativeDifference(a, b float64) float64 {
 	if diff >= 0 {
 		return diff
 	}
-	return 0 // Return the absolute value of the difference if < 0
+	return -diff // Return the absolute value of the difference if < 0
 }
 
 // CalculateGCRate calculates the rate of Garbage Collection (GC) in nanoseconds per minute.
-func CalculateGCRate(currentValueData, previousValueData []map[string]interface{}) (string, error) {
+func CalculateGCRate(value, prev map[string]interface{}) (string, error) {
 	var rate string
 
-	currentValue, ok := currentValueData[0]["value"].(float64)
+	currentValue, ok := value["value"].(float64)
 	if !ok {
 		return "", fmt.Errorf("invalid 'value' field in data")
 	}
-	previousValue, ok := previousValueData[0]["value"].(float64)
+	previousValue, ok := prev["value"].(float64)
 	if !ok {
-		return "", fmt.Errorf("invalid 'value' field in data")
+		return "", fmt.Errorf("invalid 'value' field in previous data")
 	}
+
 	// Calculate the non-negative difference in GC pause times
 	diff := nonNegativeDifference(currentValue, previousValue)
-	timeCurrent, err := time.Parse("2006-01-02 15:04:05 -0700 MST", fmt.Sprintf("%s", currentValueData[0]["timestamp"]))
+
+	timeCurrent, err := time.Parse("2006-01-02 15:04:05 -0700 MST", fmt.Sprintf("%s", value["timestamp"]))
 	if err != nil {
 		return "", err
 	}
-	timePrevious, err := time.Parse("2006-01-02 15:04:05 -0700 MST", fmt.Sprintf("%s", previousValueData[0]["timestamp"]))
+	timePrevious, err := time.Parse("2006-01-02 15:04:05 -0700 MST", fmt.Sprintf("%s", prev["timestamp"]))
 	if err != nil {
 		return "", err
 	}
 	// consul debug caputures default to 5m/30s capture intervals (>= v1.16.x)
-	//
 	timeDiff := timeCurrent.Sub(timePrevious).Seconds()
 	if diff >= 0 && timeDiff > 0 {
 		rate, err = ConvertToReadableTime(diff/(timeDiff/60), "ns") // convert to ns/min to most-readable-time/minute
@@ -539,6 +489,8 @@ func (bc ByteConverter) ConvertToReadableBytes(value interface{}) string {
 	switch v := value.(type) {
 	case int:
 		return ConvertIntBytes(v)
+	case int64:
+		return ConvertIntBytes(int(v))
 	case float64:
 		return ConvertFloatBytes(v)
 	default:

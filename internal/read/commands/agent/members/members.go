@@ -74,23 +74,23 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	var data read.Debug
-	if err := data.DecodeJSON(cfg.DebugDirectoryPath, "agent"); err != nil {
+	if err = data.DecodeJSON(cfg.DebugDirectoryPath, "agent"); err != nil {
 		hclog.L().Error("failed to decode agent.json", "error", err)
 		return 1
 	}
-	if err := data.DecodeJSON(cfg.DebugDirectoryPath, "members"); err != nil {
+	if err = data.DecodeJSON(cfg.DebugDirectoryPath, "members"); err != nil {
 		hclog.L().Error("failed to decode members.json", "error", err)
 		return 1
 	}
 	hclog.L().Debug("successfully read in agent cmd information from bundle")
 
-	result := agentMembers(data)
+	result := agentMembers(data.Agent)
 	c.ui.Output(result)
 	return 0
 }
 
-func agentMembers(bundle read.Debug) string {
-	return bundle.MembersStandard()
+func agentMembers(agent read.Agent) string {
+	return agent.MembersStandard()
 }
 
 const synopsis = "Parses members.json and formats to typical 'consul members -wan' output"

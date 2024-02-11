@@ -267,7 +267,28 @@ func (c *cmd) Run(args []string) int {
 	var data read.Debug
 	var result string
 
-	if c.name != "" || c.keyMetrics || c.summary || c.memory || c.network || c.rateLimiting || c.autopilot || c.transactionTiming || c.leadershipChanges || c.bolt || c.dataplane || c.federationStatus || c.telegraf {
+	if c.name != "" {
+		hclog.L().Debug("reading in index.json")
+		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "index"); err != nil {
+			hclog.L().Error("failed to decode index.json", "error", err)
+			return 1
+		}
+		hclog.L().Debug("reading in metrics.json")
+		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "metrics"); err != nil {
+			hclog.L().Error("failed to decode metrics.json", "error", err)
+			return 1
+		}
+		hclog.L().Debug("successfully read in bundle contents")
+	}
+	if c.host {
+		hclog.L().Debug("reading in host.json")
+		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "host"); err != nil {
+			hclog.L().Error("failed to decode host.json", "error", err)
+			return 1
+		}
+		hclog.L().Debug("successfully read in host.json bundle contents")
+	}
+	if c.keyMetrics || c.summary || c.memory || c.network || c.rateLimiting || c.autopilot || c.transactionTiming || c.leadershipChanges || c.bolt || c.dataplane || c.federationStatus || c.telegraf {
 		hclog.L().Debug("reading in agent.json")
 		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "agent"); err != nil {
 			hclog.L().Error("failed to decode agent.json", "error", err)
@@ -288,19 +309,18 @@ func (c *cmd) Run(args []string) int {
 			hclog.L().Error("failed to decode metrics.json", "error", err)
 			return 1
 		}
-		hclog.L().Debug("successfully read in metrics information from bundle")
-	}
-	if c.host {
-		hclog.L().Debug("reading in host.json")
-		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "host"); err != nil {
-			hclog.L().Error("failed to decode host.json", "error", err)
-			return 1
-		}
+		hclog.L().Debug("successfully read in bundle contents")
 	}
 
 	switch {
 	case c.summary:
 		result = data.Summary()
+	case c.listAvailableTelemetry:
+		result, err = read.ListMetrics()
+		if err != nil {
+			hclog.L().Error("failed to retrieve agent telemetry available metrics", "error", err)
+			return 1
+		}
 	case c.host:
 		result = data.HostSummary()
 	case c.name != "":
@@ -489,19 +509,19 @@ Usage: consul-debug-read metrics [options]
   Parses and outputs consul debug bundle metrics.json data in readable format.
 
 	Display summary of bundle capture	
-		$ consul-debug-read metrics
+		$ consul-debug-read metrics -summary
 
 	Display full list of queryable metric names
-		$ consul-debug-read metrics --list 
+		$ consul-debug-read metrics -list 
 	
 	Retrieve all timestamped captures of metric
-		$ consul-debug-read metrics --name <name_of_metric>
+		$ consul-debug-read metrics -name <name_of_metric>
 	
 	Sort metric capture by value (highest to lowest)
-		$ consul-debug-read metrics --name <name_of_metric> --sort-by-value
+		$ consul-debug-read metrics -name <name_of_metric> -sort
 	
 	Skip hashidoc metric name validation:
-		$ consul-debug-read metrics --name <valid_name_but_not_in_docs> --verify=false`
+		$ consul-debug-read metrics -name <valid_name_but_not_in_docs> -verify=false`
 
 func ClearScreenPrompt(message string) {
 	clearScreen := exec.Command("clear")
