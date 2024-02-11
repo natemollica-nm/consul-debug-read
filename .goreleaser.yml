@@ -14,7 +14,7 @@ builds:
     goarm:
       - 6
       - 7
-    main: ./cmd/consul-debug-read
+    main: .
 archives:
   -
     name_template: >-
