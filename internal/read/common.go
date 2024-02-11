@@ -21,6 +21,10 @@ const (
 	DefaultCmdConfigFileName    = "config.yaml"
 	DefaultCmdConfigFileDirName = ".consul-debug-read"
 	DebugScrapeIntervalDefault  = 10 // consul debug scrapes the /metrics endpoint every 10s
+	TimeUnitsRegex              = "^ns$|^ms$|^seconds$|^hours$"
+	BytesRegex                  = "bytes"
+	PercentRegex                = "percentage"
+	TimeStampRegex              = `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$`
 )
 
 var (
@@ -28,9 +32,9 @@ var (
 	CurrentDir, _           = os.Getwd()
 	DebugReadConfigDirPath  = fmt.Sprintf("%s/%s", UserHomeDir, DefaultCmdConfigFileDirName)
 	DebugReadConfigFullPath = fmt.Sprintf("%s/%s", DebugReadConfigDirPath, DefaultCmdConfigFileName)
-	timeReg                 = regexp.MustCompile("^ns$|^ms$|^seconds$|^hours$")
-	bytesReg                = regexp.MustCompile("bytes")
-	percentageReg           = regexp.MustCompile("percentage")
+	timeReg                 = regexp.MustCompile(TimeUnitsRegex)
+	bytesReg                = regexp.MustCompile(BytesRegex)
+	percentageReg           = regexp.MustCompile(PercentRegex)
 	EnvVarPathSetting       = os.Getenv(DebugReadEnvVar)
 )
 

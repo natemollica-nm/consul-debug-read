@@ -43,6 +43,9 @@ func (c *cmd) Help() string { return commands.Usage(agentCommandHelp, c.flags) }
 
 func (c *cmd) Synopsis() string { return synopsis }
 
+// TODO: Refactor this code correctly (similarly to log command) to properly handle subcommands
+//   - change 'agent -config' => 'agent config'
+//   - introduce 'agent -summary' => 'agent summary'
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		c.ui.Error(fmt.Sprintf("Failed to parse flags: %v", err))

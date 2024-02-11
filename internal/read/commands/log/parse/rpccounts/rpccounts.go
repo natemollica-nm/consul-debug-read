@@ -1,4 +1,4 @@
-package parse
+package rpccounts
 
 import (
 	"consul-debug-read/internal/read"
@@ -18,7 +18,8 @@ type cmd struct {
 	flags     *flag.FlagSet
 	pathFlags *flags.DebugReadFlags
 
-	sort    bool
+	method string
+
 	verbose bool
 	silent  bool
 }
@@ -29,7 +30,7 @@ func New(ui cli.Ui) (cli.Command, error) {
 		pathFlags: &flags.DebugReadFlags{},
 		flags:     flag.NewFlagSet("", flag.ContinueOnError),
 	}
-	c.flags.BoolVar(&c.sort, "sort", false, "Parse metric value by name and sort results by value vice timestamp order")
+	c.flags.StringVar(&c.method, "method", "", "Specify a specific RPC method for filtering results (i.e., 'Catalog.NodeServiceList')")
 	c.flags.BoolVar(&c.silent, "silent", false, "Disables all normal log output")
 	c.flags.BoolVar(&c.verbose, "verbose", false, "Enable verbose debugging output")
 
@@ -77,35 +78,43 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	logFile := cfg.DebugDirectoryPath + "/consul.log"
-	entries, err = log.ParseLogFile(logFile, "")
-	if err != nil {
-		hclog.L().Error("error parsing log file", "file", logFile, "error", err)
-		return 1
+	var out string
+
+	switch {
+	case c.method != "":
+		entries, err = log.ParseRPCMethods(logFile, c.method)
+		if err != nil {
+			hclog.L().Error("error parsing log file", "file", logFile, "error", err)
+			return 1
+		}
+		counts := log.AggregateRPCEntries(entries)
+		out = log.RPCCounts(counts)
+	default:
+		entries, err = log.ParseRPCMethods(logFile, "")
+		if err != nil {
+			hclog.L().Error("error parsing log file", "file", logFile, "error", err)
+			return 1
+		}
+		counts := log.AggregateRPCEntries(entries)
+		out = log.RPCCounts(counts)
 	}
-	counts := log.AggregateEntries(entries)
-	out := log.RPCCounts(counts)
+
 	c.ui.Output(out)
 	return 0
 }
 
-const synopsis = `Log parser for debug bundle captured consul.log file`
+const synopsis = `Parses debug bundle log for [TRACE] messages pertaining to RPC Rate Limiting`
 const help = `
+Usage: 
+    consul-debug-read log parse-rpc-counts [options]
+
+Parses consul trace logs for all (default) or specified ([method]) rpc method calls and provides
+	=> Rate-per-minute count of rpc call(s) sorted from highest to lowest
+	=> Total log capture count of rpc call(s) sorted from highest to lowest
+
 Requires:
     - Valid consul monitor or consul log file with '.log' extension
     - TRACE level capture enabled on agent's log or monitor
-      - agent cmd: -log-level=trace
-      - agent conf: log_level="trace"
-      - monitor cmd: consul monitor -log-level=trace
-
-Description:
-    Parses consul trace logs for all (default) or specified ([method]) rpc method calls and provides
-        => Rate-per-minute count of rpc call(s) sorted from highest to lowest
-        => Total log capture count of rpc call(s) sorted from highest to lowest
-
-Usage: 
-    consul-debug-read log [options]
-
-
-Options:
-  [method]: Specify an RPC method to filter results (e.g., 'Catalog.NodeServiceList') - Optional
-`
+      - agent cmd:   '-log-level=trace'
+      - agent conf:  'log_level=trace'
+      - monitor cmd: 'consul monitor -log-level=trace'`
