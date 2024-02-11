@@ -10,6 +10,7 @@ import (
 	logdebug "consul-debug-read/internal/read/commands/log/parse/debug"
 	logerror "consul-debug-read/internal/read/commands/log/parse/error"
 	"consul-debug-read/internal/read/commands/log/parse/rpccounts"
+	logtrace "consul-debug-read/internal/read/commands/log/parse/trace"
 	"consul-debug-read/internal/read/commands/metrics"
 	"consul-debug-read/internal/read/commands/set"
 	"consul-debug-read/internal/read/commands/summary"
@@ -31,6 +32,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"log parse-rpc-counts", func(ui cli.Ui) (mcli.Command, error) { return rpccounts.New(ui) }},
 		entry{"log parse-errors", func(ui cli.Ui) (mcli.Command, error) { return logerror.New(ui) }},
 		entry{"log parse-debug", func(ui cli.Ui) (mcli.Command, error) { return logdebug.New(ui) }},
+		entry{"log parse-trace", func(ui cli.Ui) (mcli.Command, error) { return logtrace.New(ui) }},
 	)
 	return registry
 }

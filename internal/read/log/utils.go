@@ -15,12 +15,11 @@ type RPCMethodCount struct {
 	Count  int
 }
 
-type EntryCount struct {
-	Minute string
-	Key    string
-	Count  int
-}
-
+// FormattedEntry
+// Represents cleanly formatted aggregated log entries.
+//
+// Using LogEntry directly will not represent aggregated data as cleanly since LogEntry is
+// structured around representing individual log entries rather than aggregated metrics.
 type FormattedEntry struct {
 	Minute string
 	Key    string // This could represent the method, message, or any field used for aggregation
@@ -28,6 +27,11 @@ type FormattedEntry struct {
 	Count  int    // The number of occurrences
 }
 
+// AggregateEntry
+// Data structure that keeps track aggregate log entry Count and Source.
+// This struct purposefully omits the Message field of an entry and maintains
+// log entry Source to be able to correlate Message parsing source traffic later in
+// the AggregateLogEntries and FormatCounts functions.
 type AggregateEntry struct {
 	Count  int
 	Source string
@@ -89,6 +93,9 @@ func RPCCounts(counts map[string]map[string]int) string {
 	return output
 }
 
+// AggregateLogEntries
+// Generates a map structure of aggregated log entries to
+// track the number of
 func AggregateLogEntries(entries []LogEntry, level string, selector EntrySelector) map[string][]AggregateEntry {
 	aggregated := make(map[string][]AggregateEntry)
 
@@ -129,37 +136,32 @@ func FormatCounts(aggregated map[string][]AggregateEntry, selector string) strin
 	// Flatten counts into a slice of EntryCount
 	for key, aggEntries := range aggregated {
 		parts := strings.Split(key, "|") // Split key (composite key) to extract key and minute if using composite key approach
-		minute := parts[1]               // Adjust indexing based on actual composite key structure
+		minute := parts[1]               //  key := selector(entry) + "|" + entry.Timestamp.Format("2006-01-02 15:04")
 		for _, aggregate := range aggEntries {
 			entries = append(entries, FormattedEntry{
 				Minute: minute,
-				Key:    parts[0], // Or other logic to extract original key from compositeKey
+				Key:    parts[0], // Message string || Source of Consul log entry
 				Source: aggregate.Source,
 				Count:  aggregate.Count,
 			})
 		}
 	}
 
-	// Sort by timestamp for message-count and by count for source-count
-	if entryType == "Message" {
-		sort.Slice(entries, func(i, j int) bool {
-			// Sort by timestamp (Minute) if the selector is for messages
-			return entries[i].Minute < entries[j].Minute
-		})
-	} else {
-		// Otherwise, sort by count descending
-		sort.Slice(entries, func(i, j int) bool {
-			return entries[i].Count > entries[j].Count
-		})
-	}
+	// Sort by Message or Source counts
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Count > entries[j].Count
+	})
 
-	// Append sorted results
+	// Truncate and append sorted results
 	for _, mc := range entries {
 		// Truncate results for display if necessary
+		// We don't want to clobber stdout with non-readable data
 		out := mc.Key
-		if len(out) > 150 {
+		if len(out) > 200 {
 			out = out[:47] + "..."
 		}
+		// Typically not worried about messages or single entry logs when
+		// troubleshooting Consul issues via logs.
 		if mc.Count > 1 {
 			if entryType == "Message" {
 				result = append(result, fmt.Sprintf("%s\x1f%d\x1f%s\x1f%s\x1f", mc.Minute, mc.Count, mc.Source, out))
