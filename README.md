@@ -85,10 +85,11 @@ $ consul-debug-read config current-path                                         
 
     ```shell
     $ export CONSUL_DEBUG_PATH=bundles/consul-debug-2023-10-04T18-29-47Z
-    $ consul-debug-read set-path
+    ```
+   
+    ```shell
+    $ consul-debug-read config set-path
       consul-debug-path set successfully using env var
-    $ consul-debug-read current-path
-      bundles/consul-debug-2023-10-04T18-29-47Z
     ```
 
 ## Usage
