@@ -10,6 +10,7 @@ import (
 	"consul-debug-read/internal/read/commands/config"
 	"consul-debug-read/internal/read/commands/config/get"
 	"consul-debug-read/internal/read/commands/config/set"
+	"consul-debug-read/internal/read/commands/config/show"
 	"consul-debug-read/internal/read/commands/log"
 	logdebug "consul-debug-read/internal/read/commands/log/parse/debug"
 	logerror "consul-debug-read/internal/read/commands/log/parse/error"
@@ -29,6 +30,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"config", func(cli.Ui) (mcli.Command, error) { return config.New(), nil }},
 		entry{"config current-path", func(ui cli.Ui) (mcli.Command, error) { return get.New(ui) }},
 		entry{"config set-path", func(ui cli.Ui) (mcli.Command, error) { return set.New(ui) }},
+		entry{"config show", func(ui cli.Ui) (mcli.Command, error) { return show.New(ui) }},
 		entry{"agent", func(cli.Ui) (mcli.Command, error) { return agent.New(), nil }},
 		entry{"agent summary", func(ui cli.Ui) (mcli.Command, error) { return agentsummary.New(ui) }},
 		entry{"agent config", func(ui cli.Ui) (mcli.Command, error) { return agentconfig.New(ui) }},

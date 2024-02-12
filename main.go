@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 func main() {
@@ -50,6 +51,7 @@ func realMain() int {
 }
 
 func baseConfigs() bool {
+
 	if _, err := os.Stat(read.DebugReadConfigDirPath); os.IsNotExist(err) {
 		fmt.Printf("default configuration filepath not found, attempting to create and populate file=%s\n", read.DebugReadConfigFullPath)
 		err = os.MkdirAll(read.DebugReadConfigDirPath, 0755)
@@ -58,21 +60,28 @@ func baseConfigs() bool {
 			return false
 		}
 	}
+
+	var defaultConfig []byte
 	if _, err := os.Stat(read.DebugReadConfigFullPath); err != nil {
 		if os.IsNotExist(err) {
 			fmt.Printf("configuring default debug path to current directory dir=%s\n", read.CurrentDir)
 			// Create Default Configuration File
 			config := read.DefaultReaderConfig()
 			if path := os.Getenv(read.DebugReadEnvVar); path != "" {
-				config.DebugDirectoryPath = path
-				config.PathRenderedFrom = "env"
+				fullPath, _ := filepath.Abs(path)
+				config.DebugDirectoryPath = fullPath
+				config.PathRenderedFrom = "env:CONSUL_DEBUG_PATH"
+			} else {
+				currentDir, _ := os.Getwd()
+				config.DebugDirectoryPath = currentDir
+				config.PathRenderedFrom = "file:config.yaml"
 			}
-			defaultCfgBytes, err := yaml.Marshal(&config)
+			defaultConfig, err = yaml.Marshal(&config)
 			if err != nil {
 				fmt.Printf("failed to create configuration file error=%v", err)
 				return false
 			}
-			err = os.WriteFile(read.DebugReadConfigFullPath, defaultCfgBytes, 0755)
+			err = os.WriteFile(read.DebugReadConfigFullPath, defaultConfig, 0755)
 			if err != nil {
 				fmt.Printf("failed to write to configuration file error=%v", err)
 				return false

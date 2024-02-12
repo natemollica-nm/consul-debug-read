@@ -98,7 +98,7 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		hclog.L().Debug("env variable set, updating config file", "CONSUL_DEBUG_PATH", envPath)
-		if ok, err = UpdateDebugReadConfig(envPath); !ok {
+		if ok, err = updateCurrentPath(envPath); !ok {
 			hclog.L().Error("failed update debug-read configuration file", "error", err)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
@@ -118,7 +118,7 @@ func (c *cmd) Run(args []string) int {
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
-		if ok, err = UpdateDebugReadConfig(extractedPath); !ok {
+		if ok, err = updateCurrentPath(extractedPath); !ok {
 			hclog.L().Error("failed update debug-read configuration file", "error", err)
 			c.ui.Error("failed to set consul-debug-read path using -path")
 			return 1
@@ -139,7 +139,7 @@ func (c *cmd) Run(args []string) int {
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
-		if ok, err = UpdateDebugReadConfig(extractedPath); !ok {
+		if ok, err = updateCurrentPath(extractedPath); !ok {
 			hclog.L().Error("failed update debug-read configuration file", "error", err)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
@@ -149,15 +149,39 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func UpdateDebugReadConfig(updatePath string) (bool, error) {
-	config := read.DefaultReaderConfig()
+func updateCurrentPath(updatePath string) (bool, error) {
+	var config read.ReaderConfig
+
+	// Retrieve configuration file location and open file
+	currentData, err := os.ReadFile(read.DebugReadConfigFullPath)
+	if err != nil {
+		hclog.L().Error("error reading consul-debug-read user config file", "filepath", read.DebugReadConfigFullPath, "error", err)
+		return false, err
+	}
+	// render current contents into read.ReaderConfig struct
+	err = yaml.Unmarshal(currentData, &config)
+	if err != nil {
+		hclog.L().Error("error deserializing YAML contents", "filepath", read.DebugReadConfigFullPath, "error", err)
+		return false, err
+	}
+
+	// Update the configuration path setting in the struct
 	config.DebugDirectoryPath = updatePath
-	configBytes, err := yaml.Marshal(&config)
+	if read.EnvVarPathSetting == updatePath {
+		config.PathRenderedFrom = "env:CONSUL_DEBUG_PATH"
+	} else {
+		config.PathRenderedFrom = "cli:-path|-file"
+	}
+
+	// Marshal the struct to bytes and write to file
+	updatedConfig, err := yaml.Marshal(&config)
 	if err != nil {
 		hclog.L().Error("failed to create default configuration file", "error", err)
 		return false, err
 	}
-	err = os.WriteFile(read.DebugReadConfigFullPath, configBytes, 0755)
+
+	// Write the changes to file
+	err = os.WriteFile(read.DebugReadConfigFullPath, updatedConfig, 0755)
 	if err != nil {
 		hclog.L().Error("failed to create write to configuration file", "error", err)
 		return false, err

@@ -35,7 +35,7 @@ func New(ui cli.Ui) (cli.Command, error) {
 	return c, nil
 }
 
-func (c *cmd) Help() string { return commands.Usage(showDebugPathHelp, c.flags) }
+func (c *cmd) Help() string { return commands.Usage(help, c.flags) }
 
 func (c *cmd) Synopsis() string {
 	return synopsis
@@ -59,51 +59,38 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	commands.InitLogging(c.ui, level)
-	hclog.L().Debug("checking CONSUL_DEBUG_PATH env variable")
-	if ok, path := c.CheckPathEnvVarSet(); ok {
-		c.ui.Output(path)
-		return 0
-	}
-	hclog.L().Debug("CONSUL_DEBUG_PATH unset, rendering config path setting")
-	if ok, path := c.RenderPathFromConfig(); ok {
+	hclog.L().Debug("rendering debug path setting from config.yaml")
+	if path, ok := c.RenderPathFromConfig(); ok {
 		c.ui.Output(path)
 	}
 	return 0
 }
 
-func (c *cmd) CheckPathEnvVarSet() (bool, string) {
-	if path := os.Getenv(read.DebugReadEnvVar); path != "" {
-		return true, path
-	}
-	return false, ""
-}
+func (c *cmd) RenderPathFromConfig() (string, bool) {
+	var config read.ReaderConfig
 
-func (c *cmd) RenderPathFromConfig() (bool, string) {
-	cmdYamlCfg, err := os.ReadFile(read.DebugReadConfigFullPath)
+	currentData, err := os.ReadFile(read.DebugReadConfigFullPath)
 	if err != nil {
 		hclog.L().Error("error reading consul-debug-read user config file", "filepath", read.DebugReadConfigFullPath, "error", err)
-		return false, ""
+		return "", false
 	}
-	var currentPathSetting read.ReaderConfig
-	err = yaml.Unmarshal(cmdYamlCfg, &currentPathSetting)
+
+	err = yaml.Unmarshal(currentData, &config)
 	if err != nil {
 		hclog.L().Error("error deserializing YAML contents", "filepath", read.DebugReadConfigFullPath, "error", err)
-		return false, ""
+		return "", false
 	}
-	if currentPathSetting.DebugDirectoryPath == "" {
+
+	if config.DebugDirectoryPath == "" {
 		hclog.L().Warn("empty or null consul-debug-path set", "warn", read.DebugReadConfigFullPath)
 	}
-	return true, currentPathSetting.DebugDirectoryPath
+	return config.DebugDirectoryPath, true
 }
 
 const synopsis = `Show the current debug bundle path under analysis`
-const showDebugPathHelp = `
-Shows currently set consul-debug-read command debug path as set in
-config.yaml viper configuration file. 
-
-To change file-path use consul-debug-read set --path <path_to_debug_bundle> to alter.
+const help = `
+Shows current debug path setting as set in $HOME/.consul-debug-read/config.yaml. 
 
 Example:
-	$ consul-debug-read get
-	bundles/consul-debug-2023-10-04T18-29-47Z
+	$ consul-debug-read config current-path
 `

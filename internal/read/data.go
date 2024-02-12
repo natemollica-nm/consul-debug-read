@@ -12,7 +12,7 @@ func DefaultReaderConfig() *ReaderConfig {
 	if EnvVarPathSetting != "" {
 		renderedFrom = "env:CONSUL_DEBUG_PATH"
 	} else {
-		renderedFrom = "file:config.yaml"
+		renderedFrom = "default: <current-directory>"
 	}
 	return &ReaderConfig{
 		// Create Default Configuration File
