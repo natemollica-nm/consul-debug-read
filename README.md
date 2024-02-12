@@ -53,18 +53,33 @@ Run: `consul-debug-read config [options]`
 | `set-path`            | Configures CLI tool's extracted directory root of focus           |
 | `current-path`        | Prints currently configured debug bundle extraction root of focus |
 
+
+| Available Options | Description                                                                                                                                                             |
+|-------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `-file`           | File path to .tar.gz set for debug bundle reading analysis                                                                                                              |
+| `-path`           | File path to set for debug bundle reading analysis <br/> - path to folder containing multiple consul-debug.tar.gz files <br/> - already extracted bundle root directory |
+
 1. Identify the `.tar.gz` filepath or previously extracted root directory location you wish to examine.
 2. Configure the tool to use this bundle's extract path:
 
 ```shell
-# Example of set-path to directory where exact name of bundle is unknown | Selecting Option `1`
-$ consul-debug-read config set-path -path $HOME/Downloads/
+# Example of set-path to directory where exact name of bundle is unknown | Selecting Option `2`
+$ consul-debug-read config set-path -path ~/Downloads
 
-select a .tar.gz file to extract:
-1: 124722consul-debug-2023-12-20T05-23-33Z.tar.gz  (27.00 MB)
-2: 124722consul-debug-baseline-us-135-stag-default-2023-12-01T15-10-08-0500.tar.gz  (45.05 MB)
-enter the number of the file to extract: 1
-consul-debug-path set successfully
+       Consul Debug Bundle Extraction Tool                                             
+       -----------------------------------                                             
+Option Bundle Name                                                                     Size     
+1      124722consul-debug-2023-12-20T05-23-33Z.tar.gz                                  27.00 MB 
+2      124722consul-debug-baseline-us-135-stag-default-2023-12-01T15-10-08-0500.tar.gz 45.05 MB 
+3      139291consul-debug-1707327876.tar.gz                                            80.02 MB 
+4      consul-debug-1698780735.tar.gz                                                  27.41 MB 
+5      consul-debug-read_v0.0.2_darwin_arm64 (1).tar.gz                                3.54 MB  
+6      consul-debug-read_v0.0.2_darwin_arm64.tar.gz                                    3.54 MB  
+7      consul-debug-read_v0.0.2_linux_arm64.tar.gz                                     3.24 MB  
+
+Enter the file option number to extract: 2
+
+consul-debug-path set successfully => /Users/natemollica/Downloads/consul-debug-2023-12-01T15-10-08-0500
 ```
 
 ### Reading consul-debug-read config
@@ -77,6 +92,8 @@ $ consul-debug-read config current-path                                         
     
 ### Using environment variable
 
+> **_Note_**: the `-path` and `-file` flags override this setting if passed in
+
 1. Export your terminal/shell session `CONSUL_DEBUG_PATH` variable:
 
     ```shell
@@ -85,7 +102,7 @@ $ consul-debug-read config current-path                                         
    
     ```shell
     $ consul-debug-read config set-path
-      consul-debug-path set successfully using env var
+      consul-debug-path set successfully using CONSUL_DEBUG_PATH env var => bundles/consul-debug-2024-02-07T12-40-42-0500
     ```
 
 ## Usage

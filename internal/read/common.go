@@ -173,7 +173,7 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 		}
 
 		// Build extraction tool title
-		title := "Extraction Tool"
+		title := "Consul Debug Bundle Extraction Tool"
 		ul := fmt.Sprintf(strings.Repeat("-", len(title)))
 		menu := []string{fmt.Sprintf("\x1f%s\x1f", title)}
 		menu = append(menu, fmt.Sprintf("\x1f%s\x1f", ul))
@@ -188,7 +188,7 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 			menu = append(menu, fmt.Sprintf("%d\x1f%s\x1f%s\x1f", i+1, bundle.Name(), bundleSize))
 		}
 		output := columnize.Format(menu, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
-		fmt.Printf("%s\n\n", output)
+		fmt.Printf("\n%s\n\n", output)
 		fmt.Print("Enter the file option number to extract: ")
 		var selected int
 		if _, err = fmt.Scanf("%d", &selected); err != nil {

@@ -71,8 +71,9 @@ func (c *cmd) Run(args []string) int {
 	var extractedPath string
 	var err error
 	var ok bool
-	hclog.L().Debug("checking env var (if set)", "env", read.DebugReadEnvVar)
-	if path := os.Getenv(read.DebugReadEnvVar); path != "" {
+	hclog.L().Debug("checking CONSUL_DEBUG_PATH env var (if set)", "env", read.DebugReadEnvVar)
+	path := os.Getenv(read.DebugReadEnvVar)
+	if path != "" && c.path == "" && c.file == "" {
 		if ok, err = ValidateDebugPath(path); !ok {
 			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err, "path", path)
 			c.ui.Error("failed to set consul-debug-read path")
@@ -85,7 +86,7 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		hclog.L().Debug("using env var setting", "env", read.DebugReadEnvVar)
-		c.ui.Output("consul-debug-path set successfully using env var")
+		c.ui.Output(fmt.Sprintf("\nconsul-debug-path set successfully using CONSUL_DEBUG_PATH env var => %s\n", path))
 	} else if c.path != "" {
 		hclog.L().Debug("attempting to set with -path filepath", "path", c.path)
 		extractedPath, err = read.SelectAndExtractTarGzFilesInDir(c.path)
@@ -104,7 +105,7 @@ func (c *cmd) Run(args []string) int {
 			c.ui.Error("failed to set consul-debug-read path using -path")
 			return 1
 		}
-		c.ui.Output("consul-debug-path set successfully")
+		c.ui.Output(fmt.Sprintf("\nconsul-debug-path set successfully => %s\n", extractedPath))
 	} else if c.file != "" {
 		hclog.L().Debug("attempting to set with -file filepath", "file", c.file)
 		if ok = strings.HasSuffix(c.file, ".tar.gz"); ok {
@@ -125,7 +126,7 @@ func (c *cmd) Run(args []string) int {
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
-		c.ui.Output("consul-debug-path set successfully")
+		c.ui.Output(fmt.Sprintf("\nconsul-debug-path set successfully => %s\n", extractedPath))
 	}
 	return 0
 }
