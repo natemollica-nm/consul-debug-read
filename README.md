@@ -12,11 +12,13 @@ a simple cli tool for parsing consul-debug bundles to readable format
   * [Setting Debug Path](#settingchanging-debug-path)
   * [Using environment variable `CONSUL_DEBUG_PATH`](#Using-environment-variable)
 * [Usage](#Usage)
-  * [Consul Serf Membership](#Consul-Serf-Membership)
-  * [Consul Raft Configuration](#Consul-Raft-Configuration)
-  * [Consul Metrics Summary](#Consul-Metrics-Summary)
-  * [Consul Metrics by Name](#Consul-Metrics-by-Name)
-  * [Consul Host Metrics](#Consul-Host-Metrics)
+  * [Consul Overall Summary](#consul-debug-overall-summary)
+  * [Consul Serf Membership](#consul-serf-membership)
+  * [Consul Raft Configuration](#consul-raft-configuration)
+  * [Consul Metrics Summary](#consul-metrics-summary)
+  * [Consul Metrics by Type](#consul-metrics-by-type)
+  * [Consul Metrics by Name](#consul-metrics-by-name)
+  * [Consul Host Metrics](#consul-host-metrics)
 
 ## Getting Started
 
@@ -180,7 +182,7 @@ Run: `consul-debug-read log <subcommand>`
 
 | Available Options | Option Type      | Description                                                                                                                 |
 |-------------------|------------------|-----------------------------------------------------------------------------------------------------------------------------|
-| `-message-count`  | boolean          | Parse log for `[DEBUG]` messages and return timestamp sorted list of messages received                                      |
+| `-message-count`  | boolean          | Parse log for `[DEBUG]` messages and return count sorted (descending order) list of messages received                       |
 | `-source-count`   | boolean          | Parse log for `[DEBUG]` messages and return count sorted (descending order) list of messages received from specific sources |
 | `-source`         | string parameter | Capture DEBUG messages from specific sources (e.g., "agent.http","agent.server", etc)                                       |
 
