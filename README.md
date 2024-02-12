@@ -219,7 +219,7 @@ Timestamp        Counts Source                                        Message
 2024-02-07 17:54 1      agent.http                                    Request finished: method=GET url=/v1/status/leader from=10.137.127.240:55117 latency="78.409µs"
 ```
 
-Troubleshoot Consul RPC Rate Limiting Method calls
+#### Consul RPC Rate Limiting Method Calls/Minute
 
 Run: `consul-debug-read parse-rpc-counts`
 
