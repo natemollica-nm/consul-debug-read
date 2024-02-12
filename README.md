@@ -251,33 +251,7 @@ Status.RaftStats        2024-02-07 17:55 40
 Catalog.ListDatacenters 2024-02-07 17:50 34     
 Health.ServiceNodes     2024-02-07 17:55 25     
 ConnectCA.Roots         2024-02-07 17:51 22     
-PreparedQuery.Execute   2024-02-07 17:50 12     
-KVS.List                2024-02-07 17:51 9      
-Status.Leader           2024-02-07 17:55 9      
-KVS.List                2024-02-07 17:50 9      
-KVS.List                2024-02-07 17:52 7      
-KVS.List                2024-02-07 17:53 7      
-KVS.List                2024-02-07 17:54 7      
-Catalog.ListDatacenters 2024-02-07 17:55 6      
-Status.Peers            2024-02-07 17:53 4      
-PreparedQuery.Execute   2024-02-07 17:54 4      
-Coordinate.Update       2024-02-07 17:54 4      
-Status.Peers            2024-02-07 17:54 4      
-Status.Peers            2024-02-07 17:51 4      
-Status.Peers            2024-02-07 17:52 4      
-Health.NodeChecks       2024-02-07 17:52 3      
-Health.NodeChecks       2024-02-07 17:50 3      
-PreparedQuery.Execute   2024-02-07 17:51 3      
-Coordinate.Update       2024-02-07 17:51 3      
-Coordinate.Update       2024-02-07 17:52 3      
-Status.Peers            2024-02-07 17:50 3      
-Health.NodeChecks       2024-02-07 17:53 3      
-Catalog.NodeServiceList 2024-02-07 17:50 3      
-Status.Ping             2024-02-07 17:52 2      
-Health.NodeChecks       2024-02-07 17:51 2      
-Health.NodeChecks       2024-02-07 17:54 2      
-Coordinate.Update       2024-02-07 17:53 2      
-Coordinate.Update       2024-02-07 17:50 2
+PreparedQuery.Execute   2024-02-07 17:50 12
 ```
 
 ### Consul Serf Membership
