@@ -187,13 +187,98 @@ Run: `consul-debug-read log <subcommand>`
 | `-source`        (string parameter) | Capture DEBUG messages from specific sources (e.g., "agent.http","agent.server", etc)                                       |
 
 ```shell
-$ consul-debug-read 
+# Example using parse-debug sub-command
+$ consul-debug-read log parse-debug                                                                                                                                                                                                                                                                     100%  
+Timestamp            Source                                        Message                                                                                                                                                                                                  
+2024-02-07T17:55:07Z agent.http                                    Request finished: method=GET url=/v1/catalog/datacenters from=10.137.149.96:56628 latency="427.384µs"                                                                                                    
+2024-02-07T17:55:07Z agent.router                                  server in area left, skipping: server=consul-server-02.us-east area=wan func=GetDatacentersByDistance                                                                                           
+2024-02-07T17:55:07Z agent.router                                  server in area left, skipping: server=consul-server-05.us-east area=wan func=GetDatacentersByDistance                                                                                           
+2024-02-07T17:55:07Z agent.router                                  server in area left, skipping: server=consul-server-01.us-east area=wan func=GetDatacentersByDistance                                                                                           
+2024-02-07T17:55:07Z agent.router                                  server in area left, skipping: server=consul-server-03.us-east area=wan func=GetDatacentersByDistance                                                                                           
+2024-02-07T17:55:07Z agent.router                                  server in area left, skipping: server=consul-server-04.us-east area=wan func=GetDatacentersByDistance                                                                                           
+2024-02-07T17:55:07Z agent.http                                    Request finished: method=GET url=/v1/status/leader from=10.137.127.240:51352 latency="103.746µs"                                                                                                         
+2024-02-07T17:55:06Z agent.http                                    Request finished: method=GET url=/v1/status/leader from=10.137.89.52:33060 latency="83.135µs"
 ```
 
+```shell
+# Example using parse-debug -message-count
+$ consul-debug-read log parse-debug -message-count                                                                                                                                                                                                                                                      100%  
+Timestamp        Counts Source                                        Message                                                                                                                                                                                           
+2024-02-07 17:54 48     agent.router                                  server in area left, skipping: server=hashi-i-06bd4e94d27db9fcb.us-east area=wan func=GetDatacentersByDistance                                                                                    
+2024-02-07 17:51 48     agent.router                                  server in area left, skipping: server=hashi-i-037e3ac5505d10a6c.us-east area=wan func=GetDatacentersByDistance                                                                                    
+2024-02-07 17:54 48     agent.router                                  server in area left, skipping: server=hashi-i-0d961a04bd70ed830.us-east area=wan func=GetDatacentersByDistance                                                                                    
+2024-02-07 17:51 48     agent.router                                  server in area left, skipping: server=hashi-i-06bd4e94d27db9fcb.us-east area=wan func=GetDatacentersByDistance                                                                                    
+2024-02-07 17:51 48     agent.router                                  server in area left, skipping: server=hashi-i-05fa91f9d099617ff.us-east area=wan func=GetDatacentersByDistance                                                                                    
+2024-02-07 17:54 48     agent.router                                  server in area left, skipping: server=hashi-i-0db127464c667cb1f.us-east area=wan func=GetDatacentersByDistance
+2024-02-07 17:52 1      agent.grpc-api.server-discovery.watch-servers starting stream: request_id=0813831d-145d-cfb7-5c95-cef228ff1cc3                                                                                                                                  
+2024-02-07 17:54 1      agent.http                                    Request finished: method=GET url=/v1/catalog/datacenters from=10.137.29.125:55184 latency="432.267µs"                                                                                             
+2024-02-07 17:51 1      agent.http                                    Request finished: method=GET url="/v1/health/service/queue-consumer?dc=us-east&index=2446522905&passing=1&stale=&wait=60000ms" from=10.137.123.50:34598 latency=1m0.000417706s                    
+2024-02-07 17:52 1      agent.http                                    Request finished: method=GET url=/v1/status/leader from=10.137.56.240:1213 latency="80.772µs"                                                                                                     
+2024-02-07 17:53 1      agent.http                                    Request finished: method=GET url="/v1/health/service/queue-consumer?dc=us-137-prod-default&passing=1&stale=&wait=60000ms" from=10.137.154.62:38878 latency="151.353µs"                            
+2024-02-07 17:54 1      agent.http                                    Request finished: method=GET url=/v1/status/leader from=10.137.127.240:38958 latency="89.814µs"                                                                                                   
+2024-02-07 17:54 1      agent.http                                    Request finished: method=GET url=/v1/status/leader from=10.137.127.240:55117 latency="78.409µs"
+```
 
 Troubleshoot Consul RPC Rate Limiting Method calls
 
 Run: `consul-debug-read parse-rpc-counts`
+
+```shell
+# Example rpc-counts return
+$ consul-debug-read log parse-rpc-counts                                                                                                                                                                                                                                                                100%  
+Method                  Minute-Interval  Counts 
+Health.ServiceNodes     2024-02-07 17:50 443    
+Status.RaftStats        2024-02-07 17:51 300    
+Status.RaftStats        2024-02-07 17:52 300    
+Status.RaftStats        2024-02-07 17:53 300    
+Status.RaftStats        2024-02-07 17:54 300    
+Health.ServiceNodes     2024-02-07 17:54 293    
+Status.RaftStats        2024-02-07 17:50 270    
+Health.ServiceNodes     2024-02-07 17:53 158    
+Health.ServiceNodes     2024-02-07 17:52 140    
+Health.ServiceNodes     2024-02-07 17:51 116    
+Status.Leader           2024-02-07 17:54 64     
+Status.Leader           2024-02-07 17:53 64     
+Status.Leader           2024-02-07 17:52 64     
+Status.Leader           2024-02-07 17:51 64     
+Status.Leader           2024-02-07 17:50 58     
+ConnectCA.Roots         2024-02-07 17:50 51     
+Catalog.ListDatacenters 2024-02-07 17:53 46     
+Catalog.ListDatacenters 2024-02-07 17:51 45     
+Catalog.ListDatacenters 2024-02-07 17:54 44     
+Catalog.ListDatacenters 2024-02-07 17:52 44     
+Status.RaftStats        2024-02-07 17:55 40     
+Catalog.ListDatacenters 2024-02-07 17:50 34     
+Health.ServiceNodes     2024-02-07 17:55 25     
+ConnectCA.Roots         2024-02-07 17:51 22     
+PreparedQuery.Execute   2024-02-07 17:50 12     
+KVS.List                2024-02-07 17:51 9      
+Status.Leader           2024-02-07 17:55 9      
+KVS.List                2024-02-07 17:50 9      
+KVS.List                2024-02-07 17:52 7      
+KVS.List                2024-02-07 17:53 7      
+KVS.List                2024-02-07 17:54 7      
+Catalog.ListDatacenters 2024-02-07 17:55 6      
+Status.Peers            2024-02-07 17:53 4      
+PreparedQuery.Execute   2024-02-07 17:54 4      
+Coordinate.Update       2024-02-07 17:54 4      
+Status.Peers            2024-02-07 17:54 4      
+Status.Peers            2024-02-07 17:51 4      
+Status.Peers            2024-02-07 17:52 4      
+Health.NodeChecks       2024-02-07 17:52 3      
+Health.NodeChecks       2024-02-07 17:50 3      
+PreparedQuery.Execute   2024-02-07 17:51 3      
+Coordinate.Update       2024-02-07 17:51 3      
+Coordinate.Update       2024-02-07 17:52 3      
+Status.Peers            2024-02-07 17:50 3      
+Health.NodeChecks       2024-02-07 17:53 3      
+Catalog.NodeServiceList 2024-02-07 17:50 3      
+Status.Ping             2024-02-07 17:52 2      
+Health.NodeChecks       2024-02-07 17:51 2      
+Health.NodeChecks       2024-02-07 17:54 2      
+Coordinate.Update       2024-02-07 17:53 2      
+Coordinate.Update       2024-02-07 17:50 2
+```
 
 ### Consul Serf Membership
 
