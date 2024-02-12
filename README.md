@@ -171,20 +171,22 @@ Parse `INFO`, `WARN`, `ERROR`, `DEBUG`, and `TRACE` level log messages
 
 Run: `consul-debug-read log <subcommand>`
 
-| Available Subcommands | Description                    |
-|-----------------------|--------------------------------|
-| `parse-info`          | Returns all`[INFO]` messages   |
-| `parse-warn`          | Returns all `[WARN]` messages  |
-| `parse-error`         | Returns all `[ERROR]` messages |
-| `parse-debug`         | Returns all `[DEBUG]` messages |
-| `parse-trace`         | Returns all `[TRACE]` messages |
+| Available Subcommands | Description                                                                  |
+|-----------------------|------------------------------------------------------------------------------|
+| `parse-info`          | Returns all `[INFO]` messages                                                |
+| `parse-warn`          | Returns all `[WARN]` messages                                                |
+| `parse-error`         | Returns all `[ERROR]` messages                                               |
+| `parse-debug`         | Returns all `[DEBUG]` messages                                               |
+| `parse-trace`         | Returns all `[TRACE]` messages                                               |
+| `parse-rpc-counts`    | Returns all `[TRACE]` messages pertaining to RPC rate limits in calls/minute |
 
 
-| Available Options                   | Description                                                                                                                 |
-|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
-| `-message-count` (boolean)          | Parse log for `[DEBUG]` messages and return count sorted (descending order) list of messages received                       |
-| `-source-count`  (boolean)          | Parse log for `[DEBUG]` messages and return count sorted (descending order) list of messages received from specific sources |
-| `-source`        (string parameter) | Capture DEBUG messages from specific sources (e.g., "agent.http","agent.server", etc)                                       |
+| Available Options | Subcommand                                       | Description                                                                                                                   |
+|-------------------|--------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `-message-count`  | `parse-[info\| warn \| error \| debug \| trace]` | Parse log for `[DEBUG]` messages and return count sorted _(descending order)_ list of messages received                       |
+| `-source-count`   | `parse-[info\| warn \| error \| debug \| trace]` | Parse log for `[DEBUG]` messages and return count sorted _(descending order)_ list of messages received from specific sources |
+| `-source`         | `parse-[info\| warn \| error \| debug \| trace]` | Capture `[DEBUG]` messages from specific sources (e.g., "agent.http","agent.server", etc)                                     |
+| `-method`         | `parse-rpc-counts`                               | Specify a specific RPC method for filtering RPC count results (e.g., "Catalog.NodeServiceList", "Health.ServiceNodes")        |
 
 ```shell
 # Example using parse-debug sub-command
