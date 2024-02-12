@@ -52,6 +52,7 @@ Run: `consul-debug-read config [options]`
 |-----------------------|-------------------------------------------------------------------|
 | `set-path`            | Configures CLI tool's extracted directory root of focus           |
 | `current-path`        | Prints currently configured debug bundle extraction root of focus |
+| `show`                | Prints all current configuration settings applied                 |
 
 
 | Available Options | Description                                                                                                                                                             |
@@ -79,15 +80,21 @@ Option Bundle Name                                                              
 
 Enter the file option number to extract: 2
 
-consul-debug-path set successfully => /Users/natemollica/Downloads/consul-debug-2023-12-01T15-10-08-0500
+consul-debug-path set successfully => /Users/user/Downloads/consul-debug-2023-12-01T15-10-08-0500
 ```
 
-### Reading consul-debug-read config
+### Reading consul-debug-read configuration settings
 
 
 ```shell
-$ consul-debug-read config current-path                                                                                                                                                                                                                                                                 100%  
-/Users/admin/hashi-bundles/consul-debug-2024-01-23T12-50-05-0500
+$ consul-debug-read config show                                                                                                                                                                                                                                                               100%  
+                            consul-debug-read configuration settings                                                         
+                            ----------------------------------------                                                         
+Setting                     Value                                                                                            
+-------                     -----                                                                                            
+Configuration File Location /Users/user/.consul-debug-read/config.yaml
+Debug Bundle Path           /Users/user/HashiCorp/consul-debug-read/bundles/consul-debug-1707327876 (cli:-path|-file)
+CONSUL_DEBUG_PATH           <UNSET>
 ```
     
 ### Using environment variable

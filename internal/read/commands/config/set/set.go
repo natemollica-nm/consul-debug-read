@@ -167,7 +167,8 @@ func updateCurrentPath(updatePath string) (bool, error) {
 
 	// Update the configuration path setting in the struct
 	config.DebugDirectoryPath = updatePath
-	if read.EnvVarPathSetting == updatePath {
+	env, _ := filepath.Abs(read.EnvVarPathSetting)
+	if env == updatePath {
 		config.PathRenderedFrom = "env:CONSUL_DEBUG_PATH"
 	} else {
 		config.PathRenderedFrom = "cli:-path|-file"
