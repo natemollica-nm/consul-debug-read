@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"github.com/ryanuber/columnize"
 	"io"
 	"log"
 	"os"
@@ -23,6 +24,7 @@ const (
 	TimeUnitsRegex              = "^ns$|^ms$|^seconds$|^hours$"
 	BytesRegex                  = "bytes"
 	PercentRegex                = "percentage"
+	BundleRegex                 = `.*consul-debug.*|.*ConsulDebug.*` // consul debug command | hcdiag
 	TimeStampRegex              = `^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}(Z|[-+]\d{2}:?\d{2}|[-+]\d{4}|[-+]\d{2})?)`
 )
 
@@ -31,6 +33,7 @@ var (
 	CurrentDir, _           = os.Getwd()
 	DebugReadConfigDirPath  = fmt.Sprintf("%s/%s", UserHomeDir, DefaultCmdConfigFileDirName)
 	DebugReadConfigFullPath = fmt.Sprintf("%s/%s", DebugReadConfigDirPath, DefaultCmdConfigFileName)
+	bundleRegex             = regexp.MustCompile(BundleRegex)
 	timeReg                 = regexp.MustCompile(TimeUnitsRegex)
 	bytesReg                = regexp.MustCompile(BytesRegex)
 	percentageReg           = regexp.MustCompile(PercentRegex)
@@ -155,10 +158,12 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 		}
 		// Filter files for .tar.gz bundles
 		for _, file := range files {
-			if !file.IsDir() && strings.HasSuffix(file.Name(), ".tar.gz") {
+			name := file.Name()
+			if !file.IsDir() && strings.HasSuffix(name, ".tar.gz") && bundleRegex.FindStringSubmatch(name) != nil {
 				bundles = append(bundles, file)
 			}
 		}
+
 		// If there are no .tar.gz files (i.e., len(bundles) <= 0),
 		// just return the directory and handle the validation
 		// within the set cmd.The validation ensures
@@ -166,14 +171,25 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 		if len(bundles) < 1 {
 			return sourceDir, nil
 		}
-		fmt.Println("Select a bundle to extract:")
+
+		// Build extraction tool title
+		title := "Extraction Tool"
+		ul := fmt.Sprintf(strings.Repeat("-", len(title)))
+		menu := []string{fmt.Sprintf("\x1f%s\x1f", title)}
+		menu = append(menu, fmt.Sprintf("\x1f%s\x1f", ul))
+
+		// Print columnized output for user to select
+		menu = append(menu, fmt.Sprintf("Option\x1fBundle Name\x1fSize\x1f"))
+		// fmt.Println("Select a bundle to extract:")
 		conv := ByteConverter{}
 		for i, bundle := range bundles {
 			info, _ := bundle.Info()
 			bundleSize := conv.ConvertToReadableBytes(info.Size())
-			fmt.Printf("%d: %s  (%s)\n", i+1, bundle.Name(), bundleSize)
+			menu = append(menu, fmt.Sprintf("%d\x1f%s\x1f%s\x1f", i+1, bundle.Name(), bundleSize))
 		}
-		fmt.Print("enter the number of the file to extract: ")
+		output := columnize.Format(menu, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
+		fmt.Printf("%s\n\n", output)
+		fmt.Print("Enter the file option number to extract: ")
 		var selected int
 		if _, err = fmt.Scanf("%d", &selected); err != nil {
 			return "", err
