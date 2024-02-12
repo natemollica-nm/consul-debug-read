@@ -20,11 +20,10 @@ const (
 	DebugReadEnvVar             = "CONSUL_DEBUG_PATH"
 	DefaultCmdConfigFileName    = "config.yaml"
 	DefaultCmdConfigFileDirName = ".consul-debug-read"
-	DebugScrapeIntervalDefault  = 10 // consul debug scrapes the /metrics endpoint every 10s
 	TimeUnitsRegex              = "^ns$|^ms$|^seconds$|^hours$"
 	BytesRegex                  = "bytes"
 	PercentRegex                = "percentage"
-	TimeStampRegex              = `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$`
+	TimeStampRegex              = `^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}(Z|[-+]\d{2}:?\d{2}|[-+]\d{4}|[-+]\d{2})?)`
 )
 
 var (
@@ -167,7 +166,7 @@ func SelectAndExtractTarGzFilesInDir(sourceDir string) (string, error) {
 		if len(bundles) < 1 {
 			return sourceDir, nil
 		}
-		fmt.Println("select a .tar.gz file to extract:")
+		fmt.Println("Select a bundle to extract:")
 		conv := ByteConverter{}
 		for i, bundle := range bundles {
 			info, _ := bundle.Info()
@@ -286,7 +285,11 @@ func (b *Debug) numberOfCaptures() (int, error) {
 	numIntervals := int(d / i)
 
 	// Calculate the number of events per interval
-	eventsPerInterval := int(i.Seconds()) / DebugScrapeIntervalDefault
+	bundleCaptureInterval, err := strconv.Atoi(b.Index.Interval)
+	if err != nil {
+		return -1, err
+	}
+	eventsPerInterval := int(i.Seconds()) / bundleCaptureInterval
 
 	// Calculate the total number of events
 	totalEvents := numIntervals * eventsPerInterval
