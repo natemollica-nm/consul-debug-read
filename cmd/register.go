@@ -3,8 +3,11 @@ package cmd
 import (
 	"consul-debug-read/cmd/cli"
 	"consul-debug-read/internal/read/commands/agent"
+	agentconfig "consul-debug-read/internal/read/commands/agent/config"
 	"consul-debug-read/internal/read/commands/agent/members"
 	"consul-debug-read/internal/read/commands/agent/raft"
+	agentsummary "consul-debug-read/internal/read/commands/agent/summary"
+	"consul-debug-read/internal/read/commands/config"
 	"consul-debug-read/internal/read/commands/config/get"
 	"consul-debug-read/internal/read/commands/config/set"
 	"consul-debug-read/internal/read/commands/log"
@@ -23,9 +26,12 @@ import (
 func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 	registry := map[string]mcli.CommandFactory{}
 	registerCommands(ui, registry,
-		entry{"config current-path", func(cli.Ui) (mcli.Command, error) { return get.New(ui) }},
-		entry{"config set-path", func(cli.Ui) (mcli.Command, error) { return set.New(ui) }},
-		entry{"agent", func(cli.Ui) (mcli.Command, error) { return agent.New(ui) }},
+		entry{"config", func(cli.Ui) (mcli.Command, error) { return config.New(), nil }},
+		entry{"config current-path", func(ui cli.Ui) (mcli.Command, error) { return get.New(ui) }},
+		entry{"config set-path", func(ui cli.Ui) (mcli.Command, error) { return set.New(ui) }},
+		entry{"agent", func(cli.Ui) (mcli.Command, error) { return agent.New(), nil }},
+		entry{"agent summary", func(ui cli.Ui) (mcli.Command, error) { return agentsummary.New(ui) }},
+		entry{"agent config", func(ui cli.Ui) (mcli.Command, error) { return agentconfig.New(ui) }},
 		entry{"agent members", func(ui cli.Ui) (mcli.Command, error) { return members.New(ui) }},
 		entry{"agent raft-configuration", func(ui cli.Ui) (mcli.Command, error) { return raft.New(ui) }},
 		entry{"metrics", func(cli.Ui) (mcli.Command, error) { return metrics.New(ui) }},
