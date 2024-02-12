@@ -13,6 +13,7 @@ a simple cli tool for parsing consul-debug bundles to readable format
   * [Using environment variable `CONSUL_DEBUG_PATH`](#Using-environment-variable)
 * [Usage](#Usage)
   * [Consul Overall Summary](#consul-debug-overall-summary)
+  * [Consul Log Parsing](#consul-log-parsing)
   * [Consul Serf Membership](#consul-serf-membership)
   * [Consul Raft Configuration](#consul-raft-configuration)
   * [Consul Metrics Summary](#consul-metrics-summary)
