@@ -1,9 +1,6 @@
 # consul-debug-read
 a simple cli tool for parsing consul-debug bundles to readable format
 
-![](assets/consul-debug-read.gif)
-
-
 ## Table of Contents
 
 * [Getting Started](#Getting-Started)
