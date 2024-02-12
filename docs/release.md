@@ -6,8 +6,8 @@
   * `export GITHUB_TOKEN=$CONSUL_DEBUG_GH_TOKEN`
 
 * Create tag, and push to GitHub: 
-  * `git tag -a v1.1.2 -m "Patch release v1.1.2"`
-  * `git push origin v1.1.2`
+  * `git tag -a v1.1.3 -m "Patch release v1.1.3"`
+  * `git push origin v1.1.3`
 
 * Release:
   * `goreleaser release --clean`
@@ -16,8 +16,8 @@
 
 ## Recreate tag post-correction
 
-`git tag -d v1.1.2`
+`git tag -d v1.1.3`
 
-`git push --delete origin v1.1.2 `
+`git push --delete origin v1.1.3 `
 
 re-run the above
