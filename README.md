@@ -182,12 +182,12 @@ Run: `consul-debug-read log <subcommand>`
 | `parse-rpc-counts`    | Returns all `[TRACE]` messages pertaining to RPC rate limits in calls/minute |
 
 
-| Available Options | Subcommand                                       | Description                                                                                                                   |
-|-------------------|--------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| `-message-count`  | `parse-[info\| warn \| error \| debug \| trace]` | Parse log for `[DEBUG]` messages and return count sorted _(descending order)_ list of messages received                       |
-| `-source-count`   | `parse-[info\| warn \| error \| debug \| trace]` | Parse log for `[DEBUG]` messages and return count sorted _(descending order)_ list of messages received from specific sources |
-| `-source`         | `parse-[info\| warn \| error \| debug \| trace]` | Capture `[DEBUG]` messages from specific sources (e.g., "agent.http","agent.server", etc)                                     |
-| `-method`         | `parse-rpc-counts`                               | Specify a specific RPC method for filtering RPC count results (e.g., "Catalog.NodeServiceList", "Health.ServiceNodes")        |
+| Available Options | Subcommand                                       | Description                                                                                                                        |
+|-------------------|--------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| `-message-count`  | `parse-[info\| warn \| error \| debug \| trace]` | Parse log for specific-level messages and return count sorted _(descending order)_ list of messages received                       |
+| `-source-count`   | `parse-[info\| warn \| error \| debug \| trace]` | Parse log for specific-level messages and return count sorted _(descending order)_ list of messages received from specific sources |
+| `-source`         | `parse-[info\| warn \| error \| debug \| trace]` | Capture specific-level messages from specific sources (e.g., "agent.http","agent.server", etc)                                     |
+| `-method`         | `parse-rpc-counts`                               | Specify a specific RPC method for filtering RPC count results (e.g., "Catalog.NodeServiceList", "Health.ServiceNodes")             |
 
 ```shell
 # Example using parse-debug sub-command
