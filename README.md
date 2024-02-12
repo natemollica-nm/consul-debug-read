@@ -180,11 +180,11 @@ Run: `consul-debug-read log <subcommand>`
 | `parse-trace`         | Returns all `[TRACE]` messages |
 
 
-| Available Options | Option Type      | Description                                                                                                                 |
-|-------------------|------------------|-----------------------------------------------------------------------------------------------------------------------------|
-| `-message-count`  | boolean          | Parse log for `[DEBUG]` messages and return count sorted (descending order) list of messages received                       |
-| `-source-count`   | boolean          | Parse log for `[DEBUG]` messages and return count sorted (descending order) list of messages received from specific sources |
-| `-source`         | string parameter | Capture DEBUG messages from specific sources (e.g., "agent.http","agent.server", etc)                                       |
+| Available Options                   | Description                                                                                                                 |
+|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `-message-count` (boolean)          | Parse log for `[DEBUG]` messages and return count sorted (descending order) list of messages received                       |
+| `-source-count`  (boolean)          | Parse log for `[DEBUG]` messages and return count sorted (descending order) list of messages received from specific sources |
+| `-source`        (string parameter) | Capture DEBUG messages from specific sources (e.g., "agent.http","agent.server", etc)                                       |
 
 ```shell
 $ consul-debug-read 
