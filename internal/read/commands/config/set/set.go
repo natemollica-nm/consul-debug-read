@@ -70,24 +70,42 @@ func (c *cmd) Run(args []string) int {
 
 	var extractedPath string
 	var err error
-	var ok bool
+	var ok, usePath, useFile, useEnvVar bool
+
 	hclog.L().Debug("checking CONSUL_DEBUG_PATH env var (if set)", "env", read.DebugReadEnvVar)
 	path := os.Getenv(read.DebugReadEnvVar)
+	envPath, err := filepath.Abs(path)
+	if err != nil {
+		c.ui.Error("failed to retrieve absolute path of CONSUL_DEBUG_PATH environment variable setting")
+		return 1
+	}
+
 	if path != "" && c.path == "" && c.file == "" {
-		if ok, err = ValidateDebugPath(path); !ok {
-			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err, "path", path)
+		useEnvVar = true
+	} else if c.file != "" {
+		useFile = true
+	} else if c.path != "" {
+		usePath = true
+	} else {
+		c.ui.Error("[FAILED] No path settings were passed in! set your path using the `-path` or `-file` flags or by setting the CONSUL_DEBUG_PATH environment variable")
+		return 1
+	}
+
+	if useEnvVar {
+		if ok, err = ValidateDebugPath(envPath); !ok {
+			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err, "path", envPath)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
-		hclog.L().Debug("env variable set, updating config file", "CONSUL_DEBUG_PATH", path)
-		if ok, err = UpdateDebugReadConfig(path); !ok {
+		hclog.L().Debug("env variable set, updating config file", "CONSUL_DEBUG_PATH", envPath)
+		if ok, err = UpdateDebugReadConfig(envPath); !ok {
 			hclog.L().Error("failed update debug-read configuration file", "error", err)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
 		hclog.L().Debug("using env var setting", "env", read.DebugReadEnvVar)
-		c.ui.Output(fmt.Sprintf("\nconsul-debug-path set successfully using CONSUL_DEBUG_PATH env var => %s\n", path))
-	} else if c.path != "" {
+		c.ui.Output(fmt.Sprintf("\nconsul-debug-path set successfully using CONSUL_DEBUG_PATH env var => %s\n", envPath))
+	} else if usePath {
 		hclog.L().Debug("attempting to set with -path filepath", "path", c.path)
 		extractedPath, err = read.SelectAndExtractTarGzFilesInDir(c.path)
 		if err != nil {
@@ -106,7 +124,7 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		c.ui.Output(fmt.Sprintf("\nconsul-debug-path set successfully => %s\n", extractedPath))
-	} else if c.file != "" {
+	} else if useFile {
 		hclog.L().Debug("attempting to set with -file filepath", "file", c.file)
 		if ok = strings.HasSuffix(c.file, ".tar.gz"); ok {
 			extractedPath, err = read.SelectAndExtractTarGzFilesInDir(c.file)
