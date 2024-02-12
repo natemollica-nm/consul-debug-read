@@ -70,7 +70,7 @@ consul-debug-path set successfully
 
 ### Examining consul-debug-read config
 
-Run: `consul-debug-read config [options]`
+Run: `consul-debug-read config current-path [options]`
 
 ```shell
 $ consul-debug-read config current-path                                                                                                                                                                                                                                                                 100%  
@@ -161,7 +161,7 @@ Total: 29.36 GB
 
 Parse `INFO`, `WARN`, `ERROR`, `DEBUG`, and `TRACE` level log messages
 
-Run: `consul-debug-read log <subcommand>`
+Run: `consul-debug-read log <subcommand> [options]`
 
 | Available Subcommands | Description                                                                  |
 |-----------------------|------------------------------------------------------------------------------|
@@ -248,6 +248,18 @@ ConnectCA.Roots         2024-02-07 17:51 22
 PreparedQuery.Execute   2024-02-07 17:50 12
 ```
 
+### Consul Agent
+
+Run: `consul-debug-read agent <subcommand> [options]`
+
+| Available Subcommands | Description                                                             |
+|-----------------------|-------------------------------------------------------------------------|
+| `summary`             | Returns agent-specific information in summarized format                 |
+| `config`              | Returns HCL formatted agent configuration                               |
+| `members`             | Parses members.json and formats to typical 'consul members -wan' output |
+| `raft-configuration`  | Retrieve agent's latest raft configuration summary'                     |
+
+
 ### Consul Serf Membership
 
 _consul debug only runs a cached members scrape to the `/v1/catalog/members?wan` endpoint_ 
@@ -288,6 +300,41 @@ consul-i-05a474f75fea384bb 263fd5e5-fbd7-90b1-a904-4ab3c53b74f7 10.2.17.109:8300
 consul-i-06033dd57876bf1a7 eca79896-dad9-1713-94a2-c2b35a37d7df 10.2.4.89:8300    follower true  -            -
 ```
 
+### Consul Agent Configuration
+
+Run: `consul-debug-read agent config`
+
+```hcl
+ACLEnableKeyListPolicy = false
+ACLInitialManagementToken = hidden
+ACLResolverSettings {
+  ACLDefaultPolicy = allow
+  ACLDownPolicy = extend-cache
+  ACLPolicyTTL = 30s
+  ACLRoleTTL = 0s
+  ACLTokenTTL = 30s
+  ACLsEnabled = true
+  Datacenter = us-135-stag-default
+  EnterpriseMeta {
+    Namespace = 
+    Partition = default
+  }
+  NodeName = ip-10-135-37-187
+}
+ACLTokenReplication = true
+ACLTokens {
+  ACLAgentRecoveryToken = hidden
+  ACLAgentToken = hidden
+  ACLConfigFileRegistrationToken = hidden
+  ACLDefaultToken = hidden
+  ACLReplicationToken = hidden
+  DataDir = /data/consul
+  EnablePersistence = true
+  EnterpriseConfig {
+    ACLServiceProviderTokens = []
+  }
+# .... cut ....
+```
 
 ### Consul Metrics Summary
 
@@ -313,22 +360,22 @@ Capture Time Stop: 2023-10-23 15:08:30 +0000 UTC
 `consul-debug-read` comes with prebuilt variable groupings for each key-metric data type 
 to aid in quickly assessing more important metrics to the scenario
 
-| Command Option         | Description                                                                                             |
-|------------------------|---------------------------------------------------------------------------------------------------------|
-| `-auto-pilot`          | Retrieve key autopilot related metric values                                                           |
-| `-bolt-db`             | Retrieve key boltDB related metric values for Consul from debug bundle                                  |
-| `-dataplane-health`    | Retrieve key dataplane-related metric values for Consul from debug bundle                               |
-| `-federation-health`   | Retrieve key secondary datacenter federation metric values for Consul from debug bundle                |
-| `-host`                | Retrieve Host specific metrics                                                                          |
-| `-key-metrics`         | Retrieve key metric values for Consul from debug bundle                                                 |
-| `-leadership-health`   | Retrieve key raft leadership stability metric values for Consul from debug bundle                      |
-| `-list-available-telemetry` | List available metric names as retrieved from consul telemetry docs                                |
-| `-memory`              | Retrieve key memory metric values for Consul from debug bundle                                           |
-| `-name=<string>`       | Retrieve specific metric timestamped values by name                                                      |
-| `-network`             | Retrieve key network metric values for Consul from debug bundle                                           |
-| `-raft-thread-health`  | Retrieve key raft thread saturation metric values for Consul from debug bundle                            |
-| `-rate-limiting`       | Retrieve key rate limit metric values for Consul from debug bundle                                        |
-| `-transaction-timing`  | Retrieve key transaction timing metric values for Consul from debug bundle                               |
+| Command Option              | Description                                                                             |
+|-----------------------------|-----------------------------------------------------------------------------------------|
+| `-auto-pilot`               | Retrieve key autopilot related metric values                                            |
+| `-bolt-db`                  | Retrieve key boltDB related metric values for Consul from debug bundle                  |
+| `-dataplane-health`         | Retrieve key dataplane-related metric values for Consul from debug bundle               |
+| `-federation-health`        | Retrieve key secondary datacenter federation metric values for Consul from debug bundle |
+| `-host`                     | Retrieve Host specific metrics                                                          |
+| `-key-metrics`              | Retrieve key metric values for Consul from debug bundle                                 |
+| `-leadership-health`        | Retrieve key raft leadership stability metric values for Consul from debug bundle       |
+| `-list-available-telemetry` | List available metric names as retrieved from consul telemetry docs                     |
+| `-memory`                   | Retrieve key memory metric values for Consul from debug bundle                          |
+| `-name=<string>`            | Retrieve specific metric timestamped values by name                                     |
+| `-network`                  | Retrieve key network metric values for Consul from debug bundle                         |
+| `-raft-thread-health`       | Retrieve key raft thread saturation metric values for Consul from debug bundle          |
+| `-rate-limiting`            | Retrieve key rate limit metric values for Consul from debug bundle                      |
+| `-transaction-timing`       | Retrieve key transaction timing metric values for Consul from debug bundle              |
 
 
 ```shell
@@ -449,42 +496,6 @@ Host Disk Metrics Summary:
 Used: 5.96 GB  (3.08%)
 Free: 187.67 GB
 Total: 193.65 GB
-```
-
-### Consul Agent Configuration
-
-Run: `consul-debug-read agent -config`
-
-```hcl
-ACLEnableKeyListPolicy = false
-ACLInitialManagementToken = hidden
-ACLResolverSettings {
-  ACLDefaultPolicy = allow
-  ACLDownPolicy = extend-cache
-  ACLPolicyTTL = 30s
-  ACLRoleTTL = 0s
-  ACLTokenTTL = 30s
-  ACLsEnabled = true
-  Datacenter = us-135-stag-default
-  EnterpriseMeta {
-    Namespace = 
-    Partition = default
-  }
-  NodeName = ip-10-135-37-187
-}
-ACLTokenReplication = true
-ACLTokens {
-  ACLAgentRecoveryToken = hidden
-  ACLAgentToken = hidden
-  ACLConfigFileRegistrationToken = hidden
-  ACLDefaultToken = hidden
-  ACLReplicationToken = hidden
-  DataDir = /data/consul
-  EnablePersistence = true
-  EnterpriseConfig {
-    ACLServiceProviderTokens = []
-  }
-# .... cut ....
 ```
 
 ### Building and installing locally with Go
