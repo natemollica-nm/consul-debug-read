@@ -5,7 +5,8 @@ import (
 	"consul-debug-read/internal/read/commands/agent"
 	"consul-debug-read/internal/read/commands/agent/members"
 	"consul-debug-read/internal/read/commands/agent/raft"
-	show "consul-debug-read/internal/read/commands/get"
+	"consul-debug-read/internal/read/commands/config/get"
+	"consul-debug-read/internal/read/commands/config/set"
 	"consul-debug-read/internal/read/commands/log"
 	logdebug "consul-debug-read/internal/read/commands/log/parse/debug"
 	logerror "consul-debug-read/internal/read/commands/log/parse/error"
@@ -14,7 +15,6 @@ import (
 	logtrace "consul-debug-read/internal/read/commands/log/parse/trace"
 	logwarn "consul-debug-read/internal/read/commands/log/parse/warn"
 	"consul-debug-read/internal/read/commands/metrics"
-	"consul-debug-read/internal/read/commands/set"
 	"consul-debug-read/internal/read/commands/summary"
 	"fmt"
 	mcli "github.com/mitchellh/cli"
@@ -23,8 +23,8 @@ import (
 func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 	registry := map[string]mcli.CommandFactory{}
 	registerCommands(ui, registry,
-		entry{"current-path", func(cli.Ui) (mcli.Command, error) { return show.New(ui) }},
-		entry{"set-path", func(cli.Ui) (mcli.Command, error) { return set.New(ui) }},
+		entry{"config current-path", func(cli.Ui) (mcli.Command, error) { return get.New(ui) }},
+		entry{"config set-path", func(cli.Ui) (mcli.Command, error) { return set.New(ui) }},
 		entry{"agent", func(cli.Ui) (mcli.Command, error) { return agent.New(ui) }},
 		entry{"agent members", func(ui cli.Ui) (mcli.Command, error) { return members.New(ui) }},
 		entry{"agent raft-configuration", func(ui cli.Ui) (mcli.Command, error) { return raft.New(ui) }},

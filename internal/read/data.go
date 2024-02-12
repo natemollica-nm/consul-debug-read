@@ -1,9 +1,9 @@
 package read
 
 type ReaderConfig struct {
-	ConfigFile         string `yaml:"config"`
-	DebugDirectoryPath string `yaml:"current-debug-path"`
-	PathRenderedFrom   string `yaml:"Using"`
+	ConfigFile         string `yaml:"configFile"`
+	DebugDirectoryPath string `yaml:"debugDirectoryPath"`
+	PathRenderedFrom   string `yaml:"pathRenderedFrom"`
 	DebugEnvVarSetting string `yaml:"CONSUL_DEBUG_PATH"`
 }
 

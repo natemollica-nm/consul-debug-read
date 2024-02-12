@@ -1,4 +1,4 @@
-package log
+package config
 
 import (
 	"consul-debug-read/internal/read/commands"
@@ -21,11 +21,11 @@ func (c *Cmd) Run(args []string) int {
 	return cli.RunResultHelp
 }
 
-const synopsis = `Provides log parsing tools for consul debug bundle`
+const synopsis = `Executes consul-debug-read bundle file system operations`
 const help = `
 Usage: 
-    consul-debug-read log <subcommand> [options]
+    consul-debug-read config <subcommand> [options]
 
-  Run consul-debug-read log <subcommand> with no arguments for help on that
+  Run consul-debug-read config <subcommand> with no arguments for help on that
   subcommand.
 `
