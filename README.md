@@ -49,7 +49,7 @@ The following sections explain how to point the tool to the right place using on
 * Point to a previously extracted bundle's root dir
 * Set the `CONSUL_DEBUG_READ` environment variable and run the `config set-path` command
 
-Run: `consul-debug-read config set-path [options]`
+Run: `consul-debug-read config [options]`
 
 | Available Subcommands | Description                                                       |
 |-----------------------|-------------------------------------------------------------------|
@@ -70,9 +70,8 @@ enter the number of the file to extract: 1
 consul-debug-path set successfully
 ```
 
-### Examining consul-debug-read config
+### Reading consul-debug-read config
 
-Run: `consul-debug-read config current-path [options]`
 
 ```shell
 $ consul-debug-read config current-path                                                                                                                                                                                                                                                                 100%  
