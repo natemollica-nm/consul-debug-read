@@ -114,7 +114,7 @@ func extractTarGz(srcFile, destDir string) (string, error) {
 		//  => all bundles contain an index.json in the root directory
 		//  => set the extract root to whatever this dir name is
 		if filepath.Base(destFile.Name()) == "index.json" {
-			extractRootDir = filepath.Dir(destFile.Name())
+			extractRootDir, _ = filepath.Abs(filepath.Dir(destFile.Name()))
 		}
 
 		if err != nil {
