@@ -163,6 +163,35 @@ Total Available: 16.06 GB
 Total: 29.36 GB
 ```
 
+### Consul Log Parsing
+
+Parse `INFO`, `WARN`, `ERROR`, `DEBUG`, and `TRACE` level log messages
+
+Run: `consul-debug-read log <subcommand>`
+
+| Available Subcommands | Description                    |
+|-----------------------|--------------------------------|
+| `parse-info`          | Returns all`[INFO]` messages   |
+| `parse-warn`          | Returns all `[WARN]` messages  |
+| `parse-error`         | Returns all `[ERROR]` messages |
+| `parse-debug`         | Returns all `[DEBUG]` messages |
+| `parse-trace`         | Returns all `[TRACE]` messages |
+
+
+| Available Options | Option Type      | Description                                                                                                                 |
+|-------------------|------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `-message-count`  | boolean          | Parse log for `[DEBUG]` messages and return timestamp sorted list of messages received                                      |
+| `-source-count`   | boolean          | Parse log for `[DEBUG]` messages and return count sorted (descending order) list of messages received from specific sources |
+| `-source`         | string parameter | Capture DEBUG messages from specific sources (e.g., "agent.http","agent.server", etc)                                       |
+
+```shell
+$ consul-debug-read 
+```
+
+
+Troubleshoot Consul RPC Rate Limiting Method calls
+
+Run: `consul-debug-read parse-rpc-counts`
 
 ### Consul Serf Membership
 

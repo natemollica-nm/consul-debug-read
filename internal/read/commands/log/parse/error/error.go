@@ -134,7 +134,7 @@ func (c *cmd) Run(args []string) int {
 const synopsis = `Parses debug bundle log for [ERROR] messages`
 const help = `
 Usage: 
-    consul-debug-read log parse-errors [options]
+    consul-debug-read log parse-error [options]
 
 Parses consul debug bundle logs for processing [ERROR] messages
 `

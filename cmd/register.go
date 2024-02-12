@@ -32,7 +32,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"summary", func(cli.Ui) (mcli.Command, error) { return summary.New(ui) }},
 		entry{"log", func(cli.Ui) (mcli.Command, error) { return log.New(), nil }},
 		entry{"log parse-rpc-counts", func(ui cli.Ui) (mcli.Command, error) { return rpccounts.New(ui) }},
-		entry{"log parse-errors", func(ui cli.Ui) (mcli.Command, error) { return logerror.New(ui) }},
+		entry{"log parse-error", func(ui cli.Ui) (mcli.Command, error) { return logerror.New(ui) }},
 		entry{"log parse-debug", func(ui cli.Ui) (mcli.Command, error) { return logdebug.New(ui) }},
 		entry{"log parse-trace", func(ui cli.Ui) (mcli.Command, error) { return logtrace.New(ui) }},
 		entry{"log parse-warn", func(ui cli.Ui) (mcli.Command, error) { return logwarn.New(ui) }},
