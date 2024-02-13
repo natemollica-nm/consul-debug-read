@@ -301,11 +301,11 @@ func (b *Debug) numberOfCaptures() (int, error) {
 	numIntervals := int(d / i)
 
 	// Calculate the number of events per interval
-	bundleCaptureInterval, err := strconv.Atoi(b.Index.Interval)
+	bundleCaptureInterval, err := parseDuration(b.Index.Interval)
 	if err != nil {
 		return -1, err
 	}
-	eventsPerInterval := int(i.Seconds()) / bundleCaptureInterval
+	eventsPerInterval := int(i.Seconds()) / int(bundleCaptureInterval.Seconds())
 
 	// Calculate the total number of events
 	totalEvents := numIntervals * eventsPerInterval
@@ -364,7 +364,10 @@ func (b *Debug) DecodeMetricsIndex(indexDecoder *json.Decoder) error {
 
 func (b *Debug) DecodeMetrics(metricsDecoder *json.Decoder) error {
 	var err error
-	captures, _ := b.numberOfCaptures()
+	captures, err := b.numberOfCaptures()
+	if err != nil {
+		return err
+	}
 	b.Metrics.Metrics = make([]Metric, captures)
 	for i := 0; i < captures; i++ {
 		var metric Metric
