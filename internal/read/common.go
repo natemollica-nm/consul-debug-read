@@ -608,7 +608,7 @@ func (n NanosecondsConverter) Convert(timeValue interface{}) (string, error) {
 		case int64(v) >= int64(nsInMs):
 			return fmt.Sprintf("%.2fms", float64(v)/float64(nsInMs)), nil
 		default:
-			return fmt.Sprintf("%dns", v), nil
+			return fmt.Sprintf("%.2fns", float64(v)), nil
 		}
 	case float64:
 		switch {
@@ -619,7 +619,7 @@ func (n NanosecondsConverter) Convert(timeValue interface{}) (string, error) {
 		case v >= nsInMs:
 			return fmt.Sprintf("%.2fms", v/float64(nsInMs)), nil
 		default:
-			return fmt.Sprintf("%.4fns", v), nil
+			return fmt.Sprintf("%.2fns", v), nil
 		}
 	default:
 		return "", fmt.Errorf("unsupported type: %v", reflect.TypeOf(timeValue))
@@ -643,7 +643,7 @@ func (m MillisecondsConverter) Convert(timeValue interface{}) (string, error) {
 		case v >= msInSecond:
 			return fmt.Sprintf("%.2fs", float64(v)/float64(msInSecond)), nil
 		default:
-			return fmt.Sprintf("%.4fms", float64(v)), nil
+			return fmt.Sprintf("%.2fms", float64(v)), nil
 		}
 	case float64:
 		switch {
@@ -652,7 +652,7 @@ func (m MillisecondsConverter) Convert(timeValue interface{}) (string, error) {
 		case v >= msInSecond:
 			return fmt.Sprintf("%.2fs", v/float64(msInSecond)), nil
 		default:
-			return fmt.Sprintf("%.4fms", v), nil
+			return fmt.Sprintf("%.2fms", v), nil
 		}
 	default:
 		return "", fmt.Errorf("unsupported type: %v", reflect.TypeOf(timeValue))

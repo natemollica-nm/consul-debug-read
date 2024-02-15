@@ -8,13 +8,6 @@ import (
 	"strings"
 )
 
-const (
-	GaugeType    = "Gauges"
-	PointsType   = "Points"
-	CountersType = "Counters"
-	SamplesType  = "Samples"
-)
-
 type Gauge struct {
 	Name   string            `json:"Name"`
 	Value  float64           `json:"Value"`

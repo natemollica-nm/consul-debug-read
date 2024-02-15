@@ -127,9 +127,9 @@ func FormatCounts(aggregated map[string][]AggregateEntry, selector string) strin
 	// Build result with new struct
 	entryType := capitalize(selector)
 	if entryType == "Message" {
-		result = []string{fmt.Sprintf("Timestamp\x1fCounts\x1fSource\x1f%s\x1f", entryType)}
+		result = []string{"Timestamp\x1fCounts\x1fSource\x1fMessage\x1f"}
 	} else {
-		result = []string{fmt.Sprintf("Minute-Interval\x1fCounts\x1f%s\x1f", entryType)}
+		result = []string{"Minute-Interval\x1fCounts\x1fSource\x1f"}
 	}
 	var entries []FormattedEntry
 
@@ -152,17 +152,20 @@ func FormatCounts(aggregated map[string][]AggregateEntry, selector string) strin
 		return entries[i].Count > entries[j].Count
 	})
 
+	// Define the maximum message length
+	maxMessageLength := 200 // Adjust as needed
+
 	// Truncate and append sorted results
 	for _, mc := range entries {
 		// Truncate results for display if necessary
 		// We don't want to clobber stdout with non-readable data
 		out := mc.Key
-		if len(out) > 200 {
-			out = out[:47] + "..."
+		if len(out) > maxMessageLength {
+			out = out[:maxMessageLength-5] + "..."
 		}
 
 		if entryType == "Message" {
-			result = append(result, fmt.Sprintf("%s\x1f%d\x1f%s\x1f%s\x1f", mc.Minute, mc.Count, mc.Source, out))
+			result = append(result, fmt.Sprintf("%s\x1f%d\x1f%s\x1f%s\x1f", mc.Minute, mc.Count, strings.TrimSpace(mc.Source), out))
 		} else {
 			result = append(result, fmt.Sprintf("%s\x1f%d\x1f%s\x1f", mc.Minute, mc.Count, out))
 		}

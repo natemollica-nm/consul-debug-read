@@ -166,6 +166,8 @@ type cmd struct {
 	network      bool
 	rateLimiting bool
 
+	serfHealth bool
+
 	autopilot         bool
 	transactionTiming bool
 	leadershipChanges bool
@@ -175,6 +177,8 @@ type cmd struct {
 
 	dataplane        bool
 	federationStatus bool
+
+	serviceMetrics bool
 
 	telegraf bool
 
@@ -202,6 +206,8 @@ func New(ui cli.Ui) (cli.Command, error) {
 	c.flags.BoolVar(&c.network, "network", false, "Retrieve key network metric values for Consul from debug bundle")
 	c.flags.BoolVar(&c.rateLimiting, "rate-limiting", false, "Retrieve key rate limit metric values for Consul from debug bundle")
 
+	c.flags.BoolVar(&c.serfHealth, "serf-health", false, "Retrieve key serf (gossip) metrics")
+
 	c.flags.BoolVar(&c.autopilot, "auto-pilot", false, "Retrieve key autopilot related metric values")
 	c.flags.BoolVar(&c.transactionTiming, "transaction-timing", false, "Retrieve key transaction timing metric values for Consul from debug bundle")
 	c.flags.BoolVar(&c.leadershipChanges, "leadership-health", false, "Retrieve key raft leadership stability metric values for Consul from debug bundle")
@@ -211,6 +217,8 @@ func New(ui cli.Ui) (cli.Command, error) {
 
 	c.flags.BoolVar(&c.dataplane, "dataplane-health", false, "Retrieve key dataplane-related metric values for Consul from debug bundle")
 	c.flags.BoolVar(&c.federationStatus, "federation-health", false, "Retrieve key secondary datacenter federation metric values for Consul from debug bundle")
+
+	c.flags.BoolVar(&c.serviceMetrics, "service-metrics", false, "Retrieve key service-discovery related metrics from bundle")
 
 	c.flags.BoolVar(&c.telegraf, "telegraf", false, "Generate telegraf compatible metrics file for ingesting offline metrics")
 
@@ -288,7 +296,7 @@ func (c *cmd) Run(args []string) int {
 		}
 		hclog.L().Debug("successfully read in host.json bundle contents")
 	}
-	if c.keyMetrics || c.summary || c.memory || c.network || c.rateLimiting || c.autopilot || c.transactionTiming || c.leadershipChanges || c.bolt || c.dataplane || c.federationStatus || c.telegraf {
+	if c.keyMetrics || c.summary || c.memory || c.network || c.rateLimiting || c.serfHealth || c.autopilot || c.transactionTiming || c.leadershipChanges || c.bolt || c.dataplane || c.federationStatus || c.threadSaturation || c.serviceMetrics || c.telegraf {
 		hclog.L().Debug("reading in agent.json")
 		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "agent"); err != nil {
 			hclog.L().Error("failed to decode agent.json", "error", err)
@@ -338,7 +346,6 @@ func (c *cmd) Run(args []string) int {
 		}
 		sort.Strings(keyNames)
 		for _, keyMetricTitle := range keyNames {
-			fmt.Printf("[Next Key Metric] => %s: press [ENTER] to retrieve values", keyMetricTitle)
 			metricNames := keyMetricNames[keyMetricTitle]
 			for _, name := range metricNames {
 				doneCh := make(chan bool)
@@ -384,9 +391,54 @@ func (c *cmd) Run(args []string) int {
 			c.ui.Output(values)
 		}
 		return 0
+	case c.serviceMetrics:
+		ClearScreenPrompt("[Service Discovery Metrics]: press [ENTER] to retrieve values")
+		for _, name := range serviceMetrics {
+			doneCh := make(chan bool)
+			go Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
+			values, err := data.GetMetricValues(name, false, c.sort, c.short)
+			if err != nil {
+				hclog.L().Error("failed to retrieve metric", "name", name, "error", err)
+				return 1
+			}
+			doneCh <- true // Stop the dot printing goroutine
+			close(doneCh)
+			c.ui.Output(values)
+		}
+		return 0
 	case c.rateLimiting:
 		ClearScreenPrompt("[Rate Limiting Metrics]: press [ENTER] to retrieve values")
 		for _, name := range rateLimitingMetrics {
+			doneCh := make(chan bool)
+			go Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
+			values, err := data.GetMetricValues(name, false, c.sort, c.short)
+			if err != nil {
+				hclog.L().Error("failed to retrieve metric", "name", name, "error", err)
+				return 1
+			}
+			doneCh <- true // Stop the dot printing goroutine
+			close(doneCh)
+			c.ui.Output(values)
+		}
+		return 0
+	case c.serfHealth:
+		ClearScreenPrompt("[Serf Metrics]: press [ENTER] to retrieve values")
+		for _, name := range serfHealthMetrics {
+			doneCh := make(chan bool)
+			go Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
+			values, err := data.GetMetricValues(name, false, c.sort, c.short)
+			if err != nil {
+				hclog.L().Error("failed to retrieve metric", "name", name, "error", err)
+				return 1
+			}
+			doneCh <- true // Stop the dot printing goroutine
+			close(doneCh)
+			c.ui.Output(values)
+		}
+		return 0
+	case c.threadSaturation:
+		ClearScreenPrompt("[Raft Thread Saturation]: press [ENTER] to retrieve values")
+		for _, name := range raftThreadSaturationMetrics {
 			doneCh := make(chan bool)
 			go Dots(fmt.Sprintf("==> reading '%s' values", name), doneCh)
 			values, err := data.GetMetricValues(name, false, c.sort, c.short)
