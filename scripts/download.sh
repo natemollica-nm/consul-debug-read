@@ -87,7 +87,7 @@ function go_path_verification() {
         ;;
     esac
   else
-    info "Previous binary at $GOPATH/bin ('$binaryPath') not found, continuing"
+    info "Previous binary at $GOPATH/bin not found, continuing"
   fi
   return 0
 }
