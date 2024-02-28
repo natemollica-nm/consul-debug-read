@@ -57,9 +57,10 @@ function sudo_prompt() {
 }
 
 function go_path_verification() {
+  GOPATH="${GOPATH:-$HOME/go}"
   # Check if GOPATH is set
-  if [ -z "$GOPATH" ]; then
-    info "GOPATH environment variable not set"
+  if ! [ -d "$GOPATH" ]; then
+    info "GOPATH directory not present, continuing"
     return 0 # Return as we cannot remove from unknown location
   fi
 
@@ -86,7 +87,7 @@ function go_path_verification() {
         ;;
     esac
   else
-    info "binary $binaryPath does not found at $GOPATH/bin"
+    info "Previous binary at $GOPATH/bin ('$binaryPath') not found, continuing"
   fi
   return 0
 }
