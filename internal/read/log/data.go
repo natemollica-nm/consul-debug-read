@@ -21,3 +21,11 @@ type LogEntry struct {
 	Source    string
 	Message   string
 }
+
+type JsonLogEntry struct {
+	Timestamp string `json:"@timestamp"`
+	Module    string `json:"@module"`
+	Level     string `json:"@level"`
+	Message   string `json:"@message"`
+	Thread    int    `json:"thread"`
+}
