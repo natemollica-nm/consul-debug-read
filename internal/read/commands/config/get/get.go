@@ -12,7 +12,7 @@ import (
 	"os"
 )
 
-type cmd struct {
+type Cmd struct {
 	ui        cli.Ui
 	flags     *flag.FlagSet
 	pathFlags *flags.DebugReadFlags
@@ -22,7 +22,7 @@ type cmd struct {
 }
 
 func New(ui cli.Ui) (cli.Command, error) {
-	c := &cmd{
+	c := &Cmd{
 		ui:        ui,
 		pathFlags: &flags.DebugReadFlags{},
 		flags:     flag.NewFlagSet("", flag.ContinueOnError),
@@ -35,13 +35,13 @@ func New(ui cli.Ui) (cli.Command, error) {
 	return c, nil
 }
 
-func (c *cmd) Help() string { return commands.Usage(help, c.flags) }
+func (c *Cmd) Help() string { return commands.Usage(help, c.flags) }
 
-func (c *cmd) Synopsis() string {
+func (c *Cmd) Synopsis() string {
 	return synopsis
 }
 
-func (c *cmd) Run(args []string) int {
+func (c *Cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		c.ui.Error(fmt.Sprintf("Failed to parse flags: %v", err))
 		return 1
@@ -66,7 +66,7 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func (c *cmd) RenderPathFromConfig() (string, bool) {
+func (c *Cmd) RenderPathFromConfig() (string, bool) {
 	var config read.ReaderConfig
 
 	currentData, err := os.ReadFile(read.DebugReadConfigFullPath)

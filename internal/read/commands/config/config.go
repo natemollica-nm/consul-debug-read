@@ -2,10 +2,19 @@ package config
 
 import (
 	"consul-debug-read/internal/read/commands"
+	"consul-debug-read/internal/read/commands/flags"
+	"flag"
 	"github.com/mitchellh/cli"
 )
 
-type Cmd struct{}
+type Cmd struct {
+	ui        cli.Ui
+	flags     *flag.FlagSet
+	pathFlags *flags.DebugReadFlags
+
+	verbose bool
+	silent  bool
+}
 
 func New() *Cmd {
 	return &Cmd{}

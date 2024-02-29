@@ -9,6 +9,7 @@ import (
 
 type Ui interface {
 	mcli.Ui
+	mcli.CommandAutocomplete
 	Stdout() io.Writer
 	Stderr() io.Writer
 	ErrorOutput(string)
@@ -22,6 +23,7 @@ type Ui interface {
 // BasicUI augments mitchellh/cli.BasicUi by exposing the underlying io.Writer.
 type BasicUI struct {
 	mcli.BasicUi
+	mcli.CommandAutocomplete
 }
 
 func (b *BasicUI) Stdout() io.Writer {

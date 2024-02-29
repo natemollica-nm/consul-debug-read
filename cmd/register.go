@@ -27,30 +27,30 @@ import (
 func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 	registry := map[string]mcli.CommandFactory{}
 	registerCommands(ui, registry,
-		entry{"config", func(cli.Ui) (mcli.Command, error) { return config.New(), nil }},
-		entry{"config current-path", func(ui cli.Ui) (mcli.Command, error) { return get.New(ui) }},
-		entry{"config set-path", func(ui cli.Ui) (mcli.Command, error) { return set.New(ui) }},
-		entry{"config show", func(ui cli.Ui) (mcli.Command, error) { return show.New(ui) }},
-		entry{"agent", func(cli.Ui) (mcli.Command, error) { return agent.New(), nil }},
-		entry{"agent summary", func(ui cli.Ui) (mcli.Command, error) { return agentsummary.New(ui) }},
-		entry{"agent config", func(ui cli.Ui) (mcli.Command, error) { return agentconfig.New(ui) }},
-		entry{"agent members", func(ui cli.Ui) (mcli.Command, error) { return members.New(ui) }},
-		entry{"agent raft-configuration", func(ui cli.Ui) (mcli.Command, error) { return raft.New(ui) }},
-		entry{"metrics", func(cli.Ui) (mcli.Command, error) { return metrics.New(ui) }},
-		entry{"summary", func(cli.Ui) (mcli.Command, error) { return summary.New(ui) }},
-		entry{"log", func(cli.Ui) (mcli.Command, error) { return log.New(), nil }},
-		entry{"log parse-rpc-counts", func(ui cli.Ui) (mcli.Command, error) { return rpccounts.New(ui) }},
-		entry{"log parse-error", func(ui cli.Ui) (mcli.Command, error) { return logerror.New(ui) }},
-		entry{"log parse-debug", func(ui cli.Ui) (mcli.Command, error) { return logdebug.New(ui) }},
-		entry{"log parse-trace", func(ui cli.Ui) (mcli.Command, error) { return logtrace.New(ui) }},
-		entry{"log parse-warn", func(ui cli.Ui) (mcli.Command, error) { return logwarn.New(ui) }},
-		entry{"log parse-info", func(ui cli.Ui) (mcli.Command, error) { return loginfo.New(ui) }},
+		entry{"config", func(mcli.Ui) (mcli.Command, error) { return config.New(), nil }},
+		entry{"config current-path", func(ui mcli.Ui) (mcli.Command, error) { return get.New(ui) }},
+		entry{"config set-path", func(ui mcli.Ui) (mcli.Command, error) { return set.New(ui) }},
+		entry{"config show", func(ui mcli.Ui) (mcli.Command, error) { return show.New(ui) }},
+		entry{"agent", func(mcli.Ui) (mcli.Command, error) { return agent.New(), nil }},
+		entry{"agent summary", func(ui mcli.Ui) (mcli.Command, error) { return agentsummary.New(ui) }},
+		entry{"agent config", func(ui mcli.Ui) (mcli.Command, error) { return agentconfig.New(ui) }},
+		entry{"agent members", func(ui mcli.Ui) (mcli.Command, error) { return members.New(ui) }},
+		entry{"agent raft-configuration", func(ui mcli.Ui) (mcli.Command, error) { return raft.New(ui) }},
+		entry{"metrics", func(mcli.Ui) (mcli.Command, error) { return metrics.New(ui) }},
+		entry{"summary", func(mcli.Ui) (mcli.Command, error) { return summary.New(ui) }},
+		entry{"log", func(mcli.Ui) (mcli.Command, error) { return log.New(), nil }},
+		entry{"log parse-rpc-counts", func(ui mcli.Ui) (mcli.Command, error) { return rpccounts.New(ui) }},
+		entry{"log parse-error", func(ui mcli.Ui) (mcli.Command, error) { return logerror.New(ui) }},
+		entry{"log parse-debug", func(ui mcli.Ui) (mcli.Command, error) { return logdebug.New(ui) }},
+		entry{"log parse-trace", func(ui mcli.Ui) (mcli.Command, error) { return logtrace.New(ui) }},
+		entry{"log parse-warn", func(ui mcli.Ui) (mcli.Command, error) { return logwarn.New(ui) }},
+		entry{"log parse-info", func(ui mcli.Ui) (mcli.Command, error) { return loginfo.New(ui) }},
 	)
 	return registry
 }
 
 // factory is a function that returns a new instance of a CLI-sub command.
-type factory func(cli.Ui) (mcli.Command, error)
+type factory func(mcli.Ui) (mcli.Command, error)
 
 // entry is a struct that contains a command's name and a factory for that command.
 type entry struct {

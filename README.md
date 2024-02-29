@@ -531,7 +531,7 @@ Follow the [Download and Installation Instructions](https://go.dev/doc/install#t
 
 _If using macbook and installing go with homebrew set GOPATH and GOROOT as outlined in the examples below._
 
-**GOPATH** is discussed in the [cmd/go documentation](http://golang.org/cmd/go/#hdr-GOPATH_environment_variable):
+**GOPATH** is discussed in the [Cmd/go documentation](http://golang.org/Cmd/go/#hdr-GOPATH_environment_variable):
 
 > The **GOPATH** environment variable lists places to look for Go code. On Unix, the value is a colon-separated string. On Windows, the value is a semicolon-separated string. On Plan 9, the value is a list.
 **GOPATH** must be set to get, build and install packages outside the standard Go tree.

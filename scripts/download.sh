@@ -159,6 +159,13 @@ function check_tool_installed() {
     fi
 }
 
+function install_autocomplete() {
+  debug "running complete -C /usr/local/bin/consul-debug-read consul-debug-read"
+  complete -C /usr/local/bin/consul-debug-read consul-debug-read || {
+    warn "failed running autocompletion shell for consul-debug-read => 'complete -C /usr/local/bin/consul-debug-read consul-debug-read'"
+  }
+}
+
 function install_latest_release() {
   info "downloading consul-debug-read (${VERSION} | ${PLATFORM} | ${ARCH})"
   rm -f /tmp/consul-debug-read.tar.gz || {
@@ -176,8 +183,11 @@ function install_latest_release() {
     sudo rm -rf /usr/local/bin/consul-debug-read >/dev/null 2>&1 || true;
   }
   debug "install consul-debug-read: pull binary from ${URL}"
-  wget -q --show-progress --tries=3 --timeout=10 --retry-connrefused "${URL}" -O /tmp/consul-debug-read.tar.gz >/dev/null 2>&1 || {
-    err "install consul-debug-read: failed to download binary from ${URL}"
+  /bin/bash -c "$(curl -fsSL "${URL}" -o /tmp/consul-debug-read.tar.gz)" || {
+    warn "install consul-debug-read: curl attempt to download failed, switching to wget"
+    wget -q --show-progress --tries=3 --timeout=10 --retry-connrefused "${URL}" -O /tmp/consul-debug-read.tar.gz >/dev/null 2>&1 || {
+      err "install consul-debug-read: failed to download binary from ${URL}"
+    }
   }
   debug "install consul-debug-read: running tarball extraction from /tmp"
   tar -xf /tmp/consul-debug-read.tar.gz -C /tmp 2>&1 || {
@@ -205,4 +215,10 @@ for tool in "${!tools[@]}"; do
 done
 info "prerequisite verification complete, continuing with installation"
 sudo_prompt && install_latest_release
-info "consul-debug-read version: $(/usr/local/bin/consul-debug-read --version) installed successfully! | (location: /usr/local/bin/consul-debug-read)"
+info "consul-debug-read version: installed successfully!"
+printf '\n\n%s\n%s\n%s\n%s\n%s\n' \
+  "       consul-debug-read: debug bundle cli-tool" \
+  "    ===============================================" \
+  "    version:            $(/usr/local/bin/consul-debug-read --version)" \
+  "    install location:   /usr/local/bin/consul-debug-read" \
+  "    autocomplete cmd:   complete -C /usr/local/bin/consul-debug-read consul-debug-read"
