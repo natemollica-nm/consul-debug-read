@@ -56,9 +56,13 @@ func ParseRPCMethods(filePath, filterMethod string) ([]Entry, error) {
 		line := scanner.Text()
 		parts := strings.Fields(line)
 
-		timestamp, err = parseTimestamp(parts[0])
-		if err != nil {
-			return []Entry{}, err
+		if !timestampRegex.MatchString(parts[0]) {
+			continue // skip lines that don't start with timestamp (i.e., TRACE level JSON payloads)
+		} else {
+			timestamp, err = parseTimestamp(parts[0])
+			if err != nil {
+				return []Entry{}, err
+			}
 		}
 		if len(parts) < 3 || !timestampRegex.MatchString(parts[0]) {
 			continue // skip lines that don't match the expected format
