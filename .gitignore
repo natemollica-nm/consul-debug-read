@@ -33,3 +33,6 @@ metrics/telegraf/*.json
 dist/
 
 docs/release.md
+
+# Customer Info dir
+.customer/
