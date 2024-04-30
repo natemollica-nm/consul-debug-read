@@ -325,38 +325,134 @@ consul-i-06033dd57876bf1a7 eca79896-dad9-1713-94a2-c2b35a37d7df 10.2.4.89:8300  
 
 ### Consul Agent Configuration
 
+Convert `agent.json` Debug Configuration to readable user formatted agent configuration JSON file.
+
 Run: `consul-debug-read agent config`
 
-```hcl
-ACLEnableKeyListPolicy = false
-ACLInitialManagementToken = hidden
-ACLResolverSettings {
-  ACLDefaultPolicy = allow
-  ACLDownPolicy = extend-cache
-  ACLPolicyTTL = 30s
-  ACLRoleTTL = 0s
-  ACLTokenTTL = 30s
-  ACLsEnabled = true
-  Datacenter = us-135-stag-default
-  EnterpriseMeta {
-    Namespace = 
-    Partition = default
+```json
+{
+  "datacenter": "us-east-stag",
+  "primary_datacenter": "us-east-stag",
+  "node_name": "hashi-i-05a474f75fea384bb",
+  "data_dir": "/data/consul/",
+  "server": true,
+  "addresses": {
+    "dns": [
+      "tcp://0.0.0.0:8600",
+      "udp://0.0.0.0:8600"
+    ],
+    "http": [
+      "tcp://0.0.0.0:8500"
+    ],
+    "grpc": [
+      "tcp://0.0.0.0:8502"
+    ],
+    "grpc_tls": [
+      "tcp://0.0.0.0:8503"
+    ]
+  },
+  "bind_addr": "0.0.0.0",
+  "client_addr": "0.0.0.0",
+  "skip_leave_on_interrupt": false,
+  "leave_on_terminate": false,
+  "discovery_max_stale": "1s",
+  "log_level": "INFO",
+  "log_json": true,
+  "ports": {
+    "dns": 8600,
+    "http": 8500,
+    "https": -1,
+    "serf_lan": 8301,
+    "serf_wan": 8302,
+    "server": 8300,
+    "grpc": 8502,
+    "grpc_tls": 8503,
+    "sidecar_min_port": 21000,
+    "sidecar_max_port": 21255,
+    "expose_min_port": 21500,
+    "expose_max_port": 21755
+  },
+  "acl": {
+    "enabled": true,
+    "enable_token_replication": true,
+    "policy_ttl": "30s",
+    "role_ttl": "0s",
+    "token_ttl": "30s",
+    "down_policy": "extend-cache",
+    "default_policy": "allow",
+    "tokens": {
+      "initial_management": "hidden",
+      "replication": "hidden",
+      "agent_recovery": "hidden",
+      "default": "hidden",
+      "agent": "hidden",
+      "config_file_service_registration": "hidden"
+    },
+    "enable_token_persistence": true
+  },
+  "auto_encrypt": {},
+  "tls": {
+    "defaults": {
+      "key_file": "hidden",
+      "tls_min_version": "TLSv1_2"
+    },
+    "grpc": {
+      "key_file": "hidden",
+      "tls_min_version": "TLSv1_2"
+    },
+    "https": {
+      "key_file": "hidden",
+      "tls_min_version": "TLSv1_2"
+    },
+    "internal_rpc": {
+      "key_file": "hidden",
+      "tls_min_version": "TLSv1_2"
+    },
+    "NodeName": "hashi-i-05a474f75fea384bb",
+    "ServerMode": true
+  },
+  "enable_debug": true,
+  "telemetry": {
+    "dogstatsd_addr": "127.0.0.1:8125",
+    "retry_failed_connection": true,
+    "filter_default": true,
+    "prefix_filter": [
+      "consul.rpc.server.call"
+    ],
+    "metrics_prefix": "consul",
+    "prometheus_retention_time": "0s"
+  },
+  "dns": {
+    "allow_stale": true,
+    "max_stale": "87600h0m0s",
+    "node_ttl": "1m0s",
+    "only_passing": true,
+    "recursor_strategy": "sequential",
+    "recursor_timeout": "2s",
+    "service_ttl": {
+      "*": "10s"
+    },
+    "udp_answer_limit": 3,
+    "enable_additional_node_meta_txt": true,
+    "soa": {
+      "refresh": 3600,
+      "retry": 600,
+      "expire": 86400
+    },
+    "use_cache": false,
+    "cache_max_age": "0s"
+  },
+  "cache": {
+    "entry_fetch_max_burst": 2,
+    "entry_fetch_rate": 1.7976931348623157e+308
+  },
+  "limits": {
+    "request_limits": {}
+  },
+  "xds": {
+    "update_max_per_second": 250
   }
-  NodeName = ip-10-135-37-187
 }
-ACLTokenReplication = true
-ACLTokens {
-  ACLAgentRecoveryToken = hidden
-  ACLAgentToken = hidden
-  ACLConfigFileRegistrationToken = hidden
-  ACLDefaultToken = hidden
-  ACLReplicationToken = hidden
-  DataDir = /data/consul
-  EnablePersistence = true
-  EnterpriseConfig {
-    ACLServiceProviderTokens = []
-  }
-# .... cut ....
 ```
 
 ### Consul Metrics Summary
