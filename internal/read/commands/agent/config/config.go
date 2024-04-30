@@ -85,13 +85,21 @@ func (c *cmd) Run(args []string) int {
 	hclog.L().Debug("successfully read in agent information from bundle")
 
 	var result string
-	result = agentConfig(data)
+	result, err = agentConfig(data)
+	if err != nil {
+		hclog.L().Error("failed to convert to user agent config", "error", err)
+		return 1
+	}
 	c.ui.Output(result)
 	return 0
 }
 
-func agentConfig(bundle read.Debug) string {
-	return bundle.Agent.AgentConfigFull()
+func agentConfig(bundle read.Debug) (string, error) {
+	result, err := bundle.Agent.AgentConfigFull()
+	if err != nil {
+		return "", err
+	}
+	return result, nil
 }
 
 const synopsis = `Returns HCL formatted agent configuration`

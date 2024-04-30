@@ -16,6 +16,7 @@ fi
 
 # Read the CSV file line by line, skipping the header
 # Process the CSV file
+printf '%s\n' "Date     Host    Service     Thread     Module     Level     Message"
 awk -F, 'NR > 1 { # Skip the header line
     # Clean up fields: remove leading/trailing quotes and extra quotes inside fields
     for(i = 1; i <= NF; i++) {

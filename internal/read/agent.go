@@ -112,24 +112,24 @@ type DebugConfig struct {
 		IntroTokenFile  string `json:"IntroTokenFile"`
 		ServerAddresses []any  `json:"ServerAddresses"`
 	} `json:"AutoConfig"`
-	AutoEncryptAllowTLS              bool   `json:"AutoEncryptAllowTLS"`
-	AutoEncryptDNSSAN                []any  `json:"AutoEncryptDNSSAN"`
-	AutoEncryptIPSAN                 []any  `json:"AutoEncryptIPSAN"`
-	AutoEncryptTLS                   bool   `json:"AutoEncryptTLS"`
-	AutoReloadConfig                 bool   `json:"AutoReloadConfig"`
-	AutoReloadConfigCoalesceInterval string `json:"AutoReloadConfigCoalesceInterval"`
-	AutopilotCleanupDeadServers      bool   `json:"AutopilotCleanupDeadServers"`
-	AutopilotDisableUpgradeMigration bool   `json:"AutopilotDisableUpgradeMigration"`
-	AutopilotLastContactThreshold    string `json:"AutopilotLastContactThreshold"`
-	AutopilotMaxTrailingLogs         int    `json:"AutopilotMaxTrailingLogs"`
-	AutopilotMinQuorum               int    `json:"AutopilotMinQuorum"`
-	AutopilotRedundancyZoneTag       string `json:"AutopilotRedundancyZoneTag"`
-	AutopilotServerStabilizationTime string `json:"AutopilotServerStabilizationTime"`
-	AutopilotUpgradeVersionTag       string `json:"AutopilotUpgradeVersionTag"`
-	BindAddr                         string `json:"BindAddr"`
-	Bootstrap                        bool   `json:"Bootstrap"`
-	BootstrapExpect                  int    `json:"BootstrapExpect"`
-	BuildDate                        string `json:"BuildDate"`
+	AutoEncryptAllowTLS              bool     `json:"AutoEncryptAllowTLS"`
+	AutoEncryptDNSSAN                []string `json:"AutoEncryptDNSSAN"`
+	AutoEncryptIPSAN                 []string `json:"AutoEncryptIPSAN"`
+	AutoEncryptTLS                   bool     `json:"AutoEncryptTLS"`
+	AutoReloadConfig                 bool     `json:"AutoReloadConfig"`
+	AutoReloadConfigCoalesceInterval string   `json:"AutoReloadConfigCoalesceInterval"`
+	AutopilotCleanupDeadServers      bool     `json:"AutopilotCleanupDeadServers"`
+	AutopilotDisableUpgradeMigration bool     `json:"AutopilotDisableUpgradeMigration"`
+	AutopilotLastContactThreshold    string   `json:"AutopilotLastContactThreshold"`
+	AutopilotMaxTrailingLogs         int      `json:"AutopilotMaxTrailingLogs"`
+	AutopilotMinQuorum               int      `json:"AutopilotMinQuorum"`
+	AutopilotRedundancyZoneTag       string   `json:"AutopilotRedundancyZoneTag"`
+	AutopilotServerStabilizationTime string   `json:"AutopilotServerStabilizationTime"`
+	AutopilotUpgradeVersionTag       string   `json:"AutopilotUpgradeVersionTag"`
+	BindAddr                         string   `json:"BindAddr"`
+	Bootstrap                        bool     `json:"Bootstrap"`
+	BootstrapExpect                  int      `json:"BootstrapExpect"`
+	BuildDate                        string   `json:"BuildDate"`
 	Cache                            struct {
 		EntryFetchMaxBurst int     `json:"EntryFetchMaxBurst"`
 		EntryFetchRate     float64 `json:"EntryFetchRate"`
@@ -191,30 +191,28 @@ type DebugConfig struct {
 		Refresh int `json:"Refresh"`
 		Retry   int `json:"Retry"`
 	} `json:"DNSSOA"`
-	DNSServiceTTL struct {
-		Name string `json:"*"`
-	} `json:"DNSServiceTTL"`
-	DNSUDPAnswerLimit                int    `json:"DNSUDPAnswerLimit"`
-	DNSUseCache                      bool   `json:"DNSUseCache"`
-	DataDir                          string `json:"DataDir"`
-	Datacenter                       string `json:"Datacenter"`
-	DefaultQueryTime                 string `json:"DefaultQueryTime"`
-	DevMode                          bool   `json:"DevMode"`
-	DisableAnonymousSignature        bool   `json:"DisableAnonymousSignature"`
-	DisableCoordinates               bool   `json:"DisableCoordinates"`
-	DisableHTTPUnprintableCharFilter bool   `json:"DisableHTTPUnprintableCharFilter"`
-	DisableHostNodeID                bool   `json:"DisableHostNodeID"`
-	DisableKeyringFile               bool   `json:"DisableKeyringFile"`
-	DisableRemoteExec                bool   `json:"DisableRemoteExec"`
-	DisableUpdateCheck               bool   `json:"DisableUpdateCheck"`
-	DiscardCheckOutput               bool   `json:"DiscardCheckOutput"`
-	DiscoveryMaxStale                string `json:"DiscoveryMaxStale"`
-	EnableAgentTLSForChecks          bool   `json:"EnableAgentTLSForChecks"`
-	EnableCentralServiceConfig       bool   `json:"EnableCentralServiceConfig"`
-	EnableDebug                      bool   `json:"EnableDebug"`
-	EnableLocalScriptChecks          bool   `json:"EnableLocalScriptChecks"`
-	EnableRemoteScriptChecks         bool   `json:"EnableRemoteScriptChecks"`
-	EncryptKey                       string `json:"EncryptKey"`
+	DNSServiceTTL                    map[string]string `json:"DNSServiceTTL"`
+	DNSUDPAnswerLimit                int               `json:"DNSUDPAnswerLimit"`
+	DNSUseCache                      bool              `json:"DNSUseCache"`
+	DataDir                          string            `json:"DataDir"`
+	Datacenter                       string            `json:"Datacenter"`
+	DefaultQueryTime                 string            `json:"DefaultQueryTime"`
+	DevMode                          bool              `json:"DevMode"`
+	DisableAnonymousSignature        bool              `json:"DisableAnonymousSignature"`
+	DisableCoordinates               bool              `json:"DisableCoordinates"`
+	DisableHTTPUnprintableCharFilter bool              `json:"DisableHTTPUnprintableCharFilter"`
+	DisableHostNodeID                bool              `json:"DisableHostNodeID"`
+	DisableKeyringFile               bool              `json:"DisableKeyringFile"`
+	DisableRemoteExec                bool              `json:"DisableRemoteExec"`
+	DisableUpdateCheck               bool              `json:"DisableUpdateCheck"`
+	DiscardCheckOutput               bool              `json:"DiscardCheckOutput"`
+	DiscoveryMaxStale                string            `json:"DiscoveryMaxStale"`
+	EnableAgentTLSForChecks          bool              `json:"EnableAgentTLSForChecks"`
+	EnableCentralServiceConfig       bool              `json:"EnableCentralServiceConfig"`
+	EnableDebug                      bool              `json:"EnableDebug"`
+	EnableLocalScriptChecks          bool              `json:"EnableLocalScriptChecks"`
+	EnableRemoteScriptChecks         bool              `json:"EnableRemoteScriptChecks"`
+	EncryptKey                       string            `json:"EncryptKey"`
 	EnterpriseRuntimeConfig          struct {
 		ACLMSPDisableBootstrap bool `json:"ACLMSPDisableBootstrap"`
 		AuditEnabled           bool `json:"AuditEnabled"`
@@ -240,7 +238,7 @@ type DebugConfig struct {
 	} `json:"EnterpriseRuntimeConfig"`
 	ExposeMaxPort           int      `json:"ExposeMaxPort"`
 	ExposeMinPort           int      `json:"ExposeMinPort"`
-	GRPCAddrs               []any    `json:"GRPCAddrs"`
+	GRPCAddrs               []string `json:"GRPCAddrs"`
 	GRPCPort                int      `json:"GRPCPort"`
 	GRPCTLSAddrs            []string `json:"GRPCTLSAddrs"`
 	GRPCTLSPort             int      `json:"GRPCTLSPort"`
@@ -418,7 +416,7 @@ type DebugConfig struct {
 		WanIpv4 string `json:"wan_ipv4"`
 	} `json:"TaggedAddresses"`
 	Telemetry struct {
-		AllowedPrefixes                    []any    `json:"AllowedPrefixes"`
+		AllowedPrefixes                    []string `json:"AllowedPrefixes"`
 		BlockedPrefixes                    []string `json:"BlockedPrefixes"`
 		CirconusAPIApp                     string   `json:"CirconusAPIApp"`
 		CirconusAPIToken                   string   `json:"CirconusAPIToken"`
@@ -479,6 +477,241 @@ type DebugConfig struct {
 	VersionPrerelease   string `json:"VersionPrerelease"`
 	Watches             []any  `json:"Watches"`
 	XDSUpdateRateLimit  int    `json:"XDSUpdateRateLimit"`
+}
+
+// AgentConfig is the standard agent.json structure for a user provided agent file.
+// Reference: https://developer.hashicorp.com/consul/docs/agent/config/config-files#agents-configuration-file-reference
+type AgentConfig struct {
+	Domain            string   `json:"domain,omitempty"`
+	Datacenter        string   `json:"datacenter,omitempty"`
+	PrimaryDatacenter string   `json:"primary_datacenter,omitempty"`
+	NodeName          string   `json:"node_name,omitempty"`
+	DataDir           string   `json:"data_dir,omitempty"`
+	Server            bool     `json:"server,omitempty"`
+	Bootstrap         bool     `json:"bootstrap,omitempty"`
+	BootstrapExpect   int      `json:"bootstrap_expect,omitempty"`
+	RetryJoinLAN      []string `json:"retry_join,omitempty"`
+	RetryJoinWAN      []string `json:"retry_join_wan,omitempty"`
+
+	// Addresses
+	Addresses struct {
+		DNS     []string `json:"dns,omitempty"`
+		HTTP    []string `json:"http,omitempty"`
+		HTTPS   []string `json:"https,omitempty"`
+		GRPC    []string `json:"grpc,omitempty"`
+		GRPCTLS []string `json:"grpc_tls,omitempty"`
+	} `json:"addresses,omitempty"`
+	BindAddr                  string `json:"bind_addr,omitempty"`
+	ClientAddr                string `json:"client_addr,omitempty"`
+	AdvertiseAddrLAN          string `json:"advertise_addr,omitempty"`
+	AdvertiseAddrLANIPv4      string `json:"advertise_addr_ipv4,omitempty"`
+	AdvertiseAddrLANIPv6      string `json:"advertise_addr_ipv6,omitempty"`
+	AdvertiseAddrWAN          string `json:"advertise_addr_wan,omitempty"`
+	AdvertiseAddrWANIPv4      string `json:"advertise_addr_wan_ipv4,omitempty"`
+	AdvertiseAddrWANIPv6      string `json:"advertise_addr_wan_ipv6,omitempty"`
+	AdvertiseReconnectTimeout string `json:"advertise_reconnect_timeout,omitempty"`
+	TranslateWANAddrs         bool   `json:"translate_wan_addrs,omitempty"`
+
+	// Leave on Interrupt
+	SkipLeaveOnInt bool `json:"skip_leave_on_interrupt" json:"skip_leave_on_interrupt,omitempty"`
+	LeaveOnTerm    bool `json:"leave_on_terminate" json:"leave_on_terminate,omitempty"`
+
+	DiscoveryMaxStale string `json:"discovery_max_stale" json:"discovery_max_stale,omitempty"`
+
+	// Logging
+	SyslogFacility string `json:"syslog_facility,omitempty"`
+	LogLevel       string `json:"log_level,omitempty"`
+	LogJSON        bool   `json:"log_json,omitempty"`
+	LogFile        string `json:"log_file,omitempty"`
+
+	// Ports
+	Ports struct {
+		DNS            int `json:"dns,omitempty"`
+		HTTP           int `json:"http,omitempty"`
+		HTTPS          int `json:"https,omitempty"`
+		SerfLAN        int `json:"serf_lan,omitempty"`
+		SerfWAN        int `json:"serf_wan,omitempty"`
+		Server         int `json:"server,omitempty"`
+		GRPC           int `json:"grpc,omitempty"`
+		GRPCTLS        int `json:"grpc_tls,omitempty"`
+		SidecarMinPort int `json:"sidecar_min_port,omitempty"`
+		SidecarMaxPort int `json:"sidecar_max_port,omitempty"`
+		ExposeMinPort  int `json:"expose_min_port,omitempty" `
+		ExposeMaxPort  int `json:"expose_max_port,omitempty"`
+	} `json:"ports,omitempty"`
+
+	// ACL
+	ACL struct {
+		Enabled             bool   `json:"enabled,omitempty"`
+		TokenReplication    bool   `json:"enable_token_replication,omitempty"`
+		PolicyTTL           string `json:"policy_ttl,omitempty"`
+		RoleTTL             string `json:"role_ttl,omitempty"`
+		TokenTTL            string `json:"token_ttl,omitempty"`
+		DownPolicy          string `json:"down_policy,omitempty"`
+		DefaultPolicy       string `json:"default_policy,omitempty"`
+		EnableKeyListPolicy bool   `json:"enable_key_list_policy,omitempty"`
+		Tokens              struct {
+			InitialManagement      string `json:"initial_management,omitempty"`
+			Replication            string `json:"replication,omitempty"`
+			AgentRecovery          string `json:"agent_recovery,omitempty"`
+			Default                string `json:"default,omitempty"`
+			Agent                  string `json:"agent,omitempty"`
+			ConfigFileRegistration string `json:"config_file_service_registration,omitempty"`
+			DNS                    string `json:"dns,omitempty"`
+		} `json:"tokens,omitempty"`
+		EnableTokenPersistence bool `json:"enable_token_persistence,omitempty"`
+	} `json:"acl,omitempty"`
+
+	// Gossip
+	Encrypt               string `json:"encrypt,omitempty"`
+	EncryptVerifyIncoming bool   `json:"encrypt_verify_incoming,omitempty"`
+	EncryptVerifyOutgoing bool   `json:"encrypt_verify_outgoing,omitempty"`
+
+	// Script/TLS Health Checks
+	EnableAgentTLSForChecks    bool `json:"EnableAgentTLSForChecks,omitempty"`
+	EnableCentralServiceConfig bool `json:"enable_central_service_config,omitempty"`
+
+	// AutoEncrypt TLS
+	AutoEncrypt struct {
+		AllowTLS bool     `json:"allow_tls,omitempty"`
+		TLS      bool     `json:"tls,omitempty"`
+		DNSSAN   []string `json:"dns_san,omitempty"`
+		IPSAN    []string `json:"ip_san,omitempty"`
+	} `json:"auto_encrypt,omitempty"`
+
+	// RPC TLS
+	TLS struct {
+		Defaults struct {
+			CAFile               string `json:"ca_file,omitempty"`
+			CAPath               string `json:"ca_path,omitempty"`
+			CertFile             string `json:"cert_file,omitempty"`
+			KeyFile              string `json:"key_file,omitempty"`
+			TLSCipherSuites      []any  `json:"tls_cipher_suites,omitempty"`
+			TLSMinVersion        string `json:"tls_min_version,omitempty"`
+			VerifyIncoming       bool   `json:"verify_incoming,omitempty"`
+			VerifyOutgoing       bool   `json:"verify_outgoing,omitempty"`
+			VerifyServerHostname bool   `json:"verify_server_hostname,omitempty"`
+		} `json:"defaults,omitempty"`
+		Grpc struct {
+			CAFile          string `json:"ca_file,omitempty"`
+			CAPath          string `json:"ca_path,omitempty"`
+			CertFile        string `json:"cert_file,omitempty"`
+			KeyFile         string `json:"key_file,omitempty"`
+			TLSCipherSuites []any  `json:"tls_cipher_suites,omitempty"`
+			TLSMinVersion   string `json:"tls_min_version,omitempty"`
+			VerifyIncoming  bool   `json:"verify_incoming,omitempty"`
+			VerifyOutgoing  bool   `json:"verify_outgoing,omitempty"`
+			UseAutoCert     bool   `json:"use_auto_cert,omitempty"`
+		} `json:"grpc,omitempty"`
+		HTTPS struct {
+			CAFile          string `json:"ca_file,omitempty"`
+			CAPath          string `json:"ca_path,omitempty"`
+			CertFile        string `json:"cert_file,omitempty"`
+			KeyFile         string `json:"key_file,omitempty"`
+			TLSCipherSuites []any  `json:"tls_cipher_suites,omitempty"`
+			TLSMinVersion   string `json:"tls_min_version,omitempty"`
+			VerifyIncoming  bool   `json:"verify_incoming,omitempty"`
+			VerifyOutgoing  bool   `json:"verify_outgoing,omitempty"`
+		} `json:"https,omitempty"`
+		InternalRPC struct {
+			CAFile               string `json:"ca_file,omitempty"`
+			CAPath               string `json:"ca_path,omitempty"`
+			CertFile             string `json:"cert_file,omitempty"`
+			KeyFile              string `json:"key_file,omitempty"`
+			TLSCipherSuites      []any  `json:"tls_cipher_suites,omitempty"`
+			TLSMinVersion        string `json:"tls_min_version,omitempty"`
+			VerifyIncoming       bool   `json:"verify_incoming,omitempty"`
+			VerifyOutgoing       bool   `json:"verify_outgoing,omitempty"`
+			VerifyServerHostname bool   `json:"verify_server_hostname,omitempty"`
+		} `json:"internal_rpc,omitempty"`
+		ServerName string `json:"server_name,omitempty"`
+		NodeName   string `json:"NodeName,omitempty"`
+		ServerMode bool   `json:"ServerMode,omitempty"`
+	} `json:"tls,omitempty"`
+
+	// PPROF Debugging
+	EnableDebug bool `json:"enable_debug" json:"enable_debug,omitempty"`
+
+	// Telemetry
+	Telemetry struct {
+		CirconusAPIApp                     string   `json:"circonus_api_app,omitempty"`
+		CirconusAPIToken                   string   `json:"circonus_api_token,omitempty"`
+		CirconusAPIURL                     string   `json:"circonus_api_url,omitempty"`
+		CirconusBrokerID                   string   `json:"circonus_broker_id,omitempty"`
+		CirconusBrokerSelectTag            string   `json:"circonus_broker_select_tag,omitempty"`
+		CirconusCheckDisplayName           string   `json:"circonus_check_display_name,omitempty"`
+		CirconusCheckForceMetricActivation string   `json:"circonus_check_force_metric_activation,omitempty"`
+		CirconusCheckID                    string   `json:"circonus_check_id,omitempty"`
+		CirconusCheckInstanceID            string   `json:"circonus_check_instance_id,omitempty"`
+		CirconusCheckSearchTag             string   `json:"circonus_check_search_tag,omitempty"`
+		CirconusCheckTags                  string   `json:"circonus_check_tags,omitempty"`
+		CirconusSubmissionInterval         string   `json:"circonus_submission_interval,omitempty"`
+		CirconusSubmissionURL              string   `json:"circonus_submission_url,omitempty"`
+		DisableHostname                    bool     `json:"disable_hostname,omitempty"`
+		EnableHostMetrics                  bool     `json:"enable_host_metrics,omitempty"`
+		DogstatsdAddr                      string   `json:"dogstatsd_addr,omitempty"`
+		DogstatsdTags                      []string `json:"dogstatsd_tags,omitempty"`
+		RetryFailedConfiguration           bool     `json:"retry_failed_connection,omitempty"`
+		FilterDefault                      bool     `json:"filter_default,omitempty"`
+		PrefixFilter                       []string `json:"prefix_filter,omitempty"`
+		MetricsPrefix                      string   `json:"metrics_prefix,omitempty"`
+		PrometheusRetentionTime            string   `json:"prometheus_retention_time,omitempty"`
+		StatsdAddr                         string   `json:"statsd_address,omitempty"`
+		StatsiteAddr                       string   `json:"statsite_address,omitempty"`
+	} `json:"telemetry"`
+
+	// DNS
+	DNS struct {
+		AllowStale         bool              `json:"allow_stale,omitempty"`
+		ARecordLimit       int               `json:"a_record_limit,omitempty"`
+		DisableCompression bool              `json:"disable_compression,omitempty"`
+		EnableTruncate     bool              `json:"enable_truncate,omitempty"`
+		MaxStale           string            `json:"max_stale,omitempty"`
+		NodeTTL            string            `json:"node_ttl,omitempty"`
+		OnlyPassing        bool              `json:"only_passing,omitempty"`
+		RecursorStrategy   string            `json:"recursor_strategy,omitempty"`
+		RecursorTimeout    string            `json:"recursor_timeout,omitempty"`
+		ServiceTTL         map[string]string `json:"service_ttl,omitempty"`
+		UDPAnswerLimit     int               `json:"udp_answer_limit,omitempty"`
+		NodeMetaTXT        bool              `json:"enable_additional_node_meta_txt,omitempty"`
+		SOA                struct {
+			Refresh int `json:"refresh,omitempty"`
+			Retry   int `json:"retry,omitempty"`
+			Expire  int `json:"expire,omitempty"`
+			Minttl  int `json:"min_ttl,omitempty"`
+		} `json:"soa,omitempty"`
+		UseCache    bool   `json:"use_cache"`
+		CacheMaxAge string `json:"cache_max_age"`
+	} `json:"dns,omitempty"`
+
+	// Caching
+	Cache struct {
+		EntryFetchMaxBurst int     `json:"entry_fetch_max_burst"`
+		EntryFetchRate     float64 `json:"entry_fetch_rate"`
+	} `json:"cache,omitempty"`
+
+	// RPC and HTTP Limits
+	Limits struct {
+		HTTPMaxConnsPerClient int    `json:"http_max_conns_per_client,omitempty"`
+		HTTPSHandshakeTimeout string `json:"https_handshake_timeout,omitempty"`
+		RequestLimits         struct {
+			Mode      int     `json:"mode,omitempty"`
+			ReadRate  float64 `json:"read_rate,omitempty"`
+			WriteRate float64 `json:"write_rate,omitempty"`
+		} `json:"request_limits,omitempty"`
+		RPCClientTimeout     string  `json:"rpc_client_timeout,omitempty"`
+		RPCHandshakeTimeout  string  `json:"rpc_handshake_timeout,omitempty"`
+		RPCMaxBurst          int     `json:"rpc_max_burst,omitempty"`
+		RPCMaxConnsPerClient int     `json:"rpc_max_conns_per_client,omitempty"`
+		RPCRate              float64 `json:"rpc_rate,omitempty"`
+		KVMaxValueSize       int     `json:"kv_max_value_size,omitempty"`
+		TxnMaxReqLen         int     `json:"txn_max_req_len,omitempty"`
+	} `json:"limits,omitempty"`
+
+	// xDS Limits
+	XDS struct {
+		UpdateMaxPerSecond float64 `json:"update_max_per_second,omitempty"`
+	} `json:"xds"`
 }
 
 type Member struct {
@@ -718,8 +951,397 @@ func (a *Agent) ParseDebugRaftConfig() string {
 	return raftConfig
 }
 
-func (a *Agent) AgentConfigFull() string {
-	return StructToHCL(a.DebugConfig, "")
+func (a *Agent) AgentConfigFull() (string, error) {
+	var err error
+	var userConfig *AgentConfig
+
+	userConfig, err = a.toUserAgentConfig()
+	if err != nil {
+		return "", err
+	}
+	stringJson, err := json.MarshalIndent(userConfig, "", "    ")
+	if err != nil {
+		return "", err
+	}
+	return string(stringJson), nil
+}
+
+func (a *Agent) toUserAgentConfig() (*AgentConfig, error) {
+	var agentConfig = &AgentConfig{
+		Datacenter:        a.Config.Datacenter,
+		PrimaryDatacenter: a.DebugConfig.PrimaryDatacenter,
+		NodeName:          a.Config.NodeName,
+		Server:            a.Config.Server,
+		Bootstrap:         a.DebugConfig.Bootstrap,
+		BootstrapExpect:   a.DebugConfig.BootstrapExpect,
+		LogFile:           a.DebugConfig.Logging.LogFilePath,
+		LogJSON:           a.DebugConfig.Logging.LogJSON,
+		DataDir:           a.DebugConfig.DataDir,
+		LogLevel:          a.DebugConfig.Logging.LogLevel,
+		BindAddr:          a.DebugConfig.BindAddr,
+		ClientAddr:        a.DebugConfig.ClientAddrs[0],
+		DiscoveryMaxStale: a.DebugConfig.DiscoveryMaxStale,
+
+		ACL: struct {
+			Enabled             bool   `json:"enabled,omitempty"`
+			TokenReplication    bool   `json:"enable_token_replication,omitempty"`
+			PolicyTTL           string `json:"policy_ttl,omitempty"`
+			RoleTTL             string `json:"role_ttl,omitempty"`
+			TokenTTL            string `json:"token_ttl,omitempty"`
+			DownPolicy          string `json:"down_policy,omitempty"`
+			DefaultPolicy       string `json:"default_policy,omitempty"`
+			EnableKeyListPolicy bool   `json:"enable_key_list_policy,omitempty"`
+			Tokens              struct {
+				InitialManagement      string `json:"initial_management,omitempty"`
+				Replication            string `json:"replication,omitempty"`
+				AgentRecovery          string `json:"agent_recovery,omitempty"`
+				Default                string `json:"default,omitempty"`
+				Agent                  string `json:"agent,omitempty"`
+				ConfigFileRegistration string `json:"config_file_service_registration,omitempty"`
+				DNS                    string `json:"dns,omitempty"`
+			} `json:"tokens,omitempty"`
+			EnableTokenPersistence bool `json:"enable_token_persistence,omitempty"`
+		}(struct {
+			Enabled             bool
+			TokenReplication    bool
+			PolicyTTL           string
+			RoleTTL             string
+			TokenTTL            string
+			DownPolicy          string
+			DefaultPolicy       string
+			EnableKeyListPolicy bool
+			Tokens              struct {
+				InitialManagement      string
+				Replication            string
+				AgentRecovery          string
+				Default                string
+				Agent                  string
+				ConfigFileRegistration string
+				DNS                    string
+			}
+			EnableTokenPersistence bool
+		}{Enabled: a.DebugConfig.ACLsEnabled, TokenReplication: a.DebugConfig.ACLTokenReplication,
+			PolicyTTL:              a.DebugConfig.ACLResolverSettings.ACLPolicyTTL,
+			RoleTTL:                a.DebugConfig.ACLResolverSettings.ACLRoleTTL,
+			TokenTTL:               a.DebugConfig.ACLResolverSettings.ACLTokenTTL,
+			DownPolicy:             a.DebugConfig.ACLResolverSettings.ACLDownPolicy,
+			DefaultPolicy:          a.DebugConfig.ACLResolverSettings.ACLDefaultPolicy,
+			EnableTokenPersistence: a.DebugConfig.ACLTokens.EnablePersistence,
+			Tokens: struct {
+				InitialManagement      string
+				Replication            string
+				AgentRecovery          string
+				Default                string
+				Agent                  string
+				ConfigFileRegistration string
+				DNS                    string
+			}{InitialManagement: a.DebugConfig.ACLInitialManagementToken, Replication: a.DebugConfig.ACLTokens.ACLReplicationToken, AgentRecovery: a.DebugConfig.ACLTokens.ACLAgentRecoveryToken, Default: a.DebugConfig.ACLTokens.ACLDefaultToken, Agent: a.DebugConfig.ACLTokens.ACLAgentToken, ConfigFileRegistration: a.DebugConfig.ACLTokens.ACLConfigFileRegistrationToken}}),
+
+		Addresses: struct {
+			DNS     []string `json:"dns,omitempty"`
+			HTTP    []string `json:"http,omitempty"`
+			HTTPS   []string `json:"https,omitempty"`
+			GRPC    []string `json:"grpc,omitempty"`
+			GRPCTLS []string `json:"grpc_tls,omitempty"`
+		}(struct {
+			DNS     []string
+			HTTP    []string
+			HTTPS   []string
+			GRPC    []string
+			GRPCTLS []string
+		}{DNS: a.DebugConfig.DNSAddrs, HTTP: a.DebugConfig.HTTPAddrs, HTTPS: a.DebugConfig.HTTPSAddrs, GRPC: a.DebugConfig.GRPCAddrs, GRPCTLS: a.DebugConfig.GRPCTLSAddrs}),
+		Ports: struct {
+			DNS            int `json:"dns,omitempty"`
+			HTTP           int `json:"http,omitempty"`
+			HTTPS          int `json:"https,omitempty"`
+			SerfLAN        int `json:"serf_lan,omitempty"`
+			SerfWAN        int `json:"serf_wan,omitempty"`
+			Server         int `json:"server,omitempty"`
+			GRPC           int `json:"grpc,omitempty"`
+			GRPCTLS        int `json:"grpc_tls,omitempty"`
+			SidecarMinPort int `json:"sidecar_min_port,omitempty"`
+			SidecarMaxPort int `json:"sidecar_max_port,omitempty"`
+			ExposeMinPort  int `json:"expose_min_port,omitempty" `
+			ExposeMaxPort  int `json:"expose_max_port,omitempty"`
+		}(struct {
+			DNS            int
+			HTTP           int
+			HTTPS          int
+			SerfLAN        int
+			SerfWAN        int
+			Server         int
+			GRPC           int
+			GRPCTLS        int
+			SidecarMinPort int
+			SidecarMaxPort int
+			ExposeMinPort  int
+			ExposeMaxPort  int
+		}{DNS: a.DebugConfig.DNSPort, HTTP: a.DebugConfig.HTTPPort, HTTPS: a.DebugConfig.HTTPSPort, SerfLAN: a.DebugConfig.SerfPortLAN, SerfWAN: a.DebugConfig.SerfPortWAN, Server: a.DebugConfig.ServerPort, GRPC: a.DebugConfig.GRPCPort, GRPCTLS: a.DebugConfig.GRPCTLSPort, SidecarMinPort: a.DebugConfig.ConnectSidecarMinPort, SidecarMaxPort: a.DebugConfig.ConnectSidecarMaxPort, ExposeMinPort: a.DebugConfig.ExposeMinPort, ExposeMaxPort: a.DebugConfig.ExposeMaxPort}),
+
+		AutoEncrypt: struct {
+			AllowTLS bool     `json:"allow_tls,omitempty"`
+			TLS      bool     `json:"tls,omitempty"`
+			DNSSAN   []string `json:"dns_san,omitempty"`
+			IPSAN    []string `json:"ip_san,omitempty"`
+		}{AllowTLS: a.DebugConfig.AutoEncryptAllowTLS, TLS: a.DebugConfig.AutoEncryptTLS, DNSSAN: a.DebugConfig.AutoEncryptDNSSAN, IPSAN: a.DebugConfig.AutoEncryptIPSAN},
+
+		TLS: struct {
+			Defaults struct {
+				CAFile               string `json:"ca_file,omitempty"`
+				CAPath               string `json:"ca_path,omitempty"`
+				CertFile             string `json:"cert_file,omitempty"`
+				KeyFile              string `json:"key_file,omitempty"`
+				TLSCipherSuites      []any  `json:"tls_cipher_suites,omitempty"`
+				TLSMinVersion        string `json:"tls_min_version,omitempty"`
+				VerifyIncoming       bool   `json:"verify_incoming,omitempty"`
+				VerifyOutgoing       bool   `json:"verify_outgoing,omitempty"`
+				VerifyServerHostname bool   `json:"verify_server_hostname,omitempty"`
+			} `json:"defaults,omitempty"`
+			Grpc struct {
+				CAFile          string `json:"ca_file,omitempty"`
+				CAPath          string `json:"ca_path,omitempty"`
+				CertFile        string `json:"cert_file,omitempty"`
+				KeyFile         string `json:"key_file,omitempty"`
+				TLSCipherSuites []any  `json:"tls_cipher_suites,omitempty"`
+				TLSMinVersion   string `json:"tls_min_version,omitempty"`
+				VerifyIncoming  bool   `json:"verify_incoming,omitempty"`
+				VerifyOutgoing  bool   `json:"verify_outgoing,omitempty"`
+				UseAutoCert     bool   `json:"use_auto_cert,omitempty"`
+			} `json:"grpc,omitempty"`
+			HTTPS struct {
+				CAFile          string `json:"ca_file,omitempty"`
+				CAPath          string `json:"ca_path,omitempty"`
+				CertFile        string `json:"cert_file,omitempty"`
+				KeyFile         string `json:"key_file,omitempty"`
+				TLSCipherSuites []any  `json:"tls_cipher_suites,omitempty"`
+				TLSMinVersion   string `json:"tls_min_version,omitempty"`
+				VerifyIncoming  bool   `json:"verify_incoming,omitempty"`
+				VerifyOutgoing  bool   `json:"verify_outgoing,omitempty"`
+			} `json:"https,omitempty"`
+			InternalRPC struct {
+				CAFile               string `json:"ca_file,omitempty"`
+				CAPath               string `json:"ca_path,omitempty"`
+				CertFile             string `json:"cert_file,omitempty"`
+				KeyFile              string `json:"key_file,omitempty"`
+				TLSCipherSuites      []any  `json:"tls_cipher_suites,omitempty"`
+				TLSMinVersion        string `json:"tls_min_version,omitempty"`
+				VerifyIncoming       bool   `json:"verify_incoming,omitempty"`
+				VerifyOutgoing       bool   `json:"verify_outgoing,omitempty"`
+				VerifyServerHostname bool   `json:"verify_server_hostname,omitempty"`
+			} `json:"internal_rpc,omitempty"`
+			ServerName string `json:"server_name,omitempty"`
+			NodeName   string `json:"NodeName,omitempty"`
+			ServerMode bool   `json:"ServerMode,omitempty"`
+		}(struct {
+			Defaults struct {
+				CAFile               string
+				CAPath               string
+				CertFile             string
+				KeyFile              string
+				TLSCipherSuites      []any
+				TLSMinVersion        string
+				VerifyIncoming       bool
+				VerifyOutgoing       bool
+				VerifyServerHostname bool
+			}
+			Grpc struct {
+				CAFile          string
+				CAPath          string
+				CertFile        string
+				KeyFile         string
+				TLSCipherSuites []any
+				TLSMinVersion   string
+				VerifyIncoming  bool
+				VerifyOutgoing  bool
+				UseAutoCert     bool
+			}
+			HTTPS struct {
+				CAFile          string
+				CAPath          string
+				CertFile        string
+				KeyFile         string
+				TLSCipherSuites []any
+				TLSMinVersion   string
+				VerifyIncoming  bool
+				VerifyOutgoing  bool
+			}
+			InternalRPC struct {
+				CAFile               string
+				CAPath               string
+				CertFile             string
+				KeyFile              string
+				TLSCipherSuites      []any
+				TLSMinVersion        string
+				VerifyIncoming       bool
+				VerifyOutgoing       bool
+				VerifyServerHostname bool
+			}
+			ServerName string
+			NodeName   string
+			ServerMode bool
+		}{
+			ServerName: a.DebugConfig.TLS.ServerName,
+			NodeName:   a.DebugConfig.TLS.NodeName,
+			ServerMode: a.DebugConfig.TLS.ServerMode,
+			Defaults: struct {
+				CAFile               string
+				CAPath               string
+				CertFile             string
+				KeyFile              string
+				TLSCipherSuites      []any
+				TLSMinVersion        string
+				VerifyIncoming       bool
+				VerifyOutgoing       bool
+				VerifyServerHostname bool
+			}{CAFile: a.DebugConfig.TLS.InternalRPC.CAFile, CAPath: a.DebugConfig.TLS.InternalRPC.CAPath, CertFile: a.DebugConfig.TLS.InternalRPC.CertFile, KeyFile: a.DebugConfig.TLS.InternalRPC.KeyFile, TLSCipherSuites: a.DebugConfig.TLS.InternalRPC.CipherSuites, TLSMinVersion: a.DebugConfig.TLS.InternalRPC.TLSMinVersion, VerifyIncoming: a.DebugConfig.TLS.InternalRPC.VerifyIncoming, VerifyOutgoing: a.DebugConfig.TLS.InternalRPC.VerifyOutgoing, VerifyServerHostname: a.DebugConfig.TLS.InternalRPC.VerifyServerHostname},
+
+			Grpc: struct {
+				CAFile          string
+				CAPath          string
+				CertFile        string
+				KeyFile         string
+				TLSCipherSuites []any
+				TLSMinVersion   string
+				VerifyIncoming  bool
+				VerifyOutgoing  bool
+				UseAutoCert     bool
+			}{CAFile: a.DebugConfig.TLS.Grpc.CAFile, CAPath: a.DebugConfig.TLS.Grpc.CAPath, CertFile: a.DebugConfig.TLS.Grpc.CertFile, KeyFile: a.DebugConfig.TLS.Grpc.KeyFile, TLSCipherSuites: a.DebugConfig.TLS.Grpc.CipherSuites, TLSMinVersion: a.DebugConfig.TLS.Grpc.TLSMinVersion, VerifyIncoming: a.DebugConfig.TLS.Grpc.VerifyIncoming, VerifyOutgoing: a.DebugConfig.TLS.Grpc.VerifyOutgoing, UseAutoCert: a.DebugConfig.TLS.Grpc.UseAutoCert},
+
+			HTTPS: struct {
+				CAFile          string
+				CAPath          string
+				CertFile        string
+				KeyFile         string
+				TLSCipherSuites []any
+				TLSMinVersion   string
+				VerifyIncoming  bool
+				VerifyOutgoing  bool
+			}{CAFile: a.DebugConfig.TLS.HTTPS.CAFile, CAPath: a.DebugConfig.TLS.HTTPS.CAPath, CertFile: a.DebugConfig.TLS.HTTPS.CertFile, KeyFile: a.DebugConfig.TLS.HTTPS.KeyFile, TLSCipherSuites: a.DebugConfig.TLS.HTTPS.CipherSuites, TLSMinVersion: a.DebugConfig.TLS.HTTPS.TLSMinVersion, VerifyIncoming: a.DebugConfig.TLS.HTTPS.VerifyIncoming, VerifyOutgoing: a.DebugConfig.TLS.HTTPS.VerifyOutgoing},
+
+			InternalRPC: struct {
+				CAFile               string
+				CAPath               string
+				CertFile             string
+				KeyFile              string
+				TLSCipherSuites      []any
+				TLSMinVersion        string
+				VerifyIncoming       bool
+				VerifyOutgoing       bool
+				VerifyServerHostname bool
+			}{CAFile: a.DebugConfig.TLS.InternalRPC.CAFile, CAPath: a.DebugConfig.TLS.InternalRPC.CAPath, CertFile: a.DebugConfig.TLS.InternalRPC.CertFile, KeyFile: a.DebugConfig.TLS.InternalRPC.KeyFile, TLSCipherSuites: a.DebugConfig.TLS.InternalRPC.CipherSuites, TLSMinVersion: a.DebugConfig.TLS.InternalRPC.TLSMinVersion, VerifyIncoming: a.DebugConfig.TLS.InternalRPC.VerifyIncoming, VerifyOutgoing: a.DebugConfig.TLS.InternalRPC.VerifyOutgoing, VerifyServerHostname: a.DebugConfig.TLS.InternalRPC.VerifyServerHostname},
+		}),
+
+		DNS: struct {
+			AllowStale         bool              `json:"allow_stale,omitempty"`
+			ARecordLimit       int               `json:"a_record_limit,omitempty"`
+			DisableCompression bool              `json:"disable_compression,omitempty"`
+			EnableTruncate     bool              `json:"enable_truncate,omitempty"`
+			MaxStale           string            `json:"max_stale,omitempty"`
+			NodeTTL            string            `json:"node_ttl,omitempty"`
+			OnlyPassing        bool              `json:"only_passing,omitempty"`
+			RecursorStrategy   string            `json:"recursor_strategy,omitempty"`
+			RecursorTimeout    string            `json:"recursor_timeout,omitempty"`
+			ServiceTTL         map[string]string `json:"service_ttl,omitempty"`
+			UDPAnswerLimit     int               `json:"udp_answer_limit,omitempty"`
+			NodeMetaTXT        bool              `json:"enable_additional_node_meta_txt,omitempty"`
+			SOA                struct {
+				Refresh int `json:"refresh,omitempty"`
+				Retry   int `json:"retry,omitempty"`
+				Expire  int `json:"expire,omitempty"`
+				Minttl  int `json:"min_ttl,omitempty"`
+			} `json:"soa,omitempty"`
+			UseCache    bool   `json:"use_cache"`
+			CacheMaxAge string `json:"cache_max_age"`
+		}{
+			AllowStale:         a.DebugConfig.DNSAllowStale,
+			ARecordLimit:       a.DebugConfig.DNSARecordLimit,
+			DisableCompression: a.DebugConfig.DNSDisableCompression,
+			MaxStale:           a.DebugConfig.DNSMaxStale,
+			NodeTTL:            a.DebugConfig.DNSNodeTTL,
+			OnlyPassing:        a.DebugConfig.DNSOnlyPassing,
+			RecursorStrategy:   a.DebugConfig.DNSRecursorStrategy,
+			RecursorTimeout:    a.DebugConfig.DNSRecursorTimeout,
+			ServiceTTL:         a.DebugConfig.DNSServiceTTL,
+			UDPAnswerLimit:     a.DebugConfig.DNSUDPAnswerLimit,
+			NodeMetaTXT:        a.DebugConfig.DNSNodeMetaTXT,
+			SOA: struct {
+				Refresh int `json:"refresh,omitempty"`
+				Retry   int `json:"retry,omitempty"`
+				Expire  int `json:"expire,omitempty"`
+				Minttl  int `json:"min_ttl,omitempty"`
+			}{
+				Refresh: a.DebugConfig.DNSSOA.Refresh,
+				Retry:   a.DebugConfig.DNSSOA.Retry,
+				Expire:  a.DebugConfig.DNSSOA.Expire,
+				Minttl:  a.DebugConfig.DNSSOA.Minttl,
+			},
+			UseCache:    a.DebugConfig.DNSUseCache,
+			CacheMaxAge: a.DebugConfig.DNSCacheMaxAge,
+		},
+
+		Cache: struct {
+			EntryFetchMaxBurst int     `json:"entry_fetch_max_burst"`
+			EntryFetchRate     float64 `json:"entry_fetch_rate"`
+		}{EntryFetchMaxBurst: a.DebugConfig.Cache.EntryFetchMaxBurst, EntryFetchRate: a.DebugConfig.Cache.EntryFetchRate},
+
+		EnableDebug: a.DebugConfig.EnableDebug,
+
+		Telemetry: struct {
+			CirconusAPIApp                     string   `json:"circonus_api_app,omitempty"`
+			CirconusAPIToken                   string   `json:"circonus_api_token,omitempty"`
+			CirconusAPIURL                     string   `json:"circonus_api_url,omitempty"`
+			CirconusBrokerID                   string   `json:"circonus_broker_id,omitempty"`
+			CirconusBrokerSelectTag            string   `json:"circonus_broker_select_tag,omitempty"`
+			CirconusCheckDisplayName           string   `json:"circonus_check_display_name,omitempty"`
+			CirconusCheckForceMetricActivation string   `json:"circonus_check_force_metric_activation,omitempty"`
+			CirconusCheckID                    string   `json:"circonus_check_id,omitempty"`
+			CirconusCheckInstanceID            string   `json:"circonus_check_instance_id,omitempty"`
+			CirconusCheckSearchTag             string   `json:"circonus_check_search_tag,omitempty"`
+			CirconusCheckTags                  string   `json:"circonus_check_tags,omitempty"`
+			CirconusSubmissionInterval         string   `json:"circonus_submission_interval,omitempty"`
+			CirconusSubmissionURL              string   `json:"circonus_submission_url,omitempty"`
+			DisableHostname                    bool     `json:"disable_hostname,omitempty"`
+			EnableHostMetrics                  bool     `json:"enable_host_metrics,omitempty"`
+			DogstatsdAddr                      string   `json:"dogstatsd_addr,omitempty"`
+			DogstatsdTags                      []string `json:"dogstatsd_tags,omitempty"`
+			RetryFailedConfiguration           bool     `json:"retry_failed_connection,omitempty"`
+			FilterDefault                      bool     `json:"filter_default,omitempty"`
+			PrefixFilter                       []string `json:"prefix_filter,omitempty"`
+			MetricsPrefix                      string   `json:"metrics_prefix,omitempty"`
+			PrometheusRetentionTime            string   `json:"prometheus_retention_time,omitempty"`
+			StatsdAddr                         string   `json:"statsd_address,omitempty"`
+			StatsiteAddr                       string   `json:"statsite_address,omitempty"`
+		}(struct {
+			CirconusAPIApp                     string
+			CirconusAPIToken                   string
+			CirconusAPIURL                     string
+			CirconusBrokerID                   string
+			CirconusBrokerSelectTag            string
+			CirconusCheckDisplayName           string
+			CirconusCheckForceMetricActivation string
+			CirconusCheckID                    string
+			CirconusCheckInstanceID            string
+			CirconusCheckSearchTag             string
+			CirconusCheckTags                  string
+			CirconusSubmissionInterval         string
+			CirconusSubmissionURL              string
+			DisableHostname                    bool
+			EnableHostMetrics                  bool
+			DogstatsdAddr                      string
+			DogstatsdTags                      []string
+			RetryFailedConfiguration           bool
+			FilterDefault                      bool
+			PrefixFilter                       []string
+			MetricsPrefix                      string
+			PrometheusRetentionTime            string
+			StatsdAddr                         string
+			StatsiteAddr                       string
+		}{CirconusAPIApp: a.DebugConfig.Telemetry.CirconusAPIApp, CirconusAPIToken: a.DebugConfig.Telemetry.CirconusAPIURL, CirconusAPIURL: a.DebugConfig.Telemetry.CirconusAPIURL, CirconusBrokerID: a.DebugConfig.Telemetry.CirconusBrokerID, CirconusBrokerSelectTag: a.DebugConfig.Telemetry.CirconusBrokerSelectTag, CirconusCheckDisplayName: a.DebugConfig.Telemetry.CirconusCheckDisplayName, CirconusCheckForceMetricActivation: a.DebugConfig.Telemetry.CirconusCheckForceMetricActivation, CirconusCheckID: a.DebugConfig.Telemetry.CirconusCheckInstanceID, CirconusCheckInstanceID: a.DebugConfig.Telemetry.CirconusCheckInstanceID, CirconusCheckSearchTag: a.DebugConfig.Telemetry.CirconusCheckSearchTag, CirconusCheckTags: a.DebugConfig.Telemetry.CirconusCheckTags, CirconusSubmissionInterval: a.DebugConfig.Telemetry.CirconusSubmissionInterval, CirconusSubmissionURL: a.DebugConfig.Telemetry.CirconusSubmissionURL, DisableHostname: a.DebugConfig.Telemetry.DisableHostname, EnableHostMetrics: a.DebugConfig.Telemetry.EnableHostMetrics, DogstatsdAddr: a.DebugConfig.Telemetry.DogstatsdAddr, DogstatsdTags: a.DebugConfig.Telemetry.DogstatsdTags, RetryFailedConfiguration: a.DebugConfig.Telemetry.RetryFailedConfiguration, FilterDefault: a.DebugConfig.Telemetry.FilterDefault, PrefixFilter: append(a.DebugConfig.Telemetry.BlockedPrefixes, a.DebugConfig.Telemetry.AllowedPrefixes...), MetricsPrefix: a.DebugConfig.Telemetry.MetricsPrefix, PrometheusRetentionTime: a.DebugConfig.Telemetry.PrometheusOpts.Expiration, StatsdAddr: a.DebugConfig.Telemetry.StatsdAddr, StatsiteAddr: a.DebugConfig.Telemetry.StatsiteAddr}),
+		XDS: struct {
+			UpdateMaxPerSecond float64 `json:"update_max_per_second,omitempty"`
+		}(struct{ UpdateMaxPerSecond float64 }{UpdateMaxPerSecond: float64(a.DebugConfig.XDSUpdateRateLimit)}),
+	}
+	return agentConfig, nil
 }
 
 func (a *Agent) LogLevel() string {
