@@ -68,17 +68,18 @@ func (c *cmd) Run(args []string) int {
 
 	commands.InitLogging(c.ui, level)
 
-	var extractedPath string
+	var path, extractedPath string
 	var err error
 	var ok, usePath, useFile, useEnvVar bool
 
 	hclog.L().Debug("checking CONSUL_DEBUG_PATH env var (if set)", "env", read.DebugReadEnvVar)
-	path := os.Getenv(read.DebugReadEnvVar)
-	envPath, err := filepath.Abs(path)
-	if err != nil {
+
+	if path, err = read.ExtractEnvironmentPath(); err != nil {
 		c.ui.Error("failed to retrieve absolute path of CONSUL_DEBUG_PATH environment variable setting")
 		return 1
 	}
+
+	hclog.L().Debug("CONSUL_DEBUG_PATH env var setting", "path", path)
 
 	if path != "" && c.path == "" && c.file == "" {
 		useEnvVar = true
@@ -92,19 +93,27 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if useEnvVar {
-		if ok, err = ValidateDebugPath(envPath); !ok {
-			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err, "path", envPath)
+		hclog.L().Debug("attempting to set with CONSUL_DEBUG_PATH env variable", "path", path)
+		extractedPath, err = read.SelectAndExtractTarGzFilesInDir(path)
+		if err != nil {
+			hclog.L().Error("failed to extract bundle from path", "path", path, "err", err)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
-		hclog.L().Debug("env variable set, updating config file", "CONSUL_DEBUG_PATH", envPath)
-		if ok, err = updateCurrentPath(envPath); !ok {
+		hclog.L().Debug("successfully extracted bundle from path", "path", path, "extractedPath", extractedPath)
+		if ok, err = ValidateDebugPath(extractedPath); !ok {
+			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err, "path", extractedPath)
+			c.ui.Error("failed to set consul-debug-read path")
+			return 1
+		}
+		hclog.L().Debug("env variable set, updating config file", "CONSUL_DEBUG_PATH", path)
+		if ok, err = UpdateCurrentPath(extractedPath); !ok {
 			hclog.L().Error("failed update debug-read configuration file", "error", err)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
-		hclog.L().Debug("using env var setting", "env", read.DebugReadEnvVar)
-		c.ui.Output(fmt.Sprintf("\nconsul-debug-path set successfully using CONSUL_DEBUG_PATH env var => %s\n", envPath))
+		hclog.L().Debug("using env var setting", read.DebugReadEnvVar, extractedPath)
+		c.ui.Output(fmt.Sprintf("\nconsul-debug-path set successfully using CONSUL_DEBUG_PATH env var => %s\n", extractedPath))
 	} else if usePath {
 		hclog.L().Debug("attempting to set with -path filepath", "path", c.path)
 		extractedPath, err = read.SelectAndExtractTarGzFilesInDir(c.path)
@@ -113,12 +122,13 @@ func (c *cmd) Run(args []string) int {
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
+		hclog.L().Debug("successfully extracted bundle from path", "path", c.path, "extractedPath", extractedPath)
 		if ok, err = ValidateDebugPath(extractedPath); !ok {
 			hclog.L().Error("extracted bundle is invalid and does not contain all required debug bundle file extracts", "error", err, "path", extractedPath)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
-		if ok, err = updateCurrentPath(extractedPath); !ok {
+		if ok, err = UpdateCurrentPath(extractedPath); !ok {
 			hclog.L().Error("failed update debug-read configuration file", "error", err)
 			c.ui.Error("failed to set consul-debug-read path using -path")
 			return 1
@@ -139,7 +149,7 @@ func (c *cmd) Run(args []string) int {
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
 		}
-		if ok, err = updateCurrentPath(extractedPath); !ok {
+		if ok, err = UpdateCurrentPath(extractedPath); !ok {
 			hclog.L().Error("failed update debug-read configuration file", "error", err)
 			c.ui.Error("failed to set consul-debug-read path")
 			return 1
@@ -149,7 +159,7 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func updateCurrentPath(updatePath string) (bool, error) {
+func UpdateCurrentPath(updatePath string) (bool, error) {
 	var config read.ReaderConfig
 
 	// Retrieve configuration file location and open file
@@ -166,11 +176,13 @@ func updateCurrentPath(updatePath string) (bool, error) {
 	}
 
 	// Update the configuration path setting in the struct
-	config.DebugDirectoryPath = updatePath
-	env, _ := filepath.Abs(read.EnvVarPathSetting)
-	if env == updatePath {
+	if path := os.Getenv(read.DebugReadEnvVar); path != "" {
+		config.DebugDirectoryPath = updatePath
+		config.DebugEnvVarSetting = updatePath
 		config.PathRenderedFrom = "env:CONSUL_DEBUG_PATH"
 	} else {
+		config.DebugDirectoryPath = updatePath
+		config.DebugEnvVarSetting = "<UNSET>"
 		config.PathRenderedFrom = "cli:-path|-file"
 	}
 

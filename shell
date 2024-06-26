@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 
+eval "$(cat .env)"
+
 if test -f "${HOME}/.influxdbv2/configs"; then
   export TOKEN=$(grep -E '^\s*token\s*=' "${HOME}/.influxdbv2/configs" | awk '{printf $3}')
 fi
 
+
+if ! aws sts get-caller-identity --no-cli-pager >/dev/null 2>&1; then
+    scripts/doormat-update-creds.sh || {
+        exit 1
+    }
+    eval "$(cat .env)"
+    clear
+fi
 
 exec bash "$@"

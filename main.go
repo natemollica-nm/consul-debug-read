@@ -62,9 +62,9 @@ func baseConfigs() bool {
 			return false
 		}
 	}
-
+	var err error
 	var defaultConfig []byte
-	if _, err := os.Stat(read.DebugReadConfigFullPath); err != nil {
+	if _, err = os.Stat(read.DebugReadConfigFullPath); err != nil {
 		if os.IsNotExist(err) {
 			fmt.Printf("configuring default debug path to current directory dir=%s\n", read.CurrentDir)
 			// Create Default Configuration File
@@ -87,6 +87,25 @@ func baseConfigs() bool {
 			if err != nil {
 				fmt.Printf("failed to write to configuration file error=%v", err)
 				return false
+			}
+		} else {
+			var raw []byte
+			var config read.ReaderConfig
+			if raw, err = os.ReadFile(read.DebugReadConfigFullPath); err != nil {
+				fmt.Printf("failed to read in config file debugConfigPath=%s, error=%v", read.DebugReadConfigFullPath, err)
+				return false
+			}
+			if err = yaml.Unmarshal(raw, &config); err != nil {
+				fmt.Printf("failed to unmarshal raw config file debugConfigPath=%s, error=%v", read.DebugReadConfigFullPath, err)
+				return false
+			}
+			// Update the configuration path setting in the struct
+			if config.PathRenderedFrom == "env:CONSUL_DEBUG_PATH" {
+				config.DebugDirectoryPath = config.DebugEnvVarSetting
+				if err = os.Setenv(read.DebugReadEnvVar, config.DebugEnvVarSetting); err != nil {
+					hclog.L().Error("error setting debug-read env var", read.DebugReadEnvVar, config.DebugEnvVarSetting, "error", err)
+					return false
+				}
 			}
 		}
 	}

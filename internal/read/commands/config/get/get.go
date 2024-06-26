@@ -60,13 +60,14 @@ func (c *Cmd) Run(args []string) int {
 
 	commands.InitLogging(c.ui, level)
 	hclog.L().Debug("rendering debug path setting from config.yaml")
-	if path, ok := c.RenderPathFromConfig(); ok {
+	if path, ok := RenderPathFromConfig(); ok {
 		c.ui.Output(path)
 	}
 	return 0
 }
 
-func (c *Cmd) RenderPathFromConfig() (string, bool) {
+func RenderPathFromConfig() (string, bool) {
+	var path string
 	var config read.ReaderConfig
 
 	currentData, err := os.ReadFile(read.DebugReadConfigFullPath)
@@ -81,10 +82,24 @@ func (c *Cmd) RenderPathFromConfig() (string, bool) {
 		return "", false
 	}
 
-	if config.DebugDirectoryPath == "" {
+	// Logic to ensure that if the terminal session sets the CONSUL_DEBUG_PATH
+	// environment variable, we default to using the env var over the configured
+	// path from ~/.consul-debug-read/config.yaml
+	if path = os.Getenv(read.DebugReadEnvVar); path != "" {
+		var extractedPath string
+		hclog.L().Debug("configuring path from rendered CONSUL_DEBUG_PATH setting", read.DebugReadEnvVar, path)
+		if extractedPath, err = read.SelectAndExtractTarGzFilesInDir(path); err != nil {
+			hclog.L().Error("failed to extract bundle from path", "path", path, "err", err)
+			return "", false
+		}
+		return extractedPath, true
+	} else if config.DebugDirectoryPath == "" {
 		hclog.L().Warn("empty or null consul-debug-path set", "warn", read.DebugReadConfigFullPath)
+		return config.DebugDirectoryPath, true
+	} else {
+		hclog.L().Debug("configuring path from rendered $HOME/.consul-debug-read/config.yaml setting", "DebugPath", config.DebugDirectoryPath)
+		return config.DebugDirectoryPath, true
 	}
-	return config.DebugDirectoryPath, true
 }
 
 const synopsis = `Show the current debug bundle path under analysis`

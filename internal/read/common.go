@@ -40,6 +40,10 @@ var (
 	EnvVarPathSetting       = os.Getenv(DebugReadEnvVar)
 )
 
+func ExtractEnvironmentPath() (string, error) {
+	return filepath.Abs(os.Getenv("CONSUL_DEBUG_PATH"))
+}
+
 // parseDuration converts a string representing a time duration into a time.Duration type
 func parseDuration(durationStr string) (time.Duration, error) {
 	duration, err := time.ParseDuration(durationStr)

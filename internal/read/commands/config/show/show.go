@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -64,15 +65,32 @@ func (c *cmd) Run(args []string) int {
 	commands.InitLogging(c.ui, level)
 
 	hclog.L().Debug("rendering consul-debug-read config.yaml from user's home directory")
-	if config, ok := c.renderConfigurationSettings(); ok {
-		c.ui.Output(config)
+	if renderedCfg, ok := c.renderConfigurationSettings(); ok {
+		c.ui.Output(renderedCfg)
 	}
 	return 0
 }
 
 func (c *cmd) CheckPathEnvVarSet() (string, bool) {
-	if read.EnvVarPathSetting != "" {
-		path, _ := filepath.Abs(read.EnvVarPathSetting)
+	var err error
+	var raw []byte
+	var path string
+	var rawConfig read.ReaderConfig
+	if raw, err = os.ReadFile(read.DebugReadConfigFullPath); err != nil {
+		hclog.L().Error("failed to read in config file", "debugConfigPath", read.DebugReadConfigFullPath, "error", err)
+		return "", false
+	}
+	if err = yaml.Unmarshal(raw, &rawConfig); err != nil {
+		hclog.L().Error("failed to unmarshal raw config file", "configPath", read.DebugReadConfigFullPath, "error", err)
+		return "", false
+	}
+	unset, err := regexp.Compile("<UNSET>*")
+	if !unset.MatchString(rawConfig.DebugEnvVarSetting) {
+		path, err = filepath.Abs(rawConfig.DebugEnvVarSetting)
+		if err != nil {
+			hclog.L().Error("failed to obtain absolute path from debug path", "path", rawConfig.DebugEnvVarSetting, "error", err)
+			return "", false
+		}
 		return path, true
 	}
 	return "", false
@@ -99,17 +117,22 @@ func (c *cmd) renderConfigurationSettings() (string, bool) {
 	menu := []string{fmt.Sprintf("\x1f%s\x1f", title)}
 	menu = append(menu, fmt.Sprintf("\x1f%s\x1f", ul))
 
-	var env string
 	var set bool
-	if env, set = c.CheckPathEnvVarSet(); !set {
-		env = "<UNSET>"
+	var envConfigSetting string
+	if envConfigSetting, set = c.CheckPathEnvVarSet(); !set {
+		hclog.L().Debug("environment variable CONSUL_DEBUG_PATH config setting not set")
+		envConfigSetting = "<UNSET>"
+	}
+	if (os.Getenv(read.DebugReadEnvVar) != "") && (envConfigSetting == "<UNSET>") {
+		hclog.L().Debug("Environment variable CONSUL_DEBUG_PATH set and not synced with current config")
+		envConfigSetting = "<UNSET> (CONSUL_DEBUG_PATH env var set but not configured, to set run 'consul-debug-read config set-path'"
 	}
 
 	menu = append(menu, fmt.Sprintf("Setting\x1fValue\x1f"))
 	menu = append(menu, fmt.Sprintf("-------\x1f-----\x1f"))
 	menu = append(menu, fmt.Sprintf("Configuration File Location\x1f%s", config.ConfigFile))
-	menu = append(menu, fmt.Sprintf("Debug Bundle Path\x1f%s (%s)", config.DebugDirectoryPath, config.PathRenderedFrom))
-	menu = append(menu, fmt.Sprintf("CONSUL_DEBUG_PATH\x1f%s", env))
+	menu = append(menu, fmt.Sprintf("Debug Bundle Path\x1f%s (Rendered from: %s)", config.DebugDirectoryPath, config.PathRenderedFrom))
+	menu = append(menu, fmt.Sprintf("CONSUL_DEBUG_PATH\x1f%s", envConfigSetting))
 	output := columnize.Format(menu, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 	return output, true
 }

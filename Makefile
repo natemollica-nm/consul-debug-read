@@ -1,16 +1,89 @@
 SHELL=$(PWD)/shell
+DOMAIN_NAME=nathan-mollica.sbx.hashidemos.io
+SUBDOMAIN=consul-support-demo
+PUBLIC_IP=$(shell curl -s ifconfig.me)
 
-run-linter:
+# /////////////////////////////////////////////////////////////////////// #
+# //////////////////////////// Doormat /////////////////////////////////// #
+##@ Doormat
+.PHONY: doormat-refresh
+doormat-refresh: ## Refresh local .env file doormat-credentials
+	@scripts/doormat-update-creds.sh
+
+# /////////////////////////////////////////////////////////////////////// #
+# //////////////////////////// Linter /////////////////////////////////// #
+##@ Linter
+run-linter: ## Run golang linter
 	@golangci-lint run ./cmd/cli
 	@golangci-lint run ./internal/read
 
-all: clean consul-debug-read split-debug-metrics init-influxdb configure-influxdb telegraf grafana
+# ///////////////////////////////////////////////////////////////////// #
+# //////////////////////////// Demo /////////////////////////////////// #
+##@ Demo
+packer-ami: ## Build demo bundle webserver AMI
+	@packer init .offsite/packer/webserver.pkr.hcl
+	@packer build .offsite/packer/webserver.pkr.hcl
 
-telemetry: clean init-influxdb configure-influxdb telegraf grafana
+# ////////////////////////////////////////////////////////////////////////// #
+# //////////////////////////// Terraform /////////////////////////////////// #
+##@ Terraform
+.PHONY: plan
+plan: ## Run terraform plan in .offsite dir
+	@terraform -chdir=.offsite init
+	@terraform -chdir=.offsite plan \
+		-var aws_region="$$AWS_REGION" \
+		-var subdomain="$(SUBDOMAIN)" \
+		-var ssh_key_name="$$AWS_EC2_SSH_KEY_NAME" \
+		-var local_public_cidr="$(PUBLIC_IP)/32"
 
-consul-debug-read:
+.PHONY: refresh
+refresh: ## Run terraform refresh in .offsite dir
+	@terraform -chdir=.offsite refresh \
+		-var aws_region="$$AWS_REGION" \
+		-var subdomain="$(SUBDOMAIN)" \
+		-var ssh_key_name="$$AWS_EC2_SSH_KEY_NAME" \
+		-var local_public_cidr="$(PUBLIC_IP)/32"
+
+.PHONY: apply
+apply: ## Run terraform auto-approved apply in .offsite dir
+	@terraform -chdir=.offsite apply \
+		-var aws_region="$$AWS_REGION" \
+		-var subdomain="$(SUBDOMAIN)" \
+		-var ssh_key_name="$$AWS_EC2_SSH_KEY_NAME" \
+		-var local_public_cidr="$(PUBLIC_IP)/32" \
+		-auto-approve
+
+.PHONY: destroy
+destroy: ## Run terraform destroy on aws resources
+	@terraform -chdir=.offsite destroy \
+		-var aws_region="$$AWS_REGION" \
+		-var subdomain="$(SUBDOMAIN)" \
+		-var ssh_key_name="$$AWS_EC2_SSH_KEY_NAME" \
+		-var local_public_cidr="$(PUBLIC_IP)/32" \
+		-auto-approve
+
+.PHONY: destroy-instance
+destroy-instance: ## Target destroy bastion host only from aws
+	@terraform -chdir=.offsite destroy \
+		-var aws_region="$$AWS_REGION" \
+		-var subdomain="$(SUBDOMAIN)" \
+		-var ssh_key_name="$$AWS_EC2_SSH_KEY_NAME" \
+		-var local_public_cidr="$(PUBLIC_IP)/32" \
+		-target=aws_instance.web \
+		-auto-approve
+# /////////////////////////////////////////////////////////////////////// #
+# //////////////////////////// Build /////////////////////////////////// #
+##@ Build
+consul-debug-read: ## Run go install for consul-debug-read cli
 	@go install
 	@echo "consul-debug-read built and installed => $${GOPATH}/consul-debug-read"
+
+# ///////////////////////////////////////////////////////////////////////////////// #
+# //////////////////////////// Telegraf/Grafana /////////////////////////////////// #
+##@ Telegraf/Grafana
+all: clean consul-debug-read split-debug-metrics init-influxdb configure-influxdb telegraf grafana ## Reset telemetry tools/db, run cli tool metrics formatter, and start new telemetry tooling
+
+telemetry: clean init-influxdb configure-influxdb telegraf grafana
 
 split-debug-metrics:
 	@consul-debug-read metrics --telegraf
@@ -63,7 +136,28 @@ clean-influxdb:
 	@rm -rf $${HOME}/.influxdbv2/influxd.sqlite
 	@sleep 3
 
-clean: stop-grafana stop-telegraf stop-influxdb clean-influxdb clean-grafana
+# //////////////////////////////////////////////////////////////////////// #
+# //////////////////////////// Cleanup /////////////////////////////////// #
+##@ Cleanup
+clean: stop-grafana stop-telegraf stop-influxdb clean-influxdb clean-grafana ## Stop telemetry tools and clean influxdb
 
-.PHONY:
-.SILENT:
+# /////////////////////////////////////////////////////////////////////////// #
+# //////////////////////////// Help Goals /////////////////////////////////// #
+.DEFAULT_GOAL := help
+##@ Help
+# The help target prints out all targets with their descriptions organized
+# beneath their categories. The categories are represented by '##@' and the
+# target descriptions by '##'. The awk commands is responsible for reading the
+# entire set of makefiles included in this invocation, looking for lines of the
+# file as xyz: ## something, and then pretty-format the target and help. Then,
+# if there's a line with ##@ something, that gets pretty-printed as a category.
+# More info on the usage of ANSI control characters for terminal formatting:
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
+# More info on the awk command:
+# http://linuxcommand.org/lc3_adv_awk.php
+.PHONY: help
+help: ## Display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+%:
+	@:

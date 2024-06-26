@@ -3,12 +3,12 @@ package metrics
 import (
 	"consul-debug-read/internal/read"
 	"consul-debug-read/internal/read/commands"
+	"consul-debug-read/internal/read/commands/config/get"
 	"consul-debug-read/internal/read/commands/flags"
 	"flag"
 	"fmt"
 	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/cli"
-	"gopkg.in/yaml.v2"
 	"os"
 	"os/exec"
 	"sort"
@@ -256,19 +256,12 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	commands.InitLogging(c.ui, level)
-	cmdYamlCfg, err := os.ReadFile(read.DebugReadConfigFullPath)
-	if err != nil {
-		hclog.L().Error("error reading consul-debug-read user config file", "filepath", read.DebugReadConfigFullPath, "error", err)
-		return 1
-	}
-	var cfg read.ReaderConfig
-	err = yaml.Unmarshal(cmdYamlCfg, &cfg)
-	if err != nil {
-		hclog.L().Error("error deserializing YAML contents", "filepath", read.DebugReadConfigFullPath, "error", err)
-		return 1
-	}
-	if cfg.DebugDirectoryPath == "" {
-		hclog.L().Error("empty or null consul-debug-path setting", "error", read.DebugReadConfigFullPath)
+
+	var ok bool
+	var err error
+	var path string
+	if path, ok = get.RenderPathFromConfig(); !ok {
+		hclog.L().Error("error rendering debug filepath", "filepath", path, "error", err)
 		return 1
 	}
 
@@ -276,44 +269,44 @@ func (c *cmd) Run(args []string) int {
 	var result string
 
 	if c.name != "" {
-		hclog.L().Debug("reading in index.json")
-		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "index"); err != nil {
+		hclog.L().Debug("reading in index.json", "filepath", path)
+		if err = data.DecodeJSON(path, "index"); err != nil {
 			hclog.L().Error("failed to decode index.json", "error", err)
 			return 1
 		}
-		hclog.L().Debug("reading in metrics.json")
-		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "metrics"); err != nil {
+		hclog.L().Debug("reading in metrics.json", "filepath", path)
+		if err = data.DecodeJSON(path, "metrics"); err != nil {
 			hclog.L().Error("failed to decode metrics.json", "error", err)
 			return 1
 		}
 		hclog.L().Debug("successfully read in bundle contents")
 	}
 	if c.host {
-		hclog.L().Debug("reading in host.json")
-		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "host"); err != nil {
+		hclog.L().Debug("reading in host.json", "filepath", path)
+		if err = data.DecodeJSON(path, "host"); err != nil {
 			hclog.L().Error("failed to decode host.json", "error", err)
 			return 1
 		}
 		hclog.L().Debug("successfully read in host.json bundle contents")
 	}
 	if c.keyMetrics || c.summary || c.memory || c.network || c.rateLimiting || c.serfHealth || c.autopilot || c.transactionTiming || c.leadershipChanges || c.bolt || c.dataplane || c.federationStatus || c.threadSaturation || c.serviceMetrics || c.telegraf {
-		hclog.L().Debug("reading in agent.json")
-		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "agent"); err != nil {
+		hclog.L().Debug("reading in agent.json", "filepath", path)
+		if err = data.DecodeJSON(path, "agent"); err != nil {
 			hclog.L().Error("failed to decode agent.json", "error", err)
 			return 1
 		}
-		hclog.L().Debug("reading in host.json")
-		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "host"); err != nil {
+		hclog.L().Debug("reading in host.json", "filepath", path)
+		if err = data.DecodeJSON(path, "host"); err != nil {
 			hclog.L().Error("failed to decode host.json", "error", err)
 			return 1
 		}
-		hclog.L().Debug("reading in index.json")
-		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "index"); err != nil {
+		hclog.L().Debug("reading in index.json", "filepath", path)
+		if err = data.DecodeJSON(path, "index"); err != nil {
 			hclog.L().Error("failed to decode index.json", "error", err)
 			return 1
 		}
-		hclog.L().Debug("reading in metrics.json")
-		if err := data.DecodeJSON(cfg.DebugDirectoryPath, "metrics"); err != nil {
+		hclog.L().Debug("reading in metrics.json", "filepath", path)
+		if err = data.DecodeJSON(path, "metrics"); err != nil {
 			hclog.L().Error("failed to decode metrics.json", "error", err)
 			return 1
 		}
@@ -332,7 +325,8 @@ func (c *cmd) Run(args []string) int {
 	case c.host:
 		result = data.HostSummary()
 	case c.name != "":
-		values, err := data.GetMetricValues(c.name, c.verify, c.sort, c.short)
+		var values string
+		values, err = data.GetMetricValues(c.name, c.verify, c.sort, c.short)
 		if err != nil {
 			hclog.L().Error("failed to retrieve metric value", "name", c.name, "error", err)
 			return 1

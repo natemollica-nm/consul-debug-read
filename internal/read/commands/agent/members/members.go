@@ -3,13 +3,12 @@ package members
 import (
 	"consul-debug-read/internal/read"
 	"consul-debug-read/internal/read/commands"
+	"consul-debug-read/internal/read/commands/config/get"
 	"consul-debug-read/internal/read/commands/flags"
 	"flag"
 	"fmt"
 	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/cli"
-	"gopkg.in/yaml.v2"
-	"os"
 )
 
 type cmd struct {
@@ -57,28 +56,21 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	commands.InitLogging(c.ui, level)
-	cmdYamlCfg, err := os.ReadFile(read.DebugReadConfigFullPath)
-	if err != nil {
-		hclog.L().Error("error reading consul-debug-read user config file", "filepath", read.DebugReadConfigFullPath, "error", err)
-		return 1
-	}
-	var cfg read.ReaderConfig
-	err = yaml.Unmarshal(cmdYamlCfg, &cfg)
-	if err != nil {
-		hclog.L().Error("error deserializing YAML contents", "filepath", read.DebugReadConfigFullPath, "error", err)
-		return 1
-	}
-	if cfg.DebugDirectoryPath == "" {
-		hclog.L().Error("empty or null consul-debug-path setting", "error", read.DebugReadConfigFullPath)
+
+	var ok bool
+	var err error
+	var path string
+	if path, ok = get.RenderPathFromConfig(); !ok {
+		hclog.L().Error("error rendering debug filepath", "filepath", path, "error", err)
 		return 1
 	}
 
 	var data read.Debug
-	if err = data.DecodeJSON(cfg.DebugDirectoryPath, "agent"); err != nil {
+	if err = data.DecodeJSON(path, "agent"); err != nil {
 		hclog.L().Error("failed to decode agent.json", "error", err)
 		return 1
 	}
-	if err = data.DecodeJSON(cfg.DebugDirectoryPath, "members"); err != nil {
+	if err = data.DecodeJSON(path, "members"); err != nil {
 		hclog.L().Error("failed to decode members.json", "error", err)
 		return 1
 	}

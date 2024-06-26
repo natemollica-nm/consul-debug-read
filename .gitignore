@@ -36,3 +36,9 @@ docs/release.md
 
 # Customer Info dir
 .customer/
+
+## Offsite demo web server
+.offsite/
+
+## Packer .env
+.env
