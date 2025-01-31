@@ -106,17 +106,7 @@ func (c *cmd) Run(args []string) int {
 		return 0
 	}
 
-	//traceLog, debugLog, errLog, warnLog := "", "", "", ""
-	//for _, file := range files {
-	//	if strings.Contains(file, "consul.log") {
-	//		var entries []log.LogEntry
-	//		entries, err = log.ParseLog(file, log.DebugLevel, c.source, time.Time{}, time.Time{})
-	//		traceLogCounts := log.AggregateLogEntries(entries, log.DebugLevel, log.MessageSelect)
-	//		traceLog = log.FormatCounts(traceLogCounts, "message")
-	//	}
-	//}
-
-	result = fmt.Sprintf("Consul Debug Bundle (%s): %s\nDebug Command Log Level: %s (Default) %s\n%s\n%s\n%s\n",
+	result = fmt.Sprintf("Consul Debug Bundle (%s): %s\nLog Level: %s %s\n%s\n%s\n%s\n",
 		captureTime,
 		path,
 		data.Agent.LogLevel(),

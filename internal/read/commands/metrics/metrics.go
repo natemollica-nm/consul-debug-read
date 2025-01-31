@@ -155,8 +155,7 @@ type cmd struct {
 	flags     *flag.FlagSet
 	pathFlags *flags.DebugReadFlags
 
-	name    string
-	summary bool
+	name string
 
 	listAvailableTelemetry bool
 
@@ -196,7 +195,6 @@ func New(ui cli.Ui) (cli.Command, error) {
 		flags:     flag.NewFlagSet("", flag.ContinueOnError),
 	}
 	c.flags.StringVar(&c.name, "name", "", "Retrieve specific metric timestamped values by name")
-	c.flags.BoolVar(&c.summary, "summary", false, "Retrieve metrics summary info from bundle")
 
 	c.flags.BoolVar(&c.listAvailableTelemetry, "list-available-telemetry", false, "List available metric names as retrieved from consul telemetry docs")
 
@@ -234,7 +232,7 @@ func New(ui cli.Ui) (cli.Command, error) {
 	return c, nil
 }
 
-func (c *cmd) Help() string { return commands.Usage(metricsHelp, c.flags) }
+func (c *cmd) Help() string { return commands.Usage(help, c.flags) }
 
 func (c *cmd) Synopsis() string { return synopsis }
 
@@ -289,7 +287,7 @@ func (c *cmd) Run(args []string) int {
 		}
 		hclog.L().Debug("successfully read in host.json bundle contents")
 	}
-	if c.keyMetrics || c.summary || c.memory || c.network || c.rateLimiting || c.serfHealth || c.autopilot || c.transactionTiming || c.leadershipChanges || c.bolt || c.dataplane || c.federationStatus || c.threadSaturation || c.serviceMetrics || c.telegraf {
+	if c.keyMetrics || c.memory || c.network || c.rateLimiting || c.serfHealth || c.autopilot || c.transactionTiming || c.leadershipChanges || c.bolt || c.dataplane || c.federationStatus || c.threadSaturation || c.serviceMetrics || c.telegraf {
 		hclog.L().Debug("reading in agent.json", "filepath", path)
 		if err = data.DecodeJSON(path, "agent"); err != nil {
 			hclog.L().Error("failed to decode agent.json", "error", err)
@@ -314,8 +312,6 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	switch {
-	case c.summary:
-		result = data.Summary()
 	case c.listAvailableTelemetry:
 		result, err = read.ListMetrics()
 		if err != nil {
@@ -549,13 +545,15 @@ func (c *cmd) Run(args []string) int {
 }
 
 const synopsis = `Ingest metrics.json from consul debug bundle`
-const metricsHelp = `Read metrics information from specified bundle and return timestamped values.
-Usage: consul-debug-read metrics [options]
-  
-  Parses and outputs consul debug bundle metrics.json data in readable format.
+const help = `Read metrics information from specified bundle and return timestamped values.
+Usage: 
+	consul-debug-read metrics <subcommand> [options]
 
-	Display summary of bundle capture	
-		$ consul-debug-read metrics -summary
+	Run consul-debug-read metrics <subcommand> with no arguments for help on that
+	  subcommand.
+  
+Description:
+	Parses and outputs consul debug bundle metrics.json data in readable format.
 
 	Display full list of queryable metric names
 		$ consul-debug-read metrics -list 

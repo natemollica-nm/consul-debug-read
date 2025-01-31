@@ -18,7 +18,9 @@ import (
 	"consul-debug-read/internal/read/commands/log/parse/rpccounts"
 	logtrace "consul-debug-read/internal/read/commands/log/parse/trace"
 	logwarn "consul-debug-read/internal/read/commands/log/parse/warn"
+	logsummary "consul-debug-read/internal/read/commands/log/summary"
 	"consul-debug-read/internal/read/commands/metrics"
+	metricsSummary "consul-debug-read/internal/read/commands/metrics/summary"
 	"consul-debug-read/internal/read/commands/summary"
 	"fmt"
 	mcli "github.com/mitchellh/cli"
@@ -37,8 +39,10 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"agent members", func(ui mcli.Ui) (mcli.Command, error) { return members.New(ui) }},
 		entry{"agent raft-configuration", func(ui mcli.Ui) (mcli.Command, error) { return raft.New(ui) }},
 		entry{"metrics", func(mcli.Ui) (mcli.Command, error) { return metrics.New(ui) }},
+		entry{"metrics summary", func(mcli.Ui) (mcli.Command, error) { return metricsSummary.New(ui) }},
 		entry{"summary", func(mcli.Ui) (mcli.Command, error) { return summary.New(ui) }},
 		entry{"log", func(mcli.Ui) (mcli.Command, error) { return log.New(), nil }},
+		entry{"log summary", func(mcli.Ui) (mcli.Command, error) { return logsummary.New(ui) }},
 		entry{"log parse-rpc-counts", func(ui mcli.Ui) (mcli.Command, error) { return rpccounts.New(ui) }},
 		entry{"log parse-error", func(ui mcli.Ui) (mcli.Command, error) { return logerror.New(ui) }},
 		entry{"log parse-debug", func(ui mcli.Ui) (mcli.Command, error) { return logdebug.New(ui) }},

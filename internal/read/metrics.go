@@ -258,21 +258,31 @@ func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (str
 	return output, nil
 }
 
-// extractMetricValueByName uses regex to pull the metrics data from the bundle's constructed
-// metrics data hashtable.
-// It returns a slice of maps containing the matched metric data and a boolean indicating if the metric name was found.
-func (m Metrics) extractMetricValueByName(metricName string) ([][]map[string]interface{}, bool) {
+// matchMetricsByRegex matches metric names using a given regex and returns the matching data.
+func matchMetricsByRegex(metricsMap map[string][]map[string]interface{}, pattern string) ([][]map[string]interface{}, bool) {
+	regex := regexp.MustCompile(pattern)
 	var matches [][]map[string]interface{}
-
-	regex := regexp.MustCompile(".*" + metricName)
 	found := false
-	for name, data := range m.MetricsMap {
+	for name, data := range metricsMap {
 		if regex.MatchString(name) {
 			matches = append(matches, data)
 			found = true
 		}
 	}
 	return matches, found
+}
+
+// extractMetricValueByName uses regex to pull the matching metrics data from the metrics map.
+// It returns a slice of maps containing the matched metrics and a boolean indicating if the metric was found.
+func (m Metrics) extractMetricValueByName(metricName string) ([][]map[string]interface{}, bool) {
+	// Replace * with regex wildcard .* if present
+	if strings.Contains(metricName, "*") {
+		pattern := strings.ReplaceAll(regexp.QuoteMeta(metricName), `\*`, ".*")
+		return matchMetricsByRegex(m.MetricsMap, pattern)
+	}
+
+	// No wildcard case
+	return matchMetricsByRegex(m.MetricsMap, `.*`+regexp.QuoteMeta(metricName))
 }
 
 func (b *Debug) Summary() string {
