@@ -70,17 +70,39 @@ else
   NEW_VERSION=$CURRENT_VERSION
 fi
 
-# Step 4: Git add, commit, and push changes to main
-git checkout "$MAIN_BRANCH"
-git pull origin "$MAIN_BRANCH"
+# Switch to the main branch and pull the latest changes
+if ! git branch --show-current | grep -q "$MAIN_BRANCH"; then
+    if git checkout "$MAIN_BRANCH"; then
+      echo "Switched to branch '$MAIN_BRANCH' successfully."
+    else
+      echo "Failed to switch to branch '$MAIN_BRANCH'"
+      exit 1
+    fi
+fi
 
-echo "Adding and committing version update to Git..."
-git add "$VERSION_FILE"
-git commit -m "Update to version $NEW_VERSION"
-git push origin "$MAIN_BRANCH"
+# Add and commit version update only if there are changes
+if ! git diff --quiet "$VERSION_FILE"; then
+    echo "Adding and committing version update to Git..."
+    git add "$VERSION_FILE"
+    git commit -m "Update to version $NEW_VERSION"
+    git push origin "$MAIN_BRANCH"
+else
+    echo "No changes detected in $VERSION_FILE. Skipping commit."
+fi
 
 # Step 5: Create a git tag and push
 echo "Creating git tag v$NEW_VERSION..."
+if git tag -l | grep -q "v$NEW_VERSION"; then
+    read -rp "v$NEW_VERSION tagged branch already present. Delete and recreate? (y/n): " RECREATE_TAGGED_BR
+    if [[ "${RECREATE_TAGGED_BR}" =~ ^[Yy]$ ]]; then
+        git tag -d "v${NEW_VERSION}"
+        git push --delete origin "v${NEW_VERSION}"
+        gh release delete "v${NEW_VERSION}" --yes
+    else
+        echo "Fix tagged branch conflict and rerun $(basename "${0}"), exiting..."
+        exit 1
+    fi
+fi
 git tag -a "v$NEW_VERSION" -m "Release version v$NEW_VERSION"
 git push origin "v$NEW_VERSION"
 

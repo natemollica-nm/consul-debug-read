@@ -16,8 +16,10 @@
 
 ## Recreate tag post-correction
 
-`git tag -d v1.1.8`
+```shell
+git tag -d v1.1.8
+git push --delete origin v1.1.8
+```
 
-`git push --delete origin v1.1.8`
 
 re-run the above
