@@ -137,6 +137,7 @@ func (b *Debug) BuildMetricsIndex() {
 func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (string, error) {
 	var err error
 
+	// Get telemetry metrics
 	stringInfo, telemetryInfo, _ := GetTelemetryMetrics()
 	if validate {
 		if ok := validateName(name, stringInfo); !ok {
@@ -144,137 +145,147 @@ func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (str
 			return "", fmt.Errorf(errString)
 		}
 	}
-	unit, metricType := getUnitAndType(name, telemetryInfo)
 
-	// Build Metrics Information Title
-	result := []string{fmt.Sprintf("\x1f%s\x1f", name)}
-	//nolint:staticcheck
-	ul := fmt.Sprintf(strings.Repeat("-", len(name)))
-	result = append(result, fmt.Sprintf("\x1f%s\x1f", ul))
-	if short {
-		result = append(result, "Timestamp\x1fValue\x1f")
-
-	} else {
-		result = append(result, "Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1f")
-	}
-
-	// Retrieve metric data from the metrics map
-	metricData, found := b.Metrics.extractMetricValueByName(name)
+	// Retrieve metric data and matching metric names
+	metricData, matchedNames, found := b.Metrics.extractMetricValueByName(name)
 	if !found {
-		// Metric not found in the metrics map ==> nil return
-		result = []string{fmt.Sprintf("*\x1f%s\x1f=>\x1fnil\x1fvalue(s)\x1freturned\x1f", name)}
+		// No metrics found matching the given name
+		result := []string{fmt.Sprintf("*\x1f%s\x1f=>\x1fnil\x1fvalue(s)\x1freturned\x1f", name)}
 		output := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 		return output, nil
 	}
 
-	var label []string
-	// Iterate over metric data and construct result
-	for _, data := range metricData {
-		for _, scrape := range data {
-			timestamp := scrape["timestamp"].(string)
-			mValue := scrape["value"]
-			mLabels := scrape["labels"].(map[string]string)
-			for k, v := range mLabels {
-				label = append(label, fmt.Sprintf("%s=%v", k, v))
-			}
-			if mValue != nil {
-				var v string
+	var result []string
+
+	// Iterate through matched metric names and process data
+	for _, matchedName := range matchedNames {
+		unit, metricType := getUnitAndType(matchedName, telemetryInfo)
+
+		// Build header for each matched metric name
+		result = append(result, fmt.Sprintf("\x1f%s\x1f", matchedName))
+		result = append(result, fmt.Sprintf("\x1f%s\x1f", strings.Repeat("-", len(matchedName))))
+		if short {
+			result = append(result, "Timestamp\x1fValue\x1f")
+		} else {
+			result = append(result, "Timestamp\x1fMetric\x1fType\x1fUnit\x1fValue\x1f")
+		}
+
+		// Process metric data for the current matched name
+		for _, data := range metricData {
+			for _, scrape := range data {
+				timestamp := scrape["timestamp"].(string)
+				mValue := scrape["value"]
+				mLabels := scrape["labels"].(map[string]string)
+
+				// Construct labels
+				var labels []string
+				for k, v := range mLabels {
+					labels = append(labels, fmt.Sprintf("%s=%v", k, v))
+				}
+
+				// Process metric value
+				var formattedValue string
 				if timeReg.MatchString(unit) {
-					v, err = ConvertToReadableTime(mValue, unit)
+					formattedValue, err = ConvertToReadableTime(mValue, unit)
 					if err != nil {
 						return "", err
 					}
 				} else if bytesReg.MatchString(unit) {
 					conv := ByteConverter{}
-					v = conv.ConvertToReadableBytes(mValue)
+					formattedValue = conv.ConvertToReadableBytes(mValue)
 				} else if percentageReg.MatchString(unit) {
 					vFloat := mValue.(float64)
 					percent := vFloat * 100.00
-					v = fmt.Sprintf("%.2f%%", percent)
+					formattedValue = fmt.Sprintf("%.2f%%", percent)
 				} else {
-					v = fmt.Sprintf("%v", mValue)
+					formattedValue = fmt.Sprintf("%v", mValue)
 				}
-				totalLabels := len(label)
+
+				// Add metric record to the result
+				totalLabels := len(labels)
 				if short {
 					if totalLabels > 0 && totalLabels <= 3 {
-						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f",
-							timestamp, v, label))
+						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f", timestamp, formattedValue, labels))
 					} else if totalLabels > 3 {
-						label = label[:6-3]
-						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s + %d more ...",
-							timestamp, v, label, totalLabels))
+						labels = labels[:6-3]
+						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s + %d more ...", timestamp,
+							formattedValue, labels, totalLabels))
 					} else {
-						result = append(result, fmt.Sprintf("%s\x1f%s\x1f",
-							timestamp, v))
+						result = append(result, fmt.Sprintf("%s\x1f%s\x1f", timestamp, formattedValue))
 					}
 				} else {
 					if totalLabels > 0 && totalLabels <= 3 {
 						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
-							timestamp, name, metricType, unit, v, label))
+							timestamp, matchedName, metricType, unit, formattedValue, labels))
 					} else if totalLabels > 3 {
-						label = label[:6-3]
+						labels = labels[:6-3]
 						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s + %d more ...",
-							timestamp, name, metricType, unit, v, label, totalLabels))
+							timestamp, matchedName, metricType, unit, formattedValue, labels, totalLabels))
 					} else {
 						result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f",
-							timestamp, name, metricType, unit, v))
+							timestamp, matchedName, metricType, unit, formattedValue))
 					}
 				}
 			}
 		}
-
 	}
-	if len(label) > 0 {
+
+	// Add label information if applicable
+	if len(result) > 2 && strings.Contains(result[2], "Labels") {
 		result[2] += "Labels\x1f"
 	}
 	if name == "consul.runtime.total_gc_pause_ns" {
 		result[2] += "gc/min\x1f"
-		// Calculate the GC rate and add it to each line
+		// Calculate GC rates and update the result
 		for _, values := range metricData {
 			var rate string
-			for i := 0; i < len(values); i++ {
+			for i := range values {
 				if i == 0 {
-					// no previous time stamped gc gauge value to perform non-neg diff calc
-					result[i+3] = fmt.Sprintf("%s%s\x1f", result[i+3], "-")
+					result[i+3] = fmt.Sprintf("%s-\x1f", result[i+3])
 				} else {
 					gcPause := values[i]
-					prevGcPause := values[i-1]
-					// Calculate non-negative difference in gc_pause rate
-					rate, err = CalculateGCRate(gcPause, prevGcPause)
+					prevGCPause := values[i-1]
+					rate, err = CalculateGCRate(gcPause, prevGCPause)
 					if err != nil {
 						return "", fmt.Errorf("error calculating rate: %v", err)
 					}
-
-					// Append the calculated rate to the line
 					result[i+3] = fmt.Sprintf("%s%s\x1f", result[i+3], rate)
 				}
 			}
 		}
 	}
+
+	// Sort results by value if requested
 	if byValue {
 		sort.Sort(ByValue(result[3:]))
 	}
+
+	// Format the result into a columnized string and return
 	output := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f}), Glue: " "})
 	return output, nil
 }
 
-// matchMetricsByRegex matches metric names using a given regex and returns the matching data.
-func matchMetricsByRegex(metricsMap map[string][]map[string]interface{}, pattern string) ([][]map[string]interface{}, bool) {
+// matchMetricsByRegex matches metric names using a given regex and returns the matching data and metric names.
+func matchMetricsByRegex(metricsMap map[string][]map[string]interface{}, pattern string) ([][]map[string]interface{}, []string, bool) {
 	regex := regexp.MustCompile(pattern)
 	var matches [][]map[string]interface{}
+	var matchedNames []string
 	found := false
+
 	for name, data := range metricsMap {
 		if regex.MatchString(name) {
 			matches = append(matches, data)
+			matchedNames = append(matchedNames, name)
 			found = true
 		}
 	}
-	return matches, found
+
+	return matches, matchedNames, found
 }
 
-// extractMetricValueByName uses regex to pull the matching metrics data from the metrics map.
-// It returns a slice of maps containing the matched metrics and a boolean indicating if the metric was found.
-func (m Metrics) extractMetricValueByName(metricName string) ([][]map[string]interface{}, bool) {
+// extractMetricValueByName uses regex to pull the matching metrics data and metric names from the metrics map.
+// It returns a slice of matched data, a slice of matched names, and a boolean indicating if the metric was found.
+func (m Metrics) extractMetricValueByName(metricName string) ([][]map[string]interface{}, []string, bool) {
 	// Replace * with regex wildcard .* if present
 	if strings.Contains(metricName, "*") {
 		pattern := strings.ReplaceAll(regexp.QuoteMeta(metricName), `\*`, ".*")
