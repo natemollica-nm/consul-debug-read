@@ -133,6 +133,31 @@ func (b *Debug) BuildMetricsIndex() {
 	}
 }
 
+func formatMetricValue(mValue interface{}, unit string) (string, error) {
+	switch value := mValue.(type) {
+	case float64:
+		if timeReg.MatchString(unit) {
+			return ConvertToReadableTime(value, unit)
+		} else if percentageReg.MatchString(unit) {
+			return fmt.Sprintf("%.2f%%", value*100.00), nil
+		} else {
+			return fmt.Sprintf("%v", value), nil
+		}
+	case int:
+		if timeReg.MatchString(unit) {
+			return ConvertToReadableTime(float64(value), unit)
+		} else if percentageReg.MatchString(unit) {
+			return fmt.Sprintf("%.2f%%", float64(value)*100.00), nil
+		} else {
+			return fmt.Sprintf("%v", value), nil
+		}
+	case nil:
+		return "nil", nil
+	default:
+		return fmt.Sprintf("%v", mValue), nil
+	}
+}
+
 // GetMetricValues / extracts all timestamped occurrences of metric values by name
 func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (string, error) {
 	var err error
@@ -185,20 +210,9 @@ func (b *Debug) GetMetricValues(name string, validate, byValue, short bool) (str
 
 				// Process metric value
 				var formattedValue string
-				if timeReg.MatchString(unit) {
-					formattedValue, err = ConvertToReadableTime(mValue, unit)
-					if err != nil {
-						return "", err
-					}
-				} else if bytesReg.MatchString(unit) {
-					conv := ByteConverter{}
-					formattedValue = conv.ConvertToReadableBytes(mValue)
-				} else if percentageReg.MatchString(unit) {
-					vFloat := mValue.(float64)
-					percent := vFloat * 100.00
-					formattedValue = fmt.Sprintf("%.2f%%", percent)
-				} else {
-					formattedValue = fmt.Sprintf("%v", mValue)
+				formattedValue, err = formatMetricValue(mValue, unit)
+				if err != nil {
+					return "", err
 				}
 
 				// Add metric record to the result
