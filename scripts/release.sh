@@ -20,7 +20,7 @@ if [ -z "$CURRENT_VERSION" ]; then
   exit 1
 fi
 
-echo "Current version detected: $CURRENT_VERSION"
+echo "Current version detected: v$CURRENT_VERSION"
 
 # Step 2: Check for the latest release on GitHub
 LATEST_RELEASE=$(gh release list --limit 1 | awk '{ print $1 }')
@@ -32,7 +32,7 @@ else
 fi
 
 # Compare current version with the latest release
-if [ "$CURRENT_VERSION" == "$LATEST_RELEASE" ]; then
+if [ "v$CURRENT_VERSION" == "$LATEST_RELEASE" ]; then
   echo "The current version is already the latest release."
 else
   echo "The current version is different from the latest release."
