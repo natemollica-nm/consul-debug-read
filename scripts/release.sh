@@ -91,18 +91,19 @@ else
 fi
 
 # Step 5: Create a git tag and push
-echo "Creating git tag v$NEW_VERSION..."
 if git tag -l | grep -q "v$NEW_VERSION"; then
     read -rp "v$NEW_VERSION tagged branch already present. Delete and recreate? (y/n): " RECREATE_TAGGED_BR
     if [[ "${RECREATE_TAGGED_BR}" =~ ^[Yy]$ ]]; then
         git tag -d "v${NEW_VERSION}"
         git push --delete origin "v${NEW_VERSION}"
         gh release delete "v${NEW_VERSION}" --yes
+        git fetch
     else
         echo "Fix tagged branch conflict and rerun $(basename "${0}"), exiting..."
         exit 1
     fi
 fi
+echo "Creating git tag v$NEW_VERSION..."
 git tag -a "v$NEW_VERSION" -m "Release version v$NEW_VERSION"
 git push origin "v$NEW_VERSION"
 
