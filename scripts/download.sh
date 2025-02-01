@@ -13,7 +13,17 @@ fi
 ensure_sudo() {
   if [[ $EUID -ne 0 ]]; then
     echo -e "\033[1;33mINFO:\033[0m This script requires elevated privileges. Prompting for sudo..."
-    sudo bash "$0" "$@"
+
+    # Save the script to a temporary file
+    local tmp_script="/tmp/$(basename "$0").$$"
+    cat "$0" > "$tmp_script"
+    chmod +x "$tmp_script"
+
+    # Re-run the script with sudo
+    sudo bash "$tmp_script" "$@"
+
+    # Clean up the temporary file
+    rm -f "$tmp_script"
     exit 0
   fi
 }
