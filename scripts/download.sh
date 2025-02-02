@@ -16,14 +16,7 @@ warn() { echo "${YELLOW}${BOLD}[WARN]${CLEAR} $*" 1>&2; }
 err() { echo "${RED}${BOLD}[ERROR]${CLEAR} $*" 1>&2; exit 1; }
 
 # Prompt for sudo if required
-require_sudo() {
-  if [ "$(id -u)" -ne 0 ]; then
-      info "Requesting sudo permissions..."
-      sudo -v || err "Sudo required" && return 1
-      return 0
-  fi
-  info "Running as root user..."
-}
+require_sudo() { [ "$(id -u)" -ne 0 ] && info "Requesting sudo permissions..." && sudo -v || err "Sudo required"; }
 
 check_tool() {
     if ! command -v "$1" >/dev/null 2>&1; then
@@ -55,6 +48,7 @@ trap cleanup EXIT
 install_latest_release() {
     info "Downloading consul-debug-read (${VERSION} | ${PLATFORM} | ${ARCH})..."
     require_sudo || {
+      err "Failed to elevate to root privileges"
       return 1
     }
     curl -fsSL "$URL" -o /tmp/consul-debug-read.tar.gz || wget -q "$URL" -O /tmp/consul-debug-read.tar.gz
